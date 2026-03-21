@@ -112,6 +112,30 @@ html, body { height: 100%; overflow: hidden; }
 .theme-toggle { background: none; border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); cursor: pointer; color: var(--text-muted); font-size: var(--text-xs); display: flex; align-items: center; gap: var(--space-2); transition: all var(--transition); white-space: nowrap; }
 .theme-toggle:hover { border-color: var(--accent); color: var(--text); }
 
+/* Update badge */
+.update-badge { display: none; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--accent-dim); border: 1px solid var(--accent); border-radius: var(--radius-md); font-size: var(--text-xs); font-weight: 600; color: var(--accent); cursor: pointer; transition: all var(--transition); white-space: nowrap; animation: pulse-badge 2s infinite; }
+.update-badge.visible { display: flex; }
+.update-badge:hover { background: var(--accent); color: var(--text-inverse); }
+@keyframes pulse-badge { 0%,100% { box-shadow: 0 0 0 0 var(--accent-glow); } 50% { box-shadow: 0 0 0 4px var(--accent-glow); } }
+
+/* Update modal */
+.update-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center; }
+.update-modal-overlay.visible { display: flex; }
+.update-modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: var(--space-8); max-width: 440px; width: 90%; display: flex; flex-direction: column; gap: var(--space-5); }
+.update-modal-title { font-size: var(--text-lg); font-weight: 700; color: var(--text); }
+.update-modal-body { font-size: var(--text-sm); color: var(--text-muted); line-height: 1.6; }
+.update-modal-versions { display: flex; gap: var(--space-4); }
+.update-version-chip { padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 600; }
+.update-version-chip.current { background: var(--surface-3); color: var(--text-muted); }
+.update-version-chip.latest { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); }
+.update-modal-actions { display: flex; gap: var(--space-3); justify-content: flex-end; }
+.btn-update { padding: var(--space-3) var(--space-6); background: var(--accent); color: var(--text-inverse); font-weight: 700; font-size: var(--text-sm); border-radius: var(--radius-md); border: none; cursor: pointer; transition: background var(--transition); }
+.btn-update:hover { background: var(--accent-hover); }
+.btn-update:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-cancel { padding: var(--space-3) var(--space-6); background: transparent; color: var(--text-muted); font-size: var(--text-sm); border-radius: var(--radius-md); border: 1px solid var(--border); cursor: pointer; transition: all var(--transition); }
+.btn-cancel:hover { border-color: var(--text-muted); color: var(--text); }
+.update-progress { font-size: var(--text-xs); color: var(--text-muted); font-family: var(--font-mono); min-height: 1.5em; }
+
 body {
   font-family: var(--font-body);
   font-size: var(--text-base);
@@ -577,6 +601,9 @@ body {
       </nav>
       <div class="live-dot"><span></span> Live</div>
       <div class="last-updated" id="last-updated">—</div>
+      <div class="update-badge" id="update-badge" onclick="showUpdateModal()" title="Update available">
+        ⬆️ <span id="update-badge-text">Update Available</span>
+      </div>
       <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">
         <span id="theme-icon">☀️</span>
         <span id="theme-label">Light</span>
@@ -870,6 +897,8 @@ function disconnect() {
 function startDashboard() {
   loadData();
   loadSettings();
+  checkVersion(); // check on connect
+  setInterval(checkVersion, 10 * 60 * 1000); // re-check every 10 minutes
   refreshTimer = setInterval(loadData, 30000);
 }
 
@@ -1140,6 +1169,66 @@ function timeAgo(ts) {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────
+// ── Version check ────────────────────────────────────────────────
+let _versionData = null;
+
+async function checkVersion() {
+  try {
+    const v = await botFetch('/api/version');
+    _versionData = v;
+    const badge = document.getElementById('update-badge');
+    if (v.update_available) {
+      document.getElementById('update-badge-text').textContent = `Update v${v.latest}`;
+      badge.classList.add('visible');
+    } else {
+      badge.classList.remove('visible');
+    }
+  } catch(e) { /* silently ignore — version check is non-critical */ }
+}
+
+function showUpdateModal() {
+  if (!_versionData) return;
+  document.getElementById('modal-current-version').textContent = _versionData.current;
+  document.getElementById('modal-latest-version').textContent  = _versionData.latest;
+  document.getElementById('update-progress').textContent = '';
+  document.getElementById('btn-update-confirm').disabled = false;
+  document.getElementById('btn-update-confirm').textContent = '\u2b06\ufe0f Update Now';
+  document.getElementById('update-modal-overlay').classList.add('visible');
+}
+
+function hideUpdateModal() {
+  document.getElementById('update-modal-overlay').classList.remove('visible');
+}
+
+async function executeUpdate() {
+  const btn      = document.getElementById('btn-update-confirm');
+  const cancel   = document.getElementById('btn-update-cancel');
+  const progress = document.getElementById('update-progress');
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+  cancel.disabled = true;
+  progress.textContent = 'Pulling latest code from GitHub...';
+  try {
+    const res = await botFetch('/api/update', { method: 'POST', body: JSON.stringify({ password: BOT_PW }) });
+    if (res.ok) {
+      progress.textContent = res.message;
+      btn.textContent = '\u2713 Update Started';
+      // Auto-close modal after 3s, dashboard will reconnect naturally
+      setTimeout(() => hideUpdateModal(), 3000);
+    } else {
+      progress.textContent = 'Error: ' + (res.error || 'Unknown error');
+      btn.disabled = false;
+      btn.textContent = '\u2b06\ufe0f Update Now';
+      cancel.disabled = false;
+    }
+  } catch(e) {
+    progress.textContent = 'Error: ' + e.message;
+    btn.disabled = false;
+    btn.textContent = '\u2b06\ufe0f Update Now';
+    cancel.disabled = false;
+  }
+}
+
 // ── Theme toggle ───────────────────────────────────────────────────
 function toggleTheme() {
   const html = document.documentElement;
@@ -1455,5 +1544,22 @@ async function saveSettings() {
   }
 }
 </script>
+
+<!-- Update Modal -->
+<div class="update-modal-overlay" id="update-modal-overlay">
+  <div class="update-modal">
+    <div class="update-modal-title">🟠 BotCoin Update Available</div>
+    <div class="update-modal-body">A new version of BotCoin is available. The bot will pull the latest code from GitHub and rebuild automatically. This takes about 2 minutes — the dashboard will reconnect when it’s back up.</div>
+    <div class="update-modal-versions">
+      <div class="update-version-chip current">Current: <span id="modal-current-version">—</span></div>
+      <div class="update-version-chip latest">⬆️ Latest: <span id="modal-latest-version">—</span></div>
+    </div>
+    <div class="update-progress" id="update-progress"></div>
+    <div class="update-modal-actions">
+      <button class="btn-cancel" id="btn-update-cancel" onclick="hideUpdateModal()">Cancel</button>
+      <button class="btn-update" id="btn-update-confirm" onclick="executeUpdate()">⬆️ Update Now</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
