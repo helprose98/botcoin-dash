@@ -449,6 +449,8 @@ body {
 .aggression-active.aggressive   .aa-name { color: var(--accent); }
 .aggression-active.max          { background: var(--red-dim);    border-color: rgba(248,113,113,0.25); }
 .aggression-active.max          .aa-name { color: var(--red); }
+.aggression-active.ultra        { background: rgba(167,139,250,0.12); border-color: rgba(167,139,250,0.3); }
+.aggression-active.ultra        .aa-name { color: #a78bfa; }
 .aggression-divider { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-2) 0; }
 .aggression-divider::before, .aggression-divider::after { content: ''; flex: 1; height: 1px; background: var(--divider); }
 .aggression-divider span { font-size: var(--text-xs); color: var(--text-faint); white-space: nowrap; }
@@ -721,13 +723,17 @@ body {
           </div>
           <div class="aggression-track" style="margin-top:var(--space-4)">
             <input type="range" class="aggression-slider" id="aggression-slider"
-                   min="0" max="3" step="1" value="1" oninput="onAggressionChange(this.value)">
+                   min="0" max="4" step="1" value="1" oninput="onAggressionChange(this.value)">
           </div>
           <div class="aggression-labels">
             <div class="aggression-label-item" data-level="0"><span class="al-icon">🐢</span><span class="al-name">Conservative</span><span class="al-desc">Small buys, wide thresholds</span></div>
             <div class="aggression-label-item active" data-level="1"><span class="al-icon">⚖️</span><span class="al-name">Balanced</span><span class="al-desc">Steady DCA, sensible dips</span></div>
             <div class="aggression-label-item" data-level="2"><span class="al-icon">🚀</span><span class="al-name">Aggressive</span><span class="al-desc">Bigger buys, tighter triggers</span></div>
             <div class="aggression-label-item" data-level="3"><span class="al-icon">🔥</span><span class="al-name">Max Stack</span><span class="al-desc">All in. Buy everything, always.</span></div>
+            <div class="aggression-label-item" data-level="4"><span class="al-icon">⚡</span><span class="al-name">Ultra</span><span class="al-desc">Sideways markets only</span></div>
+          </div>
+          <div id="ultra-warning" style="display:none;margin-top:var(--space-3);padding:var(--space-3) var(--space-4);background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.25);border-radius:var(--radius-md);font-size:var(--text-xs);color:#a78bfa;">
+            ⚠ Ultra mode harvests 1.5–3% price oscillations. Highly effective in sideways/choppy markets. In a strong trending market it may sell too early and miss the move. Only engage when you believe BTC is ranging.
           </div>
           <!-- Read-only preview of what the slider sets -->
           <div class="threshold-readonly-grid" id="threshold-readonly">
@@ -1349,6 +1355,8 @@ const AGGRESSION_LEVELS = [
     dip1:'0.05', dip2:'0.10', dip3:'0.16', recycler_sell:'0.12', recycler_pool:'0.40', max_order:'2000' },
   { name:'Max Stack',    icon:'🔥', cls:'max',          desc:'Deploy everything on every dip. Maximum BTC accumulation, higher activity.',
     dip1:'0.03', dip2:'0.07', dip3:'0.12', recycler_sell:'0.08', recycler_pool:'0.50', max_order:'5000' },
+  { name:'Ultra ⚡',     icon:'⚡', cls:'ultra',        desc:'Sideways markets only. Harvests 1.5–3% oscillations. Switch off in trending markets.',
+    dip1:'0.015', dip2:'0.030', dip3:'0.060', recycler_sell:'0.03', recycler_pool:'0.55', max_order:'2000' },
 ];
 
 function onAggressionChange(val) {
@@ -1368,6 +1376,10 @@ function onAggressionChange(val) {
   document.getElementById('ro-pool').textContent  = (parseFloat(level.recycler_pool)*100).toFixed(0) + '%';
   document.getElementById('ro-sell').textContent  = (parseFloat(level.recycler_sell)*100).toFixed(0) + '%';
   document.getElementById('ro-max').textContent   = '$' + parseFloat(level.max_order).toLocaleString();
+  // Show Ultra warning
+  const ultraWarning = document.getElementById('ultra-warning');
+  if (ultraWarning) ultraWarning.style.display = parseInt(val) === 4 ? '' : 'none';
+
   // Store in hidden fields for saving
   document.getElementById('s-dip1-hidden').value           = (parseFloat(level.dip1)*100).toFixed(1);
   document.getElementById('s-dip2-hidden').value           = (parseFloat(level.dip2)*100).toFixed(1);
