@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BotCoin — BTC Stack Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ── Reset & Tokens ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+:root {
+  --text-xs:   clamp(0.75rem,  0.7rem  + 0.25vw, 0.875rem);
+  --text-sm:   clamp(0.875rem, 0.8rem  + 0.35vw, 1rem);
+  --text-base: clamp(1rem,     0.95rem + 0.25vw, 1.125rem);
+  --text-lg:   clamp(1.125rem, 1rem    + 0.75vw, 1.5rem);
+  --text-xl:   clamp(1.5rem,   1.2rem  + 1.25vw, 2.25rem);
+
+  --space-1: 0.25rem; --space-2: 0.5rem;  --space-3: 0.75rem;
+  --space-4: 1rem;    --space-5: 1.25rem; --space-6: 1.5rem;
+  --space-8: 2rem;    --space-10: 2.5rem; --space-12: 3rem;
+
+  --radius-sm: 0.375rem; --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;  --radius-xl: 1rem;
+  --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Dark theme (default) */
+  --bg:          #0f0e0d;
+  --surface:     #161514;
+  --surface-2:   #1c1b19;
+  --surface-3:   #222120;
+  --border:      #2e2d2b;
+  --divider:     #252422;
+
+  --text:        #e8e6e3;
+  --text-muted:  #7a7875;
+  --text-faint:  #4a4845;
+  --text-inverse:#0f0e0d;
+
+  --accent:      #f7931a;
+  --accent-hover:#e8841a;
+  --accent-dim:  rgba(247,147,26,0.12);
+  --accent-glow: rgba(247,147,26,0.25);
+
+  --green:       #4ade80;
+  --green-dim:   rgba(74,222,128,0.12);
+  --red:         #f87171;
+  --red-dim:     rgba(248,113,113,0.12);
+  --blue:        #60a5fa;
+  --blue-dim:    rgba(96,165,250,0.12);
+  --gold:        #fbbf24;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.6);
+
+  --font-body: 'Inter', 'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg:          #f5f3f0;
+  --surface:     #ffffff;
+  --surface-2:   #f0ede9;
+  --surface-3:   #e8e4df;
+  --border:      #d8d3cc;
+  --divider:     #e4e0da;
+
+  --text:        #1a1917;
+  --text-muted:  #6b6560;
+  --text-faint:  #a09890;
+  --text-inverse:#ffffff;
+
+  --accent:      #e8820f;
+  --accent-hover:#d4720a;
+  --accent-dim:  rgba(232,130,15,0.10);
+  --accent-glow: rgba(232,130,15,0.20);
+
+  --green:       #16a34a;
+  --green-dim:   rgba(22,163,74,0.10);
+  --red:         #dc2626;
+  --red-dim:     rgba(220,38,38,0.10);
+  --blue:        #2563eb;
+  --blue-dim:    rgba(37,99,235,0.10);
+  --gold:        #d97706;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.10);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.12);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.14);
+}
+
+/* Theme toggle button */
+.theme-toggle { background: none; border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); cursor: pointer; color: var(--text-muted); font-size: var(--text-xs); display: flex; align-items: center; gap: var(--space-2); transition: all var(--transition); white-space: nowrap; }
+.theme-toggle:hover { border-color: var(--accent); color: var(--text); }
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Connect Screen ─────────────────────────────────────────────────── */
+#connect-screen {
+  position: fixed; inset: 0; z-index: 100;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+}
+.connect-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-10);
+  width: min(420px, 92vw);
+  display: flex; flex-direction: column; gap: var(--space-6);
+  box-shadow: var(--shadow-lg);
+}
+.connect-logo {
+  display: flex; align-items: center; gap: var(--space-3);
+  justify-content: center;
+}
+.connect-logo svg { color: var(--accent); }
+.connect-logo span {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.connect-subtitle {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.connect-field {
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.connect-field label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.connect-field input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  outline: none;
+  transition: border-color var(--transition);
+}
+.connect-field input:focus { border-color: var(--accent); }
+.connect-field .field-hint {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+.btn-connect {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--accent);
+  color: var(--text-inverse);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  border: none;
+  transition: background var(--transition);
+  display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+}
+.btn-connect:hover { background: var(--accent-hover); }
+.btn-connect:disabled { opacity: 0.6; cursor: not-allowed; }
+.connect-error {
+  color: var(--red);
+  font-size: var(--text-xs);
+  text-align: center;
+  display: none;
+  background: var(--red-dim);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+}
+.connect-status {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-align: center;
+  display: none;
+}
+.connected-badge {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  padding: var(--space-1) var(--space-3);
+  background: var(--surface-2);
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.connected-badge:hover { border-color: var(--accent); color: var(--text-muted); }
+.connected-badge .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+/* ── Dashboard Layout ───────────────────────────────────────────────── */
+#app {
+  display: none;
+  height: 100dvh;
+  flex-direction: column;
+}
+#app.visible { display: flex; }
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--divider);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.header-logo { display: flex; align-items: center; gap: var(--space-3); }
+.header-logo svg { color: var(--accent); }
+.header-logo .name { font-size: var(--text-lg); font-weight: 700; letter-spacing: -0.02em; }
+.header-logo .tagline { font-size: var(--text-xs); color: var(--text-muted); margin-left: var(--space-2); }
+.header-right { display: flex; align-items: center; gap: var(--space-4); }
+.live-dot { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-muted); }
+.live-dot span { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.last-updated { font-size: var(--text-xs); color: var(--text-faint); font-family: var(--font-mono); }
+
+/* ── Main scroll area ───────────────────────────────────────────────── */
+.main {
+  flex: 1; overflow-y: auto; overscroll-behavior: contain;
+  padding: var(--space-6);
+  display: flex; flex-direction: column; gap: var(--space-6);
+}
+
+/* ── Mood Banner ────────────────────────────────────────────────────── */
+.mood-banner {
+  border-radius: var(--radius-xl); padding: var(--space-5) var(--space-6);
+  display: flex; align-items: center; gap: var(--space-4);
+  border: 1px solid transparent; transition: all 0.4s ease;
+}
+.mood-banner.positive { background: var(--green-dim); border-color: rgba(74,222,128,0.2); }
+.mood-banner.bull     { background: var(--accent-dim); border-color: rgba(247,147,26,0.3); }
+.mood-banner.bear     { background: var(--red-dim); border-color: rgba(248,113,113,0.2); }
+.mood-banner.neutral  { background: var(--surface-2); border-color: var(--border); }
+.mood-icon { font-size: 2rem; line-height: 1; flex-shrink: 0; }
+.mood-text { flex: 1; }
+.mood-label { font-size: var(--text-lg); font-weight: 700; line-height: 1.2; }
+.mood-banner.positive .mood-label { color: var(--green); }
+.mood-banner.bull     .mood-label { color: var(--accent); }
+.mood-banner.bear     .mood-label { color: var(--red); }
+.mood-banner.neutral  .mood-label { color: var(--text); }
+.mood-detail { font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-1); }
+.mood-mode {
+  font-size: var(--text-xs); font-family: var(--font-mono);
+  padding: var(--space-1) var(--space-3); border-radius: 9999px;
+  background: var(--surface-3); color: var(--text-muted); white-space: nowrap;
+}
+.mood-mode.btc { color: var(--accent); background: var(--accent-dim); }
+.mood-mode.usd { color: var(--blue);   background: var(--blue-dim); }
+
+/* ── Stats Grid ─────────────────────────────────────────────────────── */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-4); }
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-2);
+  transition: border-color var(--transition);
+}
+.stat-card:hover { border-color: var(--accent); }
+.stat-label { font-size: var(--text-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+.stat-value { font-family: var(--font-mono); font-size: var(--text-lg); font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums lining-nums; line-height: 1.2; }
+.stat-value.accent { color: var(--accent); }
+.stat-value.green  { color: var(--green); }
+.stat-value.red    { color: var(--red); }
+.stat-value.gold   { color: var(--gold); }
+.stat-sub { font-size: var(--text-xs); color: var(--text-faint); }
+
+.btc-hero {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-xl); padding: var(--space-8);
+  text-align: center; position: relative; overflow: hidden;
+}
+.btc-hero::before {
+  content: '₿'; position: absolute; font-size: 12rem; font-weight: 900;
+  color: var(--accent); opacity: 0.03; right: -1rem; bottom: -2rem;
+  line-height: 1; pointer-events: none;
+}
+.btc-hero-label { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: var(--space-3); }
+.btc-hero-number {
+  font-family: var(--font-mono); font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em; line-height: 1;
+}
+.btc-hero-sub { margin-top: var(--space-3); font-size: var(--text-sm); color: var(--text-muted); }
+.btc-hero-sub strong { color: var(--text); }
+.bot-added {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  margin-top: var(--space-2); font-size: var(--text-xs);
+  color: var(--green); background: var(--green-dim);
+  padding: var(--space-1) var(--space-3); border-radius: 9999px;
+}
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+@media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+
+.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: var(--space-6); }
+.chart-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-5); }
+.chart-card-title { font-size: var(--text-sm); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.chart-wrap { position: relative; height: 160px; }
+
+.progress-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-xl); padding: var(--space-6);
+  display: flex; flex-direction: column; gap: var(--space-4);
+}
+.progress-label { font-size: var(--text-sm); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.progress-bar-wrap { background: var(--surface-3); border-radius: 9999px; height: 8px; overflow: hidden; }
+.progress-bar-fill { height: 100%; border-radius: 9999px; background: linear-gradient(90deg, var(--red) 0%, var(--gold) 60%, var(--green) 100%); transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+.progress-prices { display: flex; justify-content: space-between; font-size: var(--text-xs); font-family: var(--font-mono); color: var(--text-faint); }
+.progress-current { text-align: center; font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-1); }
+.progress-current strong { font-family: var(--font-mono); color: var(--text); }
+
+.info-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+@media (max-width: 700px) { .info-row { grid-template-columns: 1fr; } }
+.info-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: var(--space-5); }
+.info-card-title { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 600; margin-bottom: var(--space-4); }
+.trade-item { display: flex; flex-direction: column; gap: var(--space-2); }
+.trade-side { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); font-weight: 700; padding: 2px var(--space-2); border-radius: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+.trade-side.buy  { background: var(--green-dim); color: var(--green); }
+.trade-side.sell { background: var(--red-dim);   color: var(--red); }
+.trade-label { font-size: var(--text-sm); color: var(--text); font-weight: 500; }
+.trade-meta  { font-size: var(--text-xs); color: var(--text-muted); font-family: var(--font-mono); }
+.next-dca-countdown { font-family: var(--font-mono); font-size: var(--text-xl); font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; margin-bottom: var(--space-2); }
+.next-dca-detail { font-size: var(--text-sm); color: var(--text-muted); }
+
+/* ── Footer ─────────────────────────────────────────────────────────── */
+.footer {
+  padding: var(--space-3) var(--space-6);
+  border-top: 1px solid var(--divider);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0; background: var(--surface);
+}
+.footer-left { font-size: var(--text-xs); color: var(--text-faint); }
+.footer-right a { font-size: var(--text-xs); color: var(--text-faint); text-decoration: none; transition: color var(--transition); }
+.footer-right a:hover { color: var(--accent); }
+
+/* ── Nav tabs ───────────────────────────────────────────────────────── */
+.nav-tabs { display: flex; gap: var(--space-1); }
+.nav-tab { padding: var(--space-2) var(--space-4); border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: 500; cursor: pointer; border: none; background: transparent; color: var(--text-muted); transition: all var(--transition); }
+.nav-tab:hover { color: var(--text); background: var(--surface-2); }
+.nav-tab.active { color: var(--accent); background: var(--accent-dim); }
+
+/* ── Settings panel ─────────────────────────────────────────────────── */
+#settings-panel { display: none; flex-direction: column; gap: var(--space-6); }
+#settings-panel.visible { display: flex; }
+.settings-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-5); }
+.settings-section-title { font-size: var(--text-sm); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); padding-bottom: var(--space-3); border-bottom: 1px solid var(--divider); }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4); }
+.settings-field { display: flex; flex-direction: column; gap: var(--space-2); }
+.settings-field label { font-size: var(--text-xs); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+.settings-field input, .settings-field select { padding: var(--space-3) var(--space-4); background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text); font-family: var(--font-mono); font-size: var(--text-sm); outline: none; transition: border-color var(--transition); width: 100%; }
+.settings-field input:focus, .settings-field select:focus { border-color: var(--accent); }
+.settings-field select option { background: var(--surface-2); }
+.settings-field .field-hint { font-size: var(--text-xs); color: var(--text-faint); }
+.settings-mode-row { display: grid; grid-template-columns: repeat(3,1fr); gap: var(--space-3); }
+.settings-mode-card { border: 2px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); cursor: pointer; transition: all var(--transition); background: var(--surface-2); text-align: center; display: flex; flex-direction: column; gap: var(--space-1); }
+.settings-mode-card:hover { border-color: var(--text-muted); }
+.settings-mode-card.selected { border-color: var(--accent); background: var(--accent-dim); }
+.settings-mode-card .mc-icon { font-size: 1.2rem; }
+.settings-mode-card .mc-name { font-size: var(--text-xs); font-weight: 600; }
+
+/* Aggression Meter */
+.aggression-meter { display: flex; flex-direction: column; gap: var(--space-4); }
+.aggression-labels { display: flex; justify-content: space-between; align-items: center; }
+.aggression-label-item { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); flex: 1; }
+.aggression-label-item .al-icon { font-size: 1.5rem; line-height: 1; }
+.aggression-label-item .al-name { font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); }
+.aggression-label-item.active .al-name { color: var(--text); }
+.aggression-label-item .al-desc { font-size: var(--text-xs); color: var(--text-faint); text-align: center; line-height: 1.3; max-width: 100px; }
+.aggression-track { position: relative; height: 8px; border-radius: 9999px; background: linear-gradient(90deg, var(--blue) 0%, var(--green) 40%, var(--gold) 70%, var(--red) 100%); margin: var(--space-2) var(--space-4); }
+.aggression-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; border-radius: 9999px; background: transparent; outline: none; cursor: pointer; position: absolute; top: 0; left: 0; }
+.aggression-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: var(--text); border: 3px solid var(--bg); box-shadow: 0 2px 8px rgba(0,0,0,0.5); cursor: pointer; margin-top: -10px; transition: transform var(--transition), box-shadow var(--transition); }
+.aggression-slider::-webkit-slider-thumb:hover { transform: scale(1.15); box-shadow: 0 4px 16px rgba(0,0,0,0.6); }
+.aggression-slider::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: var(--text); border: 3px solid var(--bg); box-shadow: 0 2px 8px rgba(0,0,0,0.5); cursor: pointer; }
+.aggression-active { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--border); background: var(--surface-2); transition: all 0.3s ease; }
+.aggression-active .aa-icon { font-size: 1.8rem; flex-shrink: 0; }
+.aggression-active .aa-text { display: flex; flex-direction: column; gap: 2px; }
+.aggression-active .aa-name { font-size: var(--text-base); font-weight: 700; }
+.aggression-active .aa-desc { font-size: var(--text-xs); color: var(--text-muted); line-height: 1.4; }
+.aggression-active.conservative { background: var(--blue-dim);   border-color: rgba(96,165,250,0.25); }
+.aggression-active.conservative .aa-name { color: var(--blue); }
+.aggression-active.balanced     { background: var(--green-dim);  border-color: rgba(74,222,128,0.25); }
+.aggression-active.balanced     .aa-name { color: var(--green); }
+.aggression-active.aggressive   { background: var(--accent-dim); border-color: rgba(247,147,26,0.3); }
+.aggression-active.aggressive   .aa-name { color: var(--accent); }
+.aggression-active.max          { background: var(--red-dim);    border-color: rgba(248,113,113,0.25); }
+.aggression-active.max          .aa-name { color: var(--red); }
+.aggression-divider { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-2) 0; }
+.aggression-divider::before, .aggression-divider::after { content: ''; flex: 1; height: 1px; background: var(--divider); }
+.aggression-divider span { font-size: var(--text-xs); color: var(--text-faint); white-space: nowrap; }
+
+.settings-save-row { display: flex; align-items: center; gap: var(--space-4); justify-content: flex-end; }
+.btn-save { padding: var(--space-3) var(--space-6); background: var(--accent); color: var(--text-inverse); font-weight: 600; font-size: var(--text-sm); border-radius: var(--radius-md); cursor: pointer; border: none; transition: background var(--transition); display: flex; align-items: center; gap: var(--space-2); }
+.btn-save:hover { background: var(--accent-hover); }
+.btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+.save-status { font-size: var(--text-sm); color: var(--green); display: none; }
+.save-status.show { display: block; }
+.save-status.error { color: var(--red); }
+
+/* Quick Buy card */
+.quick-buy-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: var(--space-5) var(--space-6); display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
+.quick-buy-label { font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); white-space: nowrap; }
+.quick-buy-input-wrap { position: relative; flex: 1; min-width: 120px; max-width: 180px; }
+.quick-buy-input-wrap .input-prefix { position: absolute; left: var(--space-3); top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: var(--text-sm); pointer-events: none; }
+.quick-buy-amount { width: 100%; padding: var(--space-3) var(--space-3) var(--space-3) 1.6rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text); font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 600; outline: none; transition: border-color var(--transition); }
+.quick-buy-amount:focus { border-color: var(--accent); }
+.quick-buy-btn-wrap { position: relative; flex-shrink: 0; }
+.quick-buy-btn { position: relative; overflow: hidden; padding: var(--space-3) var(--space-6); background: transparent; border: 2px solid var(--accent); border-radius: var(--radius-md); color: var(--accent); font-weight: 700; font-size: var(--text-sm); cursor: pointer; white-space: nowrap; user-select: none; -webkit-user-select: none; }
+.quick-buy-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.quick-buy-btn .qb-fill { position: absolute; top: 0; left: 0; bottom: 0; width: 0%; background: var(--accent); z-index: 0; }
+.quick-buy-btn .qb-text { position: relative; z-index: 1; color: var(--accent); transition: color 0.15s ease; }
+.quick-buy-btn.filling .qb-fill { width: 100%; transition: width 3s linear; }
+.quick-buy-btn.filling .qb-text { color: #fff; }
+.quick-buy-btn.success { background: var(--green); border-color: var(--green); }
+.quick-buy-btn.success .qb-text { color: #fff; }
+.quick-buy-btn.error-state { border-color: var(--red); }
+.quick-buy-btn.error-state .qb-text { color: var(--red); }
+.quick-buy-result { font-size: var(--text-xs); color: var(--text-muted); flex: 1; min-width: 200px; font-family: var(--font-mono); }
+.quick-buy-result.success { color: var(--green); }
+.quick-buy-result.error { color: var(--red); }
+
+/* Mode cards (Section 1) */
+.mode-cards-row { display: grid; grid-template-columns: repeat(3,1fr); gap: var(--space-3); }
+.mode-card { border: 2px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-5); cursor: pointer; transition: all var(--transition); background: var(--surface-2); display: flex; flex-direction: column; gap: var(--space-2); }
+.mode-card:hover { border-color: var(--text-muted); background: var(--surface-3); }
+.mode-card.selected { border-color: var(--accent); background: var(--accent-dim); }
+.mode-card-icon { font-size: 1.8rem; line-height: 1; }
+.mode-card-name { font-size: var(--text-sm); font-weight: 700; color: var(--text); }
+.mode-card-desc { font-size: var(--text-xs); color: var(--text-muted); line-height: 1.5; }
+.mode-card.selected .mode-card-name { color: var(--accent); }
+
+/* BotCoin Recommends toggle label */
+.botcoin-recommends-toggle { display: flex; align-items: center; }
+.brt-label { font-size: var(--text-xs); font-weight: 500; color: var(--text-muted); text-transform: none; letter-spacing: 0; }
+
+/* Read-only threshold grid */
+.threshold-readonly-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: var(--space-3); margin-top: var(--space-5); padding: var(--space-4); background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--radius-md); }
+.tro-field { display: flex; flex-direction: column; gap: var(--space-1); align-items: center; }
+.tro-label { font-size: var(--text-xs); color: var(--text-faint); text-transform: uppercase; letter-spacing: .05em; }
+.tro-value { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 600; color: var(--text-muted); }
+
+/* Manual warning */
+.manual-warning { font-size: var(--text-xs); color: var(--gold); background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); }
+
+/* $ prefix input */
+.input-prefix-wrap { position: relative; }
+.input-prefix { position: absolute; left: var(--space-3); top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: var(--text-sm); pointer-events: none; }
+
+/* Sticky save bar */
+.settings-sticky-save {
+  position: sticky; bottom: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  background: var(--surface); border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  margin: 0 calc(-1 * var(--space-0)); /* flush edges */
+  transition: box-shadow var(--transition);
+}
+.settings-sticky-save.dirty { box-shadow: 0 -4px 24px rgba(247,147,26,0.15); border-top-color: var(--accent); }
+.unsaved-indicator { font-size: var(--text-xs); color: var(--text-faint); display: flex; align-items: center; gap: var(--space-2); transition: color var(--transition); }
+.unsaved-indicator.dirty { color: var(--gold); }
+.unsaved-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); flex-shrink: 0; transition: background var(--transition); }
+.unsaved-dot.dirty { background: var(--gold); }
+
+.toggle-row-s { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); background: var(--surface-2); border-radius: var(--radius-md); border: 1px solid var(--border); }
+.toggle-row-s .t-label { font-size: var(--text-sm); font-weight: 500; }
+.toggle-row-s .t-hint  { font-size: var(--text-xs); color: var(--text-muted); }
+.s-toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+.s-toggle input { opacity: 0; width: 0; height: 0; }
+.s-toggle-slider { position: absolute; inset: 0; background: var(--surface-3); border: 1px solid var(--border); border-radius: 9999px; cursor: pointer; transition: all var(--transition); }
+.s-toggle-slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: var(--text-muted); border-radius: 50%; transition: all var(--transition); }
+.s-toggle input:checked + .s-toggle-slider { background: var(--gold); border-color: var(--gold); }
+.s-toggle input:checked + .s-toggle-slider::before { transform: translateX(20px); background: var(--text-inverse); }
+
+.skeleton { background: var(--surface-3); border-radius: var(--radius-sm); animation: shimmer 1.5s infinite; }
+@keyframes shimmer { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+.no-data { color: var(--text-faint); font-size: var(--text-sm); font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- Connect Screen -->
+<div id="connect-screen">
+  <div class="connect-box">
+    <div class="connect-logo">
+      <svg width="36" height="36" viewBox="0 0 32 32" fill="none" aria-label="BotCoin logo">
+        <circle cx="16" cy="16" r="15" stroke="currentColor" stroke-width="2"/>
+        <path d="M11 10h6.5a3.5 3.5 0 0 1 0 7H11m0-7v12m0-12v-1m0 13v1m6.5-1H11m7.5-6h1"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>BotCoin</span>
+    </div>
+    <p class="connect-subtitle">Enter your bot server's IP address and password to connect your dashboard.</p>
+
+    <div class="connect-field">
+      <label>Bot Server IP</label>
+      <input type="text" id="bot-ip" placeholder="e.g. 123.456.789.0" autocomplete="off" spellcheck="false">
+      <span class="field-hint">The IP address of your Vultr bot server</span>
+    </div>
+
+    <div class="connect-field">
+      <label>Dashboard Password</label>
+      <input type="password" id="bot-pw" placeholder="Your dashboard password" autocomplete="current-password">
+      <span class="field-hint">The password you set during bot setup</span>
+    </div>
+
+    <button class="btn-connect" id="btn-connect" onclick="connectToBot()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      Connect to My Bot
+    </button>
+    <p class="connect-error" id="connect-error"></p>
+    <p class="connect-status" id="connect-status"></p>
+  </div>
+</div>
+
+<!-- Dashboard App -->
+<div id="app">
+  <header class="header">
+    <div class="header-logo">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-label="BotCoin">
+        <circle cx="16" cy="16" r="15" stroke="currentColor" stroke-width="2"/>
+        <path d="M11 10h6.5a3.5 3.5 0 0 1 0 7H11m0-7v12m0-12v-1m0 13v1m6.5-1H11m7.5-6h1"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="name">BotCoin</span>
+      <span class="tagline">your BTC stacking bot</span>
+    </div>
+    <div class="header-right">
+      <nav class="nav-tabs">
+        <button class="nav-tab active" id="tab-dashboard" onclick="showTab('dashboard')">Dashboard</button>
+        <button class="nav-tab" id="tab-settings" onclick="showTab('settings')">Settings</button>
+      </nav>
+      <div class="live-dot"><span></span> Live</div>
+      <div class="last-updated" id="last-updated">—</div>
+      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">
+        <span id="theme-icon">☀️</span>
+        <span id="theme-label">Light</span>
+      </button>
+      <!-- Shows connected server, click to disconnect -->
+      <div class="connected-badge" id="connected-badge" onclick="disconnect()" title="Click to disconnect">
+        <span class="dot"></span>
+        <span id="connected-ip">—</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main" id="main-content">
+    <div id="dashboard-content"></div>
+    <div id="settings-panel">
+
+      <!-- ── SECTION 1: What are you stacking? ─────────────────────────── -->
+      <div class="settings-section">
+        <div class="settings-section-title">What are you stacking?</div>
+        <div class="mode-cards-row" id="s-mode-row">
+          <div class="mode-card" data-mode="btc_accumulate" onclick="sSelectMode(this)">
+            <div class="mode-card-icon">🟠</div>
+            <div class="mode-card-name">Stack BTC</div>
+            <div class="mode-card-desc">Bull market mode. Buy BTC on schedule, deploy reserves on dips.</div>
+          </div>
+          <div class="mode-card" data-mode="usd_accumulate" onclick="sSelectMode(this)">
+            <div class="mode-card-icon">🔵</div>
+            <div class="mode-card-name">Stack USD</div>
+            <div class="mode-card-desc">Bear market mode. Sell BTC on schedule, protect your dollar value.</div>
+          </div>
+          <div class="mode-card" data-mode="auto" onclick="sSelectMode(this)">
+            <div class="mode-card-icon">⚡</div>
+            <div class="mode-card-name">Auto</div>
+            <div class="mode-card-desc">Let BotCoin read the market and switch modes automatically.</div>
+          </div>
+        </div>
+        <div class="toggle-row-s" style="margin-top:var(--space-4)">
+          <div>
+            <div class="t-label">Paper Trading Mode</div>
+            <div class="t-hint">Simulates trades without spending real money</div>
+          </div>
+          <label class="s-toggle">
+            <input type="checkbox" id="s-paper-toggle">
+            <span class="s-toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- ── SECTION 2: DCA Schedule ────────────────────────────────────── -->
+      <div class="settings-section">
+        <div class="settings-section-title">DCA Schedule</div>
+        <div class="settings-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px,1fr))">
+          <div class="settings-field">
+            <label>Investment Amount</label>
+            <div class="input-prefix-wrap">
+              <span class="input-prefix">$</span>
+              <input type="number" id="s-dca-amount" min="10" step="5" style="padding-left:1.8rem">
+            </div>
+            <span class="field-hint">Per DCA buy</span>
+          </div>
+          <div class="settings-field">
+            <label>Frequency</label>
+            <select id="s-dca-frequency" onchange="onFrequencyChange(this.value)">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+          <div class="settings-field" id="s-dca-day-field">
+            <label>Day of Week</label>
+            <select id="s-dca-day">
+              <option value="monday">Monday</option>
+              <option value="tuesday">Tuesday</option>
+              <option value="wednesday">Wednesday</option>
+              <option value="thursday">Thursday</option>
+              <option value="friday">Friday</option>
+              <option value="saturday">Saturday</option>
+              <option value="sunday">Sunday</option>
+            </select>
+          </div>
+          <div class="settings-field" id="s-dca-dom-field" style="display:none">
+            <label>Day of Month</label>
+            <input type="number" id="s-dca-dom" min="1" max="28" step="1">
+            <span class="field-hint">1–28</span>
+          </div>
+          <div class="settings-field">
+            <label>Time (EDT)</label>
+            <input type="time" id="s-dca-time-local">
+            <span class="field-hint">Your local time — saved as UTC</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SECTION 3: Aggression & Thresholds ────────────────────────── -->
+      <div class="settings-section">
+        <div class="settings-section-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Aggression &amp; Thresholds</span>
+          <div class="botcoin-recommends-toggle">
+            <span class="brt-label" id="brt-label">BotCoin Recommends</span>
+            <label class="s-toggle" style="margin-left:var(--space-3)">
+              <input type="checkbox" id="s-botcoin-recommends" checked onchange="onRecommendsToggle(this.checked)">
+              <span class="s-toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Slider mode (BotCoin Recommends ON) -->
+        <div id="aggression-slider-section">
+          <div class="aggression-active balanced" id="aggression-active">
+            <div class="aa-icon" id="aa-icon">⚖️</div>
+            <div class="aa-text">
+              <div class="aa-name" id="aa-name">Balanced</div>
+              <div class="aa-desc" id="aa-desc">Steady DCA with sensible dip buying. Good for most investors.</div>
+            </div>
+          </div>
+          <div class="aggression-track" style="margin-top:var(--space-4)">
+            <input type="range" class="aggression-slider" id="aggression-slider"
+                   min="0" max="3" step="1" value="1" oninput="onAggressionChange(this.value)">
+          </div>
+          <div class="aggression-labels">
+            <div class="aggression-label-item" data-level="0"><span class="al-icon">🐢</span><span class="al-name">Conservative</span><span class="al-desc">Small buys, wide thresholds</span></div>
+            <div class="aggression-label-item active" data-level="1"><span class="al-icon">⚖️</span><span class="al-name">Balanced</span><span class="al-desc">Steady DCA, sensible dips</span></div>
+            <div class="aggression-label-item" data-level="2"><span class="al-icon">🚀</span><span class="al-name">Aggressive</span><span class="al-desc">Bigger buys, tighter triggers</span></div>
+            <div class="aggression-label-item" data-level="3"><span class="al-icon">🔥</span><span class="al-name">Max Stack</span><span class="al-desc">All in. Buy everything, always.</span></div>
+          </div>
+          <!-- Read-only preview of what the slider sets -->
+          <div class="threshold-readonly-grid" id="threshold-readonly">
+            <div class="tro-field"><div class="tro-label">Tier 1 Dip</div><div class="tro-value" id="ro-dip1">—</div></div>
+            <div class="tro-field"><div class="tro-label">Tier 2 Dip</div><div class="tro-value" id="ro-dip2">—</div></div>
+            <div class="tro-field"><div class="tro-label">Tier 3 Dip</div><div class="tro-value" id="ro-dip3">—</div></div>
+            <div class="tro-field"><div class="tro-label">Recycler Pool</div><div class="tro-value" id="ro-pool">—</div></div>
+            <div class="tro-field"><div class="tro-label">Sell Threshold</div><div class="tro-value" id="ro-sell">—</div></div>
+            <div class="tro-field"><div class="tro-label">Max Order</div><div class="tro-value" id="ro-max">—</div></div>
+          </div>
+          <div class="field-hint" style="margin-top:var(--space-3);text-align:center">Move the slider to adjust all thresholds proportionally</div>
+        </div>
+
+        <!-- Manual mode (BotCoin Recommends OFF) -->
+        <div id="aggression-manual-section" style="display:none">
+          <div class="manual-warning">⚠ Manual mode — you control the exact thresholds</div>
+          <div class="settings-grid" style="margin-top:var(--space-4)">
+            <div class="settings-field"><label>Tier 1 Dip (%)</label><input type="number" id="s-dip1" min="1" max="50" step="0.5"><span class="field-hint">Small dip trigger</span></div>
+            <div class="settings-field"><label>Tier 2 Dip (%)</label><input type="number" id="s-dip2" min="1" max="50" step="0.5"><span class="field-hint">Medium dip trigger</span></div>
+            <div class="settings-field"><label>Tier 3 Dip (%)</label><input type="number" id="s-dip3" min="1" max="50" step="0.5"><span class="field-hint">Crash trigger</span></div>
+            <div class="settings-field"><label>Recycler Pool (%)</label><input type="number" id="s-recycler-pool" min="5" max="80" step="5"><span class="field-hint">% of USD held for dip buying</span></div>
+            <div class="settings-field"><label>Sell Threshold (%)</label><input type="number" id="s-recycler-sell" min="1" max="100" step="1"><span class="field-hint">% above basis to trigger sell</span></div>
+            <div class="settings-field"><label>Max Order (USD)</label><input type="number" id="s-max-order" min="10" step="50"><span class="field-hint">Cap on any single trade</span></div>
+          </div>
+        </div>
+
+        <!-- Hidden inputs used by slider mode for saving -->
+        <input type="hidden" id="s-dip1-hidden">
+        <input type="hidden" id="s-dip2-hidden">
+        <input type="hidden" id="s-dip3-hidden">
+        <input type="hidden" id="s-recycler-pool-hidden">
+        <input type="hidden" id="s-recycler-sell-hidden">
+        <input type="hidden" id="s-max-order-hidden">
+      </div>
+
+      <!-- Single sticky save bar -->
+      <div class="settings-sticky-save" id="settings-sticky-save">
+        <div class="unsaved-indicator" id="unsaved-indicator">
+          <div class="unsaved-dot" id="unsaved-dot"></div>
+          <span id="unsaved-label">All settings saved</span>
+        </div>
+        <button class="btn-save" id="btn-save-all" onclick="saveSettings()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save All Settings
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-left" id="footer-status">Stacking BTC</div>
+    <div class="footer-right">
+      <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
+    </div>
+  </footer>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────
+let BOT_IP   = '';
+let BOT_PW   = '';
+let stackChart = null;
+let priceChart = null;
+let refreshTimer = null;
+let countdownTimer = null;
+let nextDcaTs = null;
+
+// ── API helper ────────────────────────────────────────────────────────
+async function botFetch(path, options = {}) {
+  const url = `http://${BOT_IP}:8081${path}`;
+  const headers = { 'X-Bot-Password': BOT_PW, 'Content-Type': 'application/json', ...(options.headers || {}) };
+  const resp = await fetch(url, { ...options, headers });
+  if (resp.status === 401) throw new Error('Incorrect password');
+  if (resp.status === 429) throw new Error('Too many attempts — wait 60 seconds');
+  if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
+  return resp.json();
+}
+
+// ── Connect flow ──────────────────────────────────────────────────────
+async function connectToBot() {
+  const ip = document.getElementById('bot-ip').value.trim();
+  const pw = document.getElementById('bot-pw').value.trim();
+  const btn = document.getElementById('btn-connect');
+  const errEl = document.getElementById('connect-error');
+  const statusEl = document.getElementById('connect-status');
+
+  errEl.style.display = 'none';
+  statusEl.style.display = 'none';
+
+  if (!ip) { showConnectError('Please enter your bot server IP address.'); return; }
+  if (!pw)  { showConnectError('Please enter your dashboard password.'); return; }
+
+  // Validate IP format loosely
+  if (!/^[\d.]+$/.test(ip)) { showConnectError('IP address should contain only numbers and dots (e.g. 123.456.789.0)'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Connecting...';
+  statusEl.textContent = 'Checking bot server...';
+  statusEl.style.display = 'block';
+
+  try {
+    // First check health (no auth needed)
+    const healthUrl = `http://${ip}:8081/api/health`;
+    const healthResp = await fetch(healthUrl, { signal: AbortSignal.timeout(8000) });
+    if (!healthResp.ok) throw new Error('Bot server is not responding on port 8081');
+    const health = await healthResp.json();
+    if (!health.configured) throw new Error('Bot server is not configured yet — complete the setup wizard first.');
+
+    // Now verify password with a real auth'd call
+    BOT_IP = ip;
+    BOT_PW = pw;
+    statusEl.textContent = 'Verifying password...';
+    await botFetch('/api/status');
+
+    // Success
+    document.getElementById('connect-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    document.getElementById('connected-ip').textContent = ip;
+
+    startDashboard();
+
+  } catch (e) {
+    BOT_IP = '';
+    BOT_PW = '';
+    let msg = e.message || 'Could not connect to bot server.';
+    if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed')) {
+      msg = `Could not reach ${ip}:8081 — check the IP and make sure port 8081 is open on your bot server.`;
+    }
+    showConnectError(msg);
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Connect to My Bot';
+    statusEl.style.display = 'none';
+  }
+}
+
+function showConnectError(msg) {
+  const el = document.getElementById('connect-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// Allow Enter key on connect fields
+document.addEventListener('DOMContentLoaded', () => {
+  ['bot-ip','bot-pw'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') connectToBot();
+    });
+  });
+});
+
+function disconnect() {
+  if (!confirm('Disconnect from bot server?')) return;
+  clearInterval(refreshTimer);
+  clearInterval(countdownTimer);
+  BOT_IP = '';
+  BOT_PW = '';
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('connect-screen').style.display = 'flex';
+  document.getElementById('bot-pw').value = '';
+  document.getElementById('connect-error').style.display = 'none';
+  document.getElementById('btn-connect').disabled = false;
+  document.getElementById('btn-connect').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Connect to My Bot';
+  document.getElementById('connect-status').style.display = 'none';
+}
+
+// ── Dashboard init ────────────────────────────────────────────────────
+function startDashboard() {
+  loadData();
+  loadSettings();
+  refreshTimer = setInterval(loadData, 30000);
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────
+function showTab(tab) {
+  document.getElementById('dashboard-content').style.display = tab === 'dashboard' ? 'block' : 'none';
+  document.getElementById('settings-panel').classList.toggle('visible', tab === 'settings');
+  document.getElementById('tab-dashboard').classList.toggle('active', tab === 'dashboard');
+  document.getElementById('tab-settings').classList.toggle('active', tab === 'settings');
+}
+
+// ── Data loading ──────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const data = await botFetch('/api/status');
+    renderDashboard(data);
+    document.getElementById('last-updated').textContent =
+      'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  } catch(e) {
+    console.error('Failed to load data:', e);
+  }
+}
+
+function renderDashboard(d) {
+  const p = d.portfolio;
+  const b = d.bot;
+
+  // Mood banner
+  const mood = d.mood;
+  const modeClass = b.active_mode === 'btc_accumulate' ? 'btc' : 'usd';
+  const modeLabel = b.active_mode === 'btc_accumulate' ? 'BTC MODE' : 'USD MODE';
+
+  // Breakeven progress
+  const minP = p.current_price * 0.5;
+  const maxP = p.avg_cost_basis * 1.5;
+  const progressPct = Math.min(100, Math.max(0, ((p.current_price - minP) / (maxP - minP)) * 100));
+  const gapToBreakeven = p.avg_cost_basis - p.current_price;
+
+  // Bot-added BTC
+  const botNetBtc = b.bot_net_btc;
+
+  // 200MA display
+  let maDisplay = 'Building...';
+  let maSubDisplay = `${b.ma_days_built}/200 days of data`;
+  if (b.ma200) {
+    maDisplay = '$' + b.ma200.toLocaleString('en-US', {maximumFractionDigits: 0});
+    maSubDisplay = 'price moving average';
+  }
+
+  // Trades + fees
+  const tradeCount = b.trade_count;
+  const feesDisplay = '$' + b.total_fees_paid.toFixed(4);
+
+  // Quick buy default amount (from settings or fallback)
+  const dcaAmount = window._dcaAmount || 50;
+
+  document.getElementById('dashboard-content').innerHTML = `
+    <div class="mood-banner ${mood.color}">
+      <div class="mood-icon">${mood.icon}</div>
+      <div class="mood-text">
+        <div class="mood-label">${mood.label}</div>
+        <div class="mood-detail">${mood.detail}</div>
+      </div>
+      <div class="mood-mode ${modeClass}">${modeLabel}</div>
+    </div>
+
+    <div class="quick-buy-card">
+      <div class="quick-buy-label">🟠 Quick Buy BTC</div>
+      <div class="quick-buy-input-wrap">
+        <span class="input-prefix">$</span>
+        <input type="number" class="quick-buy-amount" id="qb-amount" min="5" step="5" value="${dcaAmount}" placeholder="50">
+      </div>
+      <div class="quick-buy-btn-wrap">
+        <button class="quick-buy-btn" id="qb-btn"
+          onmousedown="qbStartHold()" onmouseup="qbCancelHold()" onmouseleave="qbCancelHold()"
+          ontouchstart="qbStartHold(event)" ontouchend="qbCancelHold()">
+          <div class="qb-fill" id="qb-fill"></div>
+          <span class="qb-text" id="qb-text">Hold to Buy</span>
+        </button>
+      </div>
+      <div class="quick-buy-result" id="qb-result">Hold the button for 3 seconds to confirm</div>
+    </div>
+
+    <div class="btc-hero">
+      <div class="btc-hero-label">YOUR BTC STACK</div>
+      <div class="btc-hero-number">${p.btc_balance.toFixed(8)}</div>
+      <div class="btc-hero-sub">Worth <strong>$${p.portfolio_value.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> at current price</div>
+      ${botNetBtc > 0 ? `<div class="bot-added">+ ${botNetBtc.toFixed(8)} BTC added by the bot</div>` : ''}
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Current Price</div>
+        <div class="stat-value accent">$${p.current_price.toLocaleString('en-US',{maximumFractionDigits:1})}</div>
+        <div class="stat-sub">BTC / USD live</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Your Avg Cost</div>
+        <div class="stat-value">$${p.avg_cost_basis.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        <div class="stat-sub">per BTC paid</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">P&amp;L vs Basis</div>
+        <div class="stat-value ${p.pnl_pct >= 0 ? 'green' : 'red'}">${p.pnl_pct >= 0 ? '+' : ''}${p.pnl_pct.toFixed(1)}%</div>
+        <div class="stat-sub">${p.pnl_pct >= 0 ? 'above' : 'below'} cost basis</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">USD Reserve</div>
+        <div class="stat-value">$${p.usd_balance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        <div class="stat-sub">dry powder available</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">200-Day MA</div>
+        <div class="stat-value gold">${maDisplay}</div>
+        <div class="stat-sub">${maSubDisplay}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Trades Made</div>
+        <div class="stat-value">${tradeCount}</div>
+        <div class="stat-sub">${feesDisplay} in fees</div>
+      </div>
+    </div>
+
+    <div class="progress-card">
+      <div class="progress-label">Road to Break Even</div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" style="width:${progressPct}%"></div>
+      </div>
+      <div class="progress-prices">
+        <span>$${(p.current_price * 0.5).toLocaleString('en-US',{maximumFractionDigits:0})}</span>
+        <span>Break even: $${p.breakeven_price.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
+        <span>$${(p.avg_cost_basis * 1.5).toLocaleString('en-US',{maximumFractionDigits:0})}</span>
+      </div>
+      ${gapToBreakeven > 0
+        ? `<div class="progress-current">Current price <strong>$${p.current_price.toLocaleString('en-US',{maximumFractionDigits:1})}</strong> — need <strong>$${gapToBreakeven.toLocaleString('en-US',{maximumFractionDigits:0})}</strong> more to break even</div>`
+        : `<div class="progress-current" style="color:var(--green)">Above break even by <strong>$${Math.abs(gapToBreakeven).toLocaleString('en-US',{maximumFractionDigits:0})}</strong></div>`
+      }
+    </div>
+
+    <div class="two-col">
+      <div class="chart-card">
+        <div class="chart-card-header"><div class="chart-card-title">BTC Stack Growth</div></div>
+        <div class="chart-wrap">
+          ${d.chart && d.chart.length > 1
+            ? `<canvas id="stackChart"></canvas>`
+            : `<div class="no-data" style="padding-top:2rem">Building history — check back tomorrow.</div>`
+          }
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header"><div class="chart-card-title">BTC Price (90 Days)</div></div>
+        <div class="chart-wrap">
+          ${d.price_history && d.price_history.length > 1
+            ? `<canvas id="priceChart"></canvas>`
+            : `<div class="no-data" style="padding-top:2rem">Building price history...</div>`
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-card">
+        <div class="info-card-title">Last Trade</div>
+        ${d.last_trade ? `
+          <div class="trade-item">
+            <span class="trade-side ${d.last_trade.side}">${d.last_trade.side.toUpperCase()}</span>
+            <div class="trade-label">${d.last_trade.label}</div>
+            <div class="trade-meta">${d.last_trade.btc_amount.toFixed(8)} BTC @ $${d.last_trade.price_usd.toLocaleString()}</div>
+            <div class="trade-meta">$${d.last_trade.usd_amount.toFixed(2)} &middot; fee $${d.last_trade.fee_usd.toFixed(4)} &middot; ${timeAgo(d.last_trade.timestamp)}</div>
+            ${d.last_trade.paper_trade ? '<div class="trade-paper">PAPER TRADE</div>' : ''}
+          </div>
+        ` : `<div class="no-data">No trades yet — watching the market.</div>`}
+      </div>
+      <div class="info-card">
+        <div class="info-card-title">Next Scheduled DCA</div>
+        <div class="next-dca-countdown" id="dca-countdown">—</div>
+        <div class="next-dca-detail" id="dca-detail">—</div>
+      </div>
+    </div>
+  `;
+
+  // Render charts
+  if (d.chart && d.chart.length > 1) renderStackChart(d.chart);
+  if (d.price_history && d.price_history.length > 1) renderPriceChart(d.price_history);
+
+  // Start countdown
+  nextDcaTs = d.next_dca;
+  clearInterval(countdownTimer);
+  updateCountdown();
+  countdownTimer = setInterval(updateCountdown, 1000);
+
+  // Footer
+  const fees = b.total_fees_paid.toFixed(4);
+  document.getElementById('footer-status').textContent =
+    `Stacking BTC · ${tradeCount} trade${tradeCount !== 1 ? 's' : ''} · $${fees} fees paid`;
+}
+
+function renderStackChart(chartData) {
+  const ctx = document.getElementById('stackChart');
+  if (!ctx) return;
+  if (stackChart) { stackChart.destroy(); stackChart = null; }
+  stackChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: chartData.map(d => d.date),
+      datasets: [{
+        data: chartData.map(d => d.btc),
+        borderColor: '#f7931a', backgroundColor: 'rgba(247,147,26,0.08)',
+        borderWidth: 2, fill: true, tension: 0.3,
+        pointRadius: 0, pointHoverRadius: 4,
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.parsed.y.toFixed(8) + ' BTC' } } },
+      scales: { x: { display: false }, y: { display: false, beginAtZero: false } }
+    }
+  });
+}
+
+function renderPriceChart(priceHistory) {
+  const ctx = document.getElementById('priceChart');
+  if (!ctx) return;
+  if (priceChart) { priceChart.destroy(); priceChart = null; }
+  priceChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: priceHistory.map(d => d.date),
+      datasets: [{
+        data: priceHistory.map(d => d.price),
+        borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.06)',
+        borderWidth: 1.5, fill: true, tension: 0.3,
+        pointRadius: 0, pointHoverRadius: 4,
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => '$' + ctx.parsed.y.toLocaleString() } } },
+      scales: { x: { display: false }, y: { display: false, beginAtZero: false } }
+    }
+  });
+}
+
+function updateCountdown() {
+  const el = document.getElementById('dca-countdown');
+  const detail = document.getElementById('dca-detail');
+  if (!el || !nextDcaTs) return;
+  const diff = new Date(nextDcaTs) - new Date();
+  if (diff <= 0) { el.textContent = 'Now!'; return; }
+  const days = Math.floor(diff / 86400000);
+  const hrs  = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  const secs = Math.floor((diff % 60000) / 1000);
+  el.textContent = days > 0
+    ? `${days}d ${String(hrs).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`
+    : `${String(hrs).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+  if (detail) {
+    const dt = new Date(nextDcaTs);
+    detail.textContent = dt.toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'})
+      + ' at ' + dt.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', timeZoneName:'short'});
+  }
+}
+
+function timeAgo(ts) {
+  const diff = (Date.now() - new Date(ts + 'Z')) / 1000;
+  if (diff < 60)    return 'just now';
+  if (diff < 3600)  return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+// ── Settings ──────────────────────────────────────────────────────────
+// ── Theme toggle ───────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const isLight = html.getAttribute('data-theme') === 'light';
+  html.setAttribute('data-theme', isLight ? 'dark' : 'light');
+  document.getElementById('theme-icon').textContent  = isLight ? '\u2600\ufe0f' : '\uD83C\uDF19';
+  document.getElementById('theme-label').textContent = isLight ? 'Light' : 'Dark';
+}
+
+// ── Quick Buy hold-to-confirm ─────────────────────────────────────────
+let _qbTimer = null;
+let _qbFired = false;
+
+function qbStartHold(e) {
+  if (e) e.preventDefault();
+  if (_qbFired) return;
+  const btn  = document.getElementById('qb-btn');
+  const fill = document.getElementById('qb-fill');
+  const text = document.getElementById('qb-text');
+  if (!btn || btn.disabled) return;
+
+  // Reset fill and start animation
+  fill.style.transition = 'none';
+  fill.style.width = '0%';
+  void fill.offsetWidth; // force reflow to reset before animating
+  btn.classList.add('filling');
+  text.textContent = 'Hold...';
+
+  _qbTimer = setTimeout(() => {
+    _qbFired = true;
+    btn.classList.remove('filling');
+    qbExecute();
+  }, 3000);
+}
+
+function qbCancelHold() {
+  if (_qbFired) return;
+  clearTimeout(_qbTimer);
+  _qbTimer = null;
+  const btn  = document.getElementById('qb-btn');
+  const fill = document.getElementById('qb-fill');
+  const text = document.getElementById('qb-text');
+  if (!btn) return;
+  btn.classList.remove('filling');
+  fill.style.transition = 'none';
+  fill.style.width = '0%';
+  text.textContent = 'Hold to Buy';
+}
+
+async function qbExecute() {
+  const btn    = document.getElementById('qb-btn');
+  const text   = document.getElementById('qb-text');
+  const result = document.getElementById('qb-result');
+  const amount = parseFloat(document.getElementById('qb-amount').value);
+  if (!amount || amount < 5) {
+    result.textContent = 'Enter a valid amount (min $5)';
+    result.className = 'quick-buy-result error';
+    _qbFired = false;
+    return;
+  }
+  btn.disabled = true;
+  text.textContent = 'Buying...';
+  result.textContent = 'Placing order on Kraken...';
+  result.className = 'quick-buy-result';
+  try {
+    const res = await botFetch('/api/buy', {
+      method: 'POST',
+      body: JSON.stringify({ usd_amount: amount, password: BOT_PW })
+    });
+    if (res.ok) {
+      btn.classList.add('success');
+      text.textContent = '\u2713 Bought!';
+      result.textContent = res.message;
+      result.className = 'quick-buy-result success';
+      setTimeout(() => {
+        btn.classList.remove('success');
+        btn.disabled = false;
+        text.textContent = 'Hold to Buy';
+        result.textContent = 'Hold the button for 3 seconds to confirm';
+        result.className = 'quick-buy-result';
+        _qbFired = false;
+      }, 5000);
+    } else {
+      btn.classList.add('error-state');
+      text.textContent = 'Failed';
+      result.textContent = res.error || 'Order failed';
+      result.className = 'quick-buy-result error';
+      setTimeout(() => {
+        btn.classList.remove('error-state');
+        btn.disabled = false;
+        text.textContent = 'Hold to Buy';
+        result.className = 'quick-buy-result';
+        _qbFired = false;
+      }, 4000);
+    }
+  } catch(e) {
+    result.textContent = e.message;
+    result.className = 'quick-buy-result error';
+    btn.disabled = false;
+    text.textContent = 'Hold to Buy';
+    _qbFired = false;
+  }
+}
+
+const AGGRESSION_LEVELS = [
+  { name:'Conservative', icon:'🐢', cls:'conservative', desc:'Tight thresholds, small dip buys. Suitable if you want slow, steady accumulation.',
+    dip1:'0.12', dip2:'0.22', dip3:'0.35', recycler_sell:'0.25', recycler_pool:'0.20', max_order:'500' },
+  { name:'Balanced',     icon:'⚖️', cls:'balanced',     desc:'Steady DCA with sensible dip buying. Good for most investors.',
+    dip1:'0.07', dip2:'0.15', dip3:'0.22', recycler_sell:'0.18', recycler_pool:'0.35', max_order:'1000' },
+  { name:'Aggressive',   icon:'🚀', cls:'aggressive',   desc:'Tighter triggers, bigger recycler buys. For experienced stackers.',
+    dip1:'0.05', dip2:'0.10', dip3:'0.16', recycler_sell:'0.12', recycler_pool:'0.40', max_order:'2000' },
+  { name:'Max Stack',    icon:'🔥', cls:'max',          desc:'Deploy everything on every dip. Maximum BTC accumulation, higher activity.',
+    dip1:'0.03', dip2:'0.07', dip3:'0.12', recycler_sell:'0.08', recycler_pool:'0.50', max_order:'5000' },
+];
+
+function onAggressionChange(val) {
+  const level = AGGRESSION_LEVELS[val];
+  const el = document.getElementById('aggression-active');
+  el.className = 'aggression-active ' + level.cls;
+  document.getElementById('aa-icon').textContent = level.icon;
+  document.getElementById('aa-name').textContent = level.name;
+  document.getElementById('aa-desc').textContent = level.desc;
+  document.querySelectorAll('.aggression-label-item').forEach(item => {
+    item.classList.toggle('active', parseInt(item.dataset.level) === parseInt(val));
+  });
+  // Update read-only display
+  document.getElementById('ro-dip1').textContent  = (parseFloat(level.dip1)*100).toFixed(1) + '%';
+  document.getElementById('ro-dip2').textContent  = (parseFloat(level.dip2)*100).toFixed(1) + '%';
+  document.getElementById('ro-dip3').textContent  = (parseFloat(level.dip3)*100).toFixed(1) + '%';
+  document.getElementById('ro-pool').textContent  = (parseFloat(level.recycler_pool)*100).toFixed(0) + '%';
+  document.getElementById('ro-sell').textContent  = (parseFloat(level.recycler_sell)*100).toFixed(0) + '%';
+  document.getElementById('ro-max').textContent   = '$' + parseFloat(level.max_order).toLocaleString();
+  // Store in hidden fields for saving
+  document.getElementById('s-dip1-hidden').value           = (parseFloat(level.dip1)*100).toFixed(1);
+  document.getElementById('s-dip2-hidden').value           = (parseFloat(level.dip2)*100).toFixed(1);
+  document.getElementById('s-dip3-hidden').value           = (parseFloat(level.dip3)*100).toFixed(1);
+  document.getElementById('s-recycler-pool-hidden').value  = (parseFloat(level.recycler_pool)*100).toFixed(0);
+  document.getElementById('s-recycler-sell-hidden').value  = (parseFloat(level.recycler_sell)*100).toFixed(0);
+  document.getElementById('s-max-order-hidden').value      = level.max_order;
+  markDirty();
+}
+
+function onRecommendsToggle(on) {
+  document.getElementById('aggression-slider-section').style.display = on ? '' : 'none';
+  document.getElementById('aggression-manual-section').style.display = on ? 'none' : '';
+  document.getElementById('brt-label').style.color = on ? 'var(--accent)' : 'var(--text-faint)';
+  markDirty();
+}
+
+function sSelectMode(card) {
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  markDirty();
+}
+
+// ── Unsaved changes tracking ─────────────────────────────────────────────────
+let _settingsDirty = false;
+
+function markDirty() {
+  if (_settingsDirty) return;
+  _settingsDirty = true;
+  document.getElementById('unsaved-dot').classList.add('dirty');
+  document.getElementById('unsaved-indicator').classList.add('dirty');
+  document.getElementById('settings-sticky-save').classList.add('dirty');
+  document.getElementById('unsaved-label').textContent = 'Unsaved changes';
+}
+
+function markClean() {
+  _settingsDirty = false;
+  document.getElementById('unsaved-dot').classList.remove('dirty');
+  document.getElementById('unsaved-indicator').classList.remove('dirty');
+  document.getElementById('settings-sticky-save').classList.remove('dirty');
+  document.getElementById('unsaved-label').textContent = 'All settings saved';
+}
+
+function onFrequencyChange(freq) {
+  document.getElementById('s-dca-day-field').style.display = (freq === 'weekly')  ? '' : 'none';
+  document.getElementById('s-dca-dom-field').style.display = (freq === 'monthly') ? '' : 'none';
+  markDirty();
+}
+
+function _detectAggressionLevel(s) {
+  // Try to match current settings to a preset level
+  const d1 = (parseFloat(s.dip_tier1)*100).toFixed(1);
+  const d2 = (parseFloat(s.dip_tier2)*100).toFixed(1);
+  const d3 = (parseFloat(s.dip_tier3)*100).toFixed(1);
+  for (let i = 0; i < AGGRESSION_LEVELS.length; i++) {
+    const l = AGGRESSION_LEVELS[i];
+    if ((parseFloat(l.dip1)*100).toFixed(1) === d1 &&
+        (parseFloat(l.dip2)*100).toFixed(1) === d2 &&
+        (parseFloat(l.dip3)*100).toFixed(1) === d3) return i;
+  }
+  return -1; // no match = manual
+}
+
+async function loadSettings() {
+  try {
+    const s = await botFetch('/api/settings');
+    // Section 1
+    document.querySelectorAll('.mode-card').forEach(c => {
+      c.classList.toggle('selected', c.dataset.mode === s.mode);
+    });
+    document.getElementById('s-paper-toggle').checked = s.paper_trading === 'true';
+    // Cache DCA amount for Quick Buy default
+    window._dcaAmount = parseFloat(s.dca_amount) || 50;
+    // Section 2
+    document.getElementById('s-dca-amount').value    = s.dca_amount;
+    document.getElementById('s-dca-frequency').value = s.dca_frequency || 'weekly';
+    document.getElementById('s-dca-day').value       = s.dca_day;
+    document.getElementById('s-dca-dom').value       = s.dca_day_of_month || 1;
+    // Convert UTC time to local for display
+    const utcTime = s.dca_time_utc || '13:00';
+    const [uh, um] = utcTime.split(':').map(Number);
+    const d = new Date(); d.setUTCHours(uh, um, 0, 0);
+    const localH = String(d.getHours()).padStart(2,'0');
+    const localM = String(d.getMinutes()).padStart(2,'0');
+    document.getElementById('s-dca-time-local').value = `${localH}:${localM}`;
+    onFrequencyChange(s.dca_frequency || 'weekly');
+    // Section 3 — detect if current settings match a preset
+    const matchedLevel = _detectAggressionLevel(s);
+    const useRecommends = matchedLevel >= 0;
+    document.getElementById('s-botcoin-recommends').checked = useRecommends;
+    onRecommendsToggle(useRecommends);
+    if (useRecommends) {
+      document.getElementById('aggression-slider').value = matchedLevel;
+      onAggressionChange(matchedLevel);
+    } else {
+      // populate manual fields
+      document.getElementById('s-dip1').value          = (parseFloat(s.dip_tier1)*100).toFixed(1);
+      document.getElementById('s-dip2').value          = (parseFloat(s.dip_tier2)*100).toFixed(1);
+      document.getElementById('s-dip3').value          = (parseFloat(s.dip_tier3)*100).toFixed(1);
+      document.getElementById('s-recycler-sell').value = (parseFloat(s.recycler_sell_threshold)*100).toFixed(0);
+      document.getElementById('s-recycler-pool').value = (parseFloat(s.recycler_pool_percent)*100).toFixed(0);
+      document.getElementById('s-max-order').value     = s.max_order_usd;
+    }
+    _bindSettingsDirty();
+    markClean();
+  } catch(e) { console.error('Failed to load settings:', e); }
+}
+
+function _bindSettingsDirty() {
+  const ids = ['s-dca-amount','s-dca-frequency','s-dca-day','s-dca-dom','s-dca-time-local',
+               's-dip1','s-dip2','s-dip3',
+               's-recycler-pool','s-recycler-sell','s-paper-toggle'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.removeEventListener('input', markDirty);
+    el.removeEventListener('change', markDirty);
+    el.addEventListener('input', markDirty);
+    el.addEventListener('change', markDirty);
+  });
+  // Aggression slider
+  const slider = document.getElementById('aggression-slider');
+  if (slider) {
+    slider.removeEventListener('input', markDirty);
+    slider.addEventListener('input', markDirty);
+  }
+}
+
+async function saveSettings() {
+  const mode = document.querySelector('.mode-card.selected')?.dataset.mode || 'auto';
+  const freq = document.getElementById('s-dca-frequency').value;
+  // Convert local time input to UTC for storage
+  const localTimeVal = document.getElementById('s-dca-time-local').value || '09:00';
+  const [lh, lm] = localTimeVal.split(':').map(Number);
+  const td = new Date(); td.setHours(lh, lm, 0, 0);
+  const dcaTimeUtc = String(td.getUTCHours()).padStart(2,'0') + ':' + String(td.getUTCMinutes()).padStart(2,'0');
+  const useRecommends = document.getElementById('s-botcoin-recommends').checked;
+  // Read threshold values from correct source based on toggle
+  const dip1  = useRecommends ? document.getElementById('s-dip1-hidden').value          : document.getElementById('s-dip1').value;
+  const dip2  = useRecommends ? document.getElementById('s-dip2-hidden').value          : document.getElementById('s-dip2').value;
+  const dip3  = useRecommends ? document.getElementById('s-dip3-hidden').value          : document.getElementById('s-dip3').value;
+  const pool  = useRecommends ? document.getElementById('s-recycler-pool-hidden').value : document.getElementById('s-recycler-pool').value;
+  const sell  = useRecommends ? document.getElementById('s-recycler-sell-hidden').value : document.getElementById('s-recycler-sell').value;
+  const maxOr = useRecommends ? document.getElementById('s-max-order-hidden').value     : document.getElementById('s-max-order').value;
+  const body = {
+    dca_amount:              document.getElementById('s-dca-amount').value,
+    dca_frequency:           freq,
+    dca_day:                 document.getElementById('s-dca-day').value,
+    dca_day_of_month:        document.getElementById('s-dca-dom').value,
+    dca_time_utc:            dcaTimeUtc,
+    mode,
+    paper_trading:           document.getElementById('s-paper-toggle').checked ? 'true' : 'false',
+    dip_tier1:               (parseFloat(dip1)/100).toFixed(4),
+    dip_tier2:               (parseFloat(dip2)/100).toFixed(4),
+    dip_tier3:               (parseFloat(dip3)/100).toFixed(4),
+    recycler_sell_threshold: (parseFloat(sell)/100).toFixed(4),
+    recycler_pool_percent:   (parseFloat(pool)/100).toFixed(4),
+    max_order_usd:           maxOr,
+    password:                BOT_PW,
+  };
+  const btn = document.getElementById('btn-save-all');
+  const label = document.getElementById('unsaved-label');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  try {
+    const result = await botFetch('/api/settings', { method: 'POST', body: JSON.stringify(body) });
+    if (result.ok) {
+      markClean();
+      label.textContent = '\u2713 Saved — bot picks up within 5 min';
+      setTimeout(() => { if (!_settingsDirty) label.textContent = 'All settings saved'; }, 4000);
+    } else {
+      label.textContent = result.error || 'Save failed';
+      document.getElementById('unsaved-indicator').classList.add('dirty');
+    }
+  } catch(e) {
+    label.textContent = e.message;
+    document.getElementById('unsaved-indicator').classList.add('dirty');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save All Settings';
+  }
+}
+</script>
+</body>
+</html>
