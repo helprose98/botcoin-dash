@@ -1213,7 +1213,14 @@ async function executeUpdate() {
     if (res.ok) {
       progress.textContent = res.message;
       btn.textContent = '\u2713 Update Started';
-      // Auto-close modal after 3s, dashboard will reconnect naturally
+      // Grey out the badge so user knows not to click again
+      const badge = document.getElementById('update-badge');
+      badge.style.opacity = '0.4';
+      badge.style.cursor = 'default';
+      badge.style.animation = 'none';
+      badge.onclick = null;
+      document.getElementById('update-badge-text').textContent = 'Updating — reload page in 2 min';
+      // Auto-close modal after 3s
       setTimeout(() => hideUpdateModal(), 3000);
     } else {
       progress.textContent = 'Error: ' + (res.error || 'Unknown error');
