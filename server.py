@@ -28,21 +28,25 @@ ALLOWED_PATHS = (
 )
 
 
-@app.route("/proxy/<bot_ip>/<path:api_path>", methods=["GET", "POST", "OPTIONS"])
-def proxy(bot_ip, api_path):
+@app.route("/proxy", methods=["GET", "POST", "OPTIONS"])
+def proxy():
     """Proxy API calls to the bot server — resolves mixed content for HTTPS dashboard."""
-    full_path = f"/{api_path}"
+    import re
+    bot_ip   = request.args.get("ip", "")
+    api_path = request.args.get("path", "")
+
+    if not api_path.startswith("/"):
+        api_path = "/" + api_path
 
     # Security: only allow known API paths
-    if not any(full_path.startswith(p) for p in ALLOWED_PATHS):
+    if not any(api_path.startswith(p) for p in ALLOWED_PATHS):
         return {"error": "Not allowed"}, 403
 
     # Security: only allow plain IPs, no hostnames
-    import re
     if not re.match(r'^[\d.]+$', bot_ip):
         return {"error": "Invalid bot IP"}, 400
 
-    target_url = f"http://{bot_ip}:8081{full_path}"
+    target_url = f"http://{bot_ip}:8081{api_path}"
 
     try:
         resp = requests.request(
