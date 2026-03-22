@@ -803,7 +803,8 @@ let nextDcaTs = null;
 
 // ── API helper ────────────────────────────────────────────────────────
 async function botFetch(path, options = {}) {
-  const url = `http://${BOT_IP}:8081${path}`;
+  // Route through the dash server proxy to avoid mixed content (HTTPS dashboard → HTTP bot)
+  const url = `/proxy/${BOT_IP}${path}`;
   const headers = { 'X-Bot-Password': BOT_PW, 'Content-Type': 'application/json', ...(options.headers || {}) };
   const resp = await fetch(url, { ...options, headers });
   if (resp.status === 401) throw new Error('Incorrect password');
@@ -836,9 +837,9 @@ async function connectToBot() {
 
   try {
     // First check health (no auth needed)
-    const healthUrl = `http://${ip}:8081/api/health`;
+    const healthUrl = `/proxy/${ip}/api/health`;
     const healthResp = await fetch(healthUrl, { signal: AbortSignal.timeout(8000) });
-    if (!healthResp.ok) throw new Error('Bot server is not responding on port 8081');
+    if (!healthResp.ok) throw new Error('Bot server is not responding — check the IP and port 8081');
     const health = await healthResp.json();
     if (!health.configured) throw new Error('Bot server is not configured yet — complete the setup wizard first.');
 
