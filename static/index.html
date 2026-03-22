@@ -606,9 +606,7 @@ body {
       <div class="update-badge" id="update-badge" onclick="showUpdateModal()" title="Bot update available">
         ⬆️ <span id="update-badge-text">Bot Update</span>
       </div>
-      <div class="update-badge" id="dash-update-badge" onclick="showDashUpdateModal()" title="Dashboard update available">
-        ⬆️ <span id="dash-update-badge-text">Dash Update</span>
-      </div>
+
       <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">
         <span id="theme-icon">☀️</span>
         <span id="theme-label">Light</span>
@@ -908,9 +906,7 @@ function startDashboard() {
   loadData();
   loadSettings();
   checkVersion();      // check bot version on connect
-  checkDashVersion();   // check dash version on connect
   setInterval(checkVersion, 10 * 60 * 1000);
-  setInterval(checkDashVersion, 10 * 60 * 1000);
   refreshTimer = setInterval(loadData, 30000);
 }
 
