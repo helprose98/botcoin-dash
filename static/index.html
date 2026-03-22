@@ -1697,10 +1697,31 @@ async function executeUpdate() {
 function toggleTheme() {
   const html = document.documentElement;
   const isLight = html.getAttribute('data-theme') === 'light';
-  html.setAttribute('data-theme', isLight ? 'dark' : 'light');
+  const newTheme = isLight ? 'dark' : 'light';
+  html.setAttribute('data-theme', newTheme);
   document.getElementById('theme-icon').textContent  = isLight ? '\u2600\ufe0f' : '\uD83C\uDF19';
   document.getElementById('theme-label').textContent = isLight ? 'Light' : 'Dark';
+  // Persist preference in cookie (works across sessions, no localStorage needed)
+  document.cookie = `botcoin_theme=${newTheme};path=/;max-age=31536000`;
 }
+
+// Apply saved theme on page load
+(function() {
+  const saved = document.cookie.split(';').find(c => c.trim().startsWith('botcoin_theme='));
+  if (saved) {
+    const theme = saved.split('=')[1].trim();
+    document.documentElement.setAttribute('data-theme', theme);
+    // Update button state after DOM is ready
+    window.addEventListener('DOMContentLoaded', () => {
+      if (theme === 'light') {
+        const icon = document.getElementById('theme-icon');
+        const label = document.getElementById('theme-label');
+        if (icon) icon.textContent = '\uD83C\uDF19';
+        if (label) label.textContent = 'Dark';
+      }
+    });
+  }
+})();
 
 // ── Quick Buy hold-to-confirm ─────────────────────────────────────────
 let _qbTimer = null;
