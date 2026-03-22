@@ -72,6 +72,41 @@ def proxy():
         return {"error": str(e)}, 500
 
 
+# ── Dash version + self-update ──────────────────────────────────────────────
+
+DASH_VERSION_PATH = Path("/app/VERSION")
+DASH_GITHUB_RAW   = "https://raw.githubusercontent.com/helprose98/botcoin-dash/main/VERSION"
+
+
+@app.route("/dash/version")
+def dash_version():
+    """Returns current dash version and checks GitHub for updates."""
+    try:
+        current = DASH_VERSION_PATH.read_text().strip()
+    except Exception:
+        current = "unknown"
+    try:
+        resp = requests.get(DASH_GITHUB_RAW, timeout=5)
+        latest = resp.text.strip()
+    except Exception:
+        latest = current
+    def ver_gt(a, b):
+        try: return tuple(int(x) for x in a.split(".")) > tuple(int(x) for x in b.split("."))
+        except: return False
+    return {"current": current, "latest": latest, "update_available": ver_gt(latest, current)}
+
+
+@app.route("/dash/update", methods=["POST"])
+def dash_update():
+    """Trigger a self-update of the dash server via the update watcher."""
+    trigger = Path("/app/data/update.trigger")
+    try:
+        trigger.write_text("update")
+        return {"ok": True, "message": "Dash update started. Page will reload in ~2 minutes."}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}, 500
+
+
 @app.route("/")
 def index():
     return send_from_directory("static", "index.html")

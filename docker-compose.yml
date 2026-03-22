@@ -5,6 +5,9 @@ services:
     restart: unless-stopped
     ports:
       - "80:8080"
+    volumes:
+      - ./VERSION:/app/VERSION:ro
+      - ./data:/app/data
     logging:
       driver: "json-file"
       options:

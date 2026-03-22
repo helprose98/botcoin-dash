@@ -603,8 +603,11 @@ body {
       </nav>
       <div class="live-dot"><span></span> Live</div>
       <div class="last-updated" id="last-updated">—</div>
-      <div class="update-badge" id="update-badge" onclick="showUpdateModal()" title="Update available">
-        ⬆️ <span id="update-badge-text">Update Available</span>
+      <div class="update-badge" id="update-badge" onclick="showUpdateModal()" title="Bot update available">
+        ⬆️ <span id="update-badge-text">Bot Update</span>
+      </div>
+      <div class="update-badge" id="dash-update-badge" onclick="showDashUpdateModal()" title="Dashboard update available">
+        ⬆️ <span id="dash-update-badge-text">Dash Update</span>
       </div>
       <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">
         <span id="theme-icon">☀️</span>
@@ -904,8 +907,10 @@ function disconnect() {
 function startDashboard() {
   loadData();
   loadSettings();
-  checkVersion(); // check on connect
-  setInterval(checkVersion, 10 * 60 * 1000); // re-check every 10 minutes
+  checkVersion();      // check bot version on connect
+  checkDashVersion();   // check dash version on connect
+  setInterval(checkVersion, 10 * 60 * 1000);
+  setInterval(checkDashVersion, 10 * 60 * 1000);
   refreshTimer = setInterval(loadData, 30000);
 }
 
@@ -1176,6 +1181,67 @@ function timeAgo(ts) {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────
+// ── Dash version check ───────────────────────────────────────────
+let _dashVersionData = null;
+
+async function checkDashVersion() {
+  try {
+    const v = await fetch('/dash/version').then(r => r.json());
+    _dashVersionData = v;
+    const badge = document.getElementById('dash-update-badge');
+    if (v.update_available) {
+      document.getElementById('dash-update-badge-text').textContent = `Dash v${v.latest}`;
+      badge.classList.add('visible');
+    } else {
+      badge.classList.remove('visible');
+    }
+  } catch(e) { /* silently ignore */ }
+}
+
+function showDashUpdateModal() {
+  if (!_dashVersionData) return;
+  document.getElementById('dash-modal-current').textContent = _dashVersionData.current;
+  document.getElementById('dash-modal-latest').textContent  = _dashVersionData.latest;
+  document.getElementById('dash-update-progress').textContent = '';
+  document.getElementById('btn-dash-update').disabled = false;
+  document.getElementById('btn-dash-update').textContent = '\u2b06\ufe0f Update Now';
+  document.getElementById('dash-update-modal-overlay').classList.add('visible');
+}
+
+function hideDashUpdateModal() {
+  document.getElementById('dash-update-modal-overlay').classList.remove('visible');
+}
+
+async function executeDashUpdate() {
+  const btn      = document.getElementById('btn-dash-update');
+  const progress = document.getElementById('dash-update-progress');
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+  progress.textContent = 'Triggering dashboard update...';
+  try {
+    const res = await fetch('/dash/update', { method: 'POST' }).then(r => r.json());
+    if (res.ok) {
+      progress.textContent = res.message;
+      btn.textContent = '\u2713 Update Started';
+      const badge = document.getElementById('dash-update-badge');
+      badge.style.opacity = '0.4';
+      badge.style.cursor = 'default';
+      badge.style.animation = 'none';
+      badge.onclick = null;
+      document.getElementById('dash-update-badge-text').textContent = 'Updating — reload in 2 min';
+      setTimeout(() => hideDashUpdateModal(), 3000);
+    } else {
+      progress.textContent = 'Error: ' + (res.error || 'Unknown');
+      btn.disabled = false;
+      btn.textContent = '\u2b06\ufe0f Update Now';
+    }
+  } catch(e) {
+    progress.textContent = 'Error: ' + e.message;
+    btn.disabled = false;
+    btn.textContent = '\u2b06\ufe0f Update Now';
+  }
+}
+
 // ── Version check ────────────────────────────────────────────────
 let _versionData = null;
 
@@ -1564,6 +1630,23 @@ async function saveSettings() {
   }
 }
 </script>
+
+<!-- Dash Update Modal -->
+<div class="update-modal-overlay" id="dash-update-modal-overlay">
+  <div class="update-modal">
+    <div class="update-modal-title">🟠 Dashboard Update Available</div>
+    <div class="update-modal-body">A new version of BotCoin Dashboard is available. The page will rebuild and reload automatically in about 2 minutes.</div>
+    <div class="update-modal-versions">
+      <div class="update-version-chip current">Current: <span id="dash-modal-current">—</span></div>
+      <div class="update-version-chip latest">⬆️ Latest: <span id="dash-modal-latest">—</span></div>
+    </div>
+    <div class="update-progress" id="dash-update-progress"></div>
+    <div class="update-modal-actions">
+      <button class="btn-cancel" onclick="hideDashUpdateModal()">Cancel</button>
+      <button class="btn-update" id="btn-dash-update" onclick="executeDashUpdate()">⬆️ Update Now</button>
+    </div>
+  </div>
+</div>
 
 <!-- Update Modal -->
 <div class="update-modal-overlay" id="update-modal-overlay">
