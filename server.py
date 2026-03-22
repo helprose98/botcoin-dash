@@ -72,6 +72,113 @@ def proxy():
         return {"error": str(e)}, 500
 
 
+# ── SSH Installer ──────────────────────────────────────────────────────────────
+
+INSTALL_SCRIPT = """
+set -e
+export DEBIAN_FRONTEND=noninteractive
+echo '[1/5] Updating system...'
+apt-get update -y -q
+echo '[2/5] Installing Docker...'
+curl -fsSL https://get.docker.com | sh -s -- -q
+echo '[3/5] Installing git...'
+apt-get install -y -q git curl
+echo '[4/5] Cloning BotCoin...'
+rm -rf /root/kraken-btc-bot
+git clone -q https://github.com/helprose98/botcoin-bot.git /root/kraken-btc-bot
+cd /root/kraken-btc-bot
+touch .env
+mkdir -p data logs
+echo '[5/5] Starting containers...'
+docker compose up -d --build -q
+bash install-update-watcher.sh
+echo 'BOTCOIN_INSTALL_COMPLETE'
+"""
+
+
+@app.route("/install/run", methods=["GET"])
+def install_run():
+    """
+    SSE endpoint — SSHes into the target server and streams install output
+    to the browser in real time.
+    Query params: ip, password
+    Credentials are used once and never stored.
+    """
+    import re
+    import paramiko
+    import threading
+    import queue
+
+    ip       = request.args.get("ip", "").strip()
+    password = request.args.get("password", "").strip()
+
+    if not ip or not re.match(r'^[\d.]+$', ip):
+        return {"error": "Invalid IP"}, 400
+    if not password:
+        return {"error": "Password required"}, 400
+
+    def generate():
+        q = queue.Queue()
+
+        def ssh_thread():
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            try:
+                q.put(("status", f"Connecting to {ip}..."))
+                client.connect(ip, username="root", password=password, timeout=15)
+                q.put(("status", "Connected. Starting installation..."))
+
+                transport = client.get_transport()
+                channel   = transport.open_session()
+                channel.get_pty()
+                channel.exec_command(f"bash -c '{INSTALL_SCRIPT}'")
+
+                buf = ""
+                while True:
+                    if channel.recv_ready():
+                        chunk = channel.recv(4096).decode("utf-8", errors="replace")
+                        buf += chunk
+                        while "\n" in buf:
+                            line, buf = buf.split("\n", 1)
+                            line = line.strip()
+                            if line:
+                                if "BOTCOIN_INSTALL_COMPLETE" in line:
+                                    q.put(("done", "BotCoin installed successfully!"))
+                                else:
+                                    q.put(("log", line))
+                    elif channel.exit_status_ready():
+                        code = channel.recv_exit_status()
+                        if code != 0:
+                            q.put(("error", f"Install failed (exit code {code})"))
+                        break
+                client.close()
+            except paramiko.AuthenticationException:
+                q.put(("error", "Authentication failed — check your root password"))
+            except Exception as e:
+                q.put(("error", str(e)))
+            finally:
+                q.put(("end", ""))
+
+        t = threading.Thread(target=ssh_thread, daemon=True)
+        t.start()
+
+        while True:
+            try:
+                kind, msg = q.get(timeout=120)
+                yield f"data: {kind}|{msg}\n\n"
+                if kind in ("done", "error", "end"):
+                    break
+            except queue.Empty:
+                yield "data: error|Installation timed out\n\n"
+                break
+
+    return Response(
+        generate(),
+        mimetype="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
+
+
 # ── Dash version + self-update ──────────────────────────────────────────────
 
 DASH_VERSION_PATH = Path("/app/VERSION")
