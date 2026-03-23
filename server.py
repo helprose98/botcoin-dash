@@ -254,32 +254,56 @@ def chat():
                 trades_r = requests.get(f"http://{bot_ip}:8081/api/trades",
                                         headers=headers, timeout=5)
                 if status_r.ok:
-                    s = status_r.json()
-                    btc   = s.get("btc_balance", "unknown")
-                    usd   = s.get("usd_balance", "unknown")
-                    price = s.get("current_price", "unknown")
-                    basis = s.get("cost_basis", "unknown")
-                    mode  = s.get("mode", "unknown")
-                    aggr  = s.get("aggression", "unknown")
-                    dca_a = s.get("dca_amount", "unknown")
-                    dca_f = s.get("dca_frequency", "unknown")
-                    worth = round(float(btc) * float(price), 2) if btc != "unknown" and price != "unknown" else "unknown"
+                    s     = status_r.json()
+                    port  = s.get("portfolio", {})
+                    bot   = s.get("bot", {})
+                    mood  = s.get("mood", {})
+                    btc   = port.get("btc_balance", "unknown")
+                    usd   = port.get("usd_balance", "unknown")
+                    price = port.get("current_price", "unknown")
+                    basis = port.get("avg_cost_basis", "unknown")
+                    pnl   = port.get("pnl_pct", "unknown")
+                    worth = port.get("portfolio_value", "unknown")
+                    mode  = bot.get("active_mode", "unknown")
+                    trades_count = bot.get("trade_count", "unknown")
+                    ma200 = bot.get("ma200", None)
+                    mood_label = mood.get("label", "unknown") if isinstance(mood, dict) else "unknown"
+                    mood_detail = mood.get("detail", "") if isinstance(mood, dict) else ""
+                    next_dca = s.get("next_dca", "unknown")
+
+                    # Can it trade? USD must be > $5 min order
+                    can_trade = "yes" if isinstance(usd, (int, float)) and usd >= 5 else "no (insufficient USD reserve — needs at least $5)"
+
                     bot_context += f"""
 Live account data:
-- BTC stack: {btc} BTC (worth ~${worth} at current price)
-- USD reserve: ${usd}
+- BTC stack: {btc} BTC (worth ~${worth} USD at current price)
+- USD reserve: ${usd} — can the bot make a trade right now? {can_trade}
 - Current BTC price: ${price}
 - Average cost basis: ${basis} per BTC
-- Bot mode: {mode}
-- Aggression level: {aggr}
-- DCA amount: ${dca_a} per {dca_f}"""
+- P&L vs cost basis: {pnl}%
+- Bot active mode: {mode}
+- Bot mood: {mood_label} — {mood_detail}
+- Total trades executed: {trades_count}
+- 200-day moving average: ${ma200 if ma200 else 'still building (needs 200 days of price data)'}
+- Next scheduled DCA: {next_dca}"""
+
+                # Also fetch settings for DCA amount/frequency context
+                settings_r = requests.get(f"http://{bot_ip}:8081/api/settings",
+                                          headers=headers, timeout=5)
+                if settings_r.ok:
+                    cfg = settings_r.json()
+                    bot_context += f"""
+- DCA amount: ${cfg.get('dca_amount','?')} per {cfg.get('dca_frequency','?')}
+- Dip thresholds: tier1={float(cfg.get('dip_threshold','0.015'))*100:.1f}%, tier2={float(cfg.get('dip_tier2_threshold','0.03'))*100:.1f}%, tier3={float(cfg.get('dip_tier3_threshold','0.06'))*100:.1f}%
+- Recycler: {'enabled' if cfg.get('recycler_enabled') else 'disabled'}"""
+
                 if trades_r.ok:
-                    trades = trades_r.json().get("trades", [])[-5:]
-                    if trades:
+                    trades_list = trades_r.json()[-5:] if isinstance(trades_r.json(), list) else []
+                    if trades_list:
                         bot_context += "\n- Recent trades (last 5): "
                         bot_context += ", ".join(
-                            f"${t.get('usd_spent','?')} on {t.get('timestamp','?')[:10]}"
-                            for t in trades
+                            f"${t.get('usd_spent','?')} on {t.get('timestamp','?')[:10]} ({t.get('reason','?')})"
+                            for t in trades_list
                         )
         except Exception:
             pass  # context is best-effort; answer without it if bot unreachable
