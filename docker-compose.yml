@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     ports:
       - "80:8080"
+    env_file:
+      - .env
     volumes:
       - ./VERSION:/app/VERSION:ro
       - ./data:/app/data
