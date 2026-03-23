@@ -179,7 +179,12 @@ def install_run():
     return Response(
         generate(),
         mimetype="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+        headers={
+            "Cache-Control":     "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+            "Content-Type":      "text/event-stream; charset=utf-8",
+            "Transfer-Encoding": "chunked",
+        }
     )
 
 
