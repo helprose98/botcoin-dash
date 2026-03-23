@@ -248,7 +248,7 @@ def chat():
         try:
             import re
             if re.match(r'^[\d.]+$', bot_ip):
-                headers = {"X-Dashboard-Password": password}
+                headers = {"X-Bot-Password": password}
                 status_r = requests.get(f"http://{bot_ip}:8081/api/status",
                                         headers=headers, timeout=5)
                 trades_r = requests.get(f"http://{bot_ip}:8081/api/trades",
