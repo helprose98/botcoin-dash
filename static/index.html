@@ -22,6 +22,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <style>
 /* ── Reset & Tokens ─────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -675,6 +676,15 @@ body {
 #ask-send:hover { background: var(--accent-hover); transform: scale(1.05); }
 #ask-send:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 #ask-send svg { width: 1rem; height: 1rem; fill: #fff; }
+
+/* Markdown rendering inside bot bubbles */
+.ask-bubble p { margin: 0 0 0.5em 0; }
+.ask-bubble p:last-child { margin-bottom: 0; }
+.ask-bubble strong { font-weight: 700; color: var(--text); }
+.ask-bubble ul, .ask-bubble ol { padding-left: 1.25em; margin: 0.4em 0 0.6em; }
+.ask-bubble li { margin-bottom: 0.25em; }
+.ask-bubble code { font-family: var(--font-mono); font-size: 0.85em; background: var(--surface-3); padding: 0.1em 0.35em; border-radius: 3px; }
+.ask-bubble h3 { font-size: var(--text-sm); font-weight: 700; margin: 0.6em 0 0.3em; }
 </style>
 </head>
 <body>
@@ -2339,7 +2349,7 @@ function askSend() {
   }).then(r => r.json()).then(data => {
     const bubble = document.getElementById(typingId).querySelector('.ask-bubble');
     if (data.ok && data.answer) {
-      bubble.textContent = data.answer;
+      bubble.innerHTML = marked.parse(data.answer);
     } else {
       bubble.textContent = 'Sorry, something went wrong: ' + (data.error || 'unknown error');
     }
