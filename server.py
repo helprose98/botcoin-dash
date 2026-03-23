@@ -164,13 +164,17 @@ def install_run():
 
         while True:
             try:
-                kind, msg = q.get(timeout=120)
+                kind, msg = q.get(timeout=30)
                 yield f"data: {kind}|{msg}\n\n"
                 if kind in ("done", "error", "end"):
                     break
             except queue.Empty:
-                yield "data: error|Installation timed out\n\n"
-                break
+                # Send keepalive comment to prevent Cloudflare from closing the connection
+                yield ": keepalive\n\n"
+                # Check if thread is still alive
+                if not t.is_alive() and q.empty():
+                    yield "data: error|Installation timed out\n\n"
+                    break
 
     return Response(
         generate(),
