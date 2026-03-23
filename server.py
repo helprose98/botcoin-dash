@@ -90,102 +90,102 @@ cd /root/kraken-btc-bot
 touch .env
 mkdir -p data logs
 echo '[5/5] Starting containers...'
-docker compose up -d --build -q
+docker compose up -d --build
 bash install-update-watcher.sh
 echo 'BOTCOIN_INSTALL_COMPLETE'
 """
 
+# In-memory job store: job_id -> {lines: [], done: bool, error: str|None}
+_install_jobs = {}
+_install_lock = __import__('threading').Lock()
 
-@app.route("/install/run", methods=["GET"])
-def install_run():
-    """
-    SSE endpoint — SSHes into the target server and streams install output
-    to the browser in real time.
-    Query params: ip, password
-    Credentials are used once and never stored.
-    """
-    import re
-    import paramiko
-    import threading
-    import queue
 
-    ip       = request.args.get("ip", "").strip()
-    password = request.args.get("password", "").strip()
+@app.route("/install/start", methods=["POST"])
+def install_start():
+    """Start an install job. Returns a job_id immediately."""
+    import re, uuid, threading, paramiko
+
+    body     = request.get_json(force=True, silent=True) or {}
+    ip       = body.get("ip", "").strip()
+    password = body.get("password", "").strip()
 
     if not ip or not re.match(r'^[\d.]+$', ip):
-        return {"error": "Invalid IP"}, 400
+        return {"ok": False, "error": "Invalid IP"}, 400
     if not password:
-        return {"error": "Password required"}, 400
+        return {"ok": False, "error": "Password required"}, 400
 
-    def generate():
-        q = queue.Queue()
+    job_id = str(uuid.uuid4())[:8]
+    with _install_lock:
+        _install_jobs[job_id] = {"lines": [], "done": False, "error": None}
 
-        def ssh_thread():
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            try:
-                q.put(("status", f"Connecting to {ip}..."))
-                client.connect(ip, username="root", password=password, timeout=15)
-                q.put(("status", "Connected. Starting installation..."))
+    def run():
+        def log(msg, kind="log"):
+            with _install_lock:
+                _install_jobs[job_id]["lines"].append({"kind": kind, "msg": msg})
 
-                transport = client.get_transport()
-                channel   = transport.open_session()
-                channel.get_pty()
-                channel.exec_command(f"bash -c '{INSTALL_SCRIPT}'")
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        try:
+            log(f"Connecting to {ip}...", "status")
+            client.connect(ip, username="root", password=password, timeout=15)
+            log("Connected. Starting installation...", "status")
 
-                buf = ""
-                while True:
-                    if channel.recv_ready():
-                        chunk = channel.recv(4096).decode("utf-8", errors="replace")
-                        buf += chunk
-                        while "\n" in buf:
-                            line, buf = buf.split("\n", 1)
-                            line = line.strip()
-                            if line:
-                                if "BOTCOIN_INSTALL_COMPLETE" in line:
-                                    q.put(("done", "BotCoin installed successfully!"))
-                                else:
-                                    q.put(("log", line))
-                    elif channel.exit_status_ready():
-                        code = channel.recv_exit_status()
-                        if code != 0:
-                            q.put(("error", f"Install failed (exit code {code})"))
-                        break
-                client.close()
-            except paramiko.AuthenticationException:
-                q.put(("error", "Authentication failed — check your root password"))
-            except Exception as e:
-                q.put(("error", str(e)))
-            finally:
-                q.put(("end", ""))
+            transport = client.get_transport()
+            channel   = transport.open_session()
+            channel.get_pty()
+            channel.exec_command(f"bash << 'ENDBASH'\n{INSTALL_SCRIPT}\nENDBASH")
 
-        t = threading.Thread(target=ssh_thread, daemon=True)
-        t.start()
-
-        while True:
-            try:
-                kind, msg = q.get(timeout=30)
-                yield f"data: {kind}|{msg}\n\n"
-                if kind in ("done", "error", "end"):
+            buf = ""
+            while True:
+                if channel.recv_ready():
+                    chunk = channel.recv(4096).decode("utf-8", errors="replace")
+                    buf += chunk
+                    while "\n" in buf:
+                        line, buf = buf.split("\n", 1)
+                        line = line.strip()
+                        if line:
+                            if "BOTCOIN_INSTALL_COMPLETE" in line:
+                                log("BotCoin installed successfully!", "done")
+                            else:
+                                log(line)
+                elif channel.exit_status_ready():
+                    code = channel.recv_exit_status()
+                    if code != 0:
+                        log(f"Install failed (exit code {code})", "error")
                     break
-            except queue.Empty:
-                # Send keepalive comment to prevent Cloudflare from closing the connection
-                yield ": keepalive\n\n"
-                # Check if thread is still alive
-                if not t.is_alive() and q.empty():
-                    yield "data: error|Installation timed out\n\n"
-                    break
+                else:
+                    __import__('time').sleep(0.1)
+            client.close()
+        except paramiko.AuthenticationException:
+            log("Authentication failed — check your root password", "error")
+        except Exception as e:
+            log(str(e), "error")
+        finally:
+            with _install_lock:
+                _install_jobs[job_id]["done"] = True
 
-    return Response(
-        generate(),
-        mimetype="text/event-stream",
-        headers={
-            "Cache-Control":     "no-cache, no-transform",
-            "X-Accel-Buffering": "no",
-            "Content-Type":      "text/event-stream; charset=utf-8",
-            "Transfer-Encoding": "chunked",
-        }
-    )
+    threading.Thread(target=run, daemon=True).start()
+    return {"ok": True, "job_id": job_id}
+
+
+@app.route("/install/status", methods=["GET"])
+def install_status():
+    """Poll for install progress. Returns new lines since last_index."""
+    job_id     = request.args.get("job", "")
+    last_index = int(request.args.get("from", 0))
+
+    with _install_lock:
+        job = _install_jobs.get(job_id)
+    if not job:
+        return {"ok": False, "error": "Job not found"}, 404
+
+    new_lines = job["lines"][last_index:]
+    return {
+        "ok":    True,
+        "lines": new_lines,
+        "total": len(job["lines"]),
+        "done":  job["done"],
+    }
 
 
 # ── Dash version + self-update ──────────────────────────────────────────────

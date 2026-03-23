@@ -1386,35 +1386,67 @@ async function startInstall() {
   document.getElementById('installer-form').style.display = 'none';
   document.getElementById('installer-terminal').style.display = '';
 
-  const url = `/install/run?ip=${encodeURIComponent(ip)}&password=${encodeURIComponent(pw)}`;
-  const es  = new EventSource(url);
+  // Start the install job
+  let jobId = null;
+  let lineIndex = 0;
+  let pollTimer = null;
 
-  es.onmessage = (e) => {
-    const [kind, ...rest] = e.data.split('|');
-    const msg = rest.join('|');
-    if (kind === 'log')    { instLog(msg); }
-    if (kind === 'status') { instLog(msg, '#fbbf24'); }
-    if (kind === 'done') {
-      instLog('\u2713 ' + msg, '#4ade80');
-      document.getElementById('inst-done').style.display = '';
-      es.close();
+  try {
+    const startResp = await fetch('/install/start', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ ip, password: pw })
+    });
+    const startData = await startResp.json();
+    if (!startData.ok) {
+      instLog('\u2717 ' + (startData.error || 'Failed to start'), '#f87171');
+      document.getElementById('installer-form').style.display = '';
+      btn.disabled = false;
+      btn.textContent = '\u26a1 Install BotCoin on My Server';
+      return;
     }
-    if (kind === 'error') {
-      instLog('\u2717 ' + msg, '#f87171');
-      es.close();
-      // Show form again so they can retry
-      setTimeout(() => {
-        document.getElementById('installer-form').style.display = '';
-        btn.disabled = false;
-        btn.textContent = '\u26a1 Install BotCoin on My Server';
-      }, 2000);
-    }
-  };
+    jobId = startData.job_id;
+  } catch(e) {
+    instLog('\u2717 Could not reach installer: ' + e.message, '#f87171');
+    document.getElementById('installer-form').style.display = '';
+    btn.disabled = false;
+    btn.textContent = '\u26a1 Install BotCoin on My Server';
+    return;
+  }
 
-  es.onerror = () => {
-    instLog('Connection lost', '#f87171');
-    es.close();
-  };
+  // Poll for progress every 2 seconds
+  async function poll() {
+    try {
+      const resp = await fetch(`/install/status?job=${jobId}&from=${lineIndex}`);
+      const data = await resp.json();
+      if (!data.ok) return;
+
+      for (const entry of data.lines) {
+        if (entry.kind === 'log')    instLog(entry.msg);
+        if (entry.kind === 'status') instLog(entry.msg, '#fbbf24');
+        if (entry.kind === 'done') {
+          instLog('\u2713 ' + entry.msg, '#4ade80');
+          document.getElementById('inst-done').style.display = '';
+          clearInterval(pollTimer);
+          return;
+        }
+        if (entry.kind === 'error') {
+          instLog('\u2717 ' + entry.msg, '#f87171');
+          clearInterval(pollTimer);
+          setTimeout(() => {
+            document.getElementById('installer-form').style.display = '';
+            btn.disabled = false;
+            btn.textContent = '\u26a1 Install BotCoin on My Server';
+          }, 2000);
+          return;
+        }
+      }
+      lineIndex = data.total;
+    } catch(e) { /* ignore poll errors, retry next tick */ }
+  }
+
+  pollTimer = setInterval(poll, 2000);
+  poll(); // immediate first poll
 }
 
 function instContinueToSetup() {
