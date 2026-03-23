@@ -12,11 +12,41 @@ request body/headers from the browser, same as before.
 
 import os
 import json
+import time
 import requests
+from collections import defaultdict
 from flask import Flask, send_from_directory, request, Response
 from pathlib import Path
 
 app = Flask(__name__, static_folder="static")
+
+# ── Simple rate limiter ────────────────────────────────────────────────────────
+# Tracks request counts per IP in a sliding 60-second window.
+# Scanners typically fire 50-200 requests/min; legitimate users rarely exceed 30.
+_rate_data = defaultdict(list)  # ip -> [timestamps]
+_RATE_LIMIT = 60                # max requests per window
+_RATE_WINDOW = 60               # seconds
+_BLOCKED_IPS = set()            # permanently blocked this session
+
+def _check_rate(ip):
+    if ip in _BLOCKED_IPS:
+        return False
+    now = time.time()
+    window_start = now - _RATE_WINDOW
+    _rate_data[ip] = [t for t in _rate_data[ip] if t > window_start]
+    _rate_data[ip].append(now)
+    if len(_rate_data[ip]) > _RATE_LIMIT:
+        _BLOCKED_IPS.add(ip)
+        app.logger.warning(f"[rate-limit] Blocked {ip} after {len(_rate_data[ip])} req/min")
+        return False
+    return True
+
+@app.before_request
+def rate_limit():
+    # Trust Cloudflare's real IP header, fall back to remote_addr
+    ip = request.headers.get("CF-Connecting-IP") or request.remote_addr
+    if not _check_rate(ip):
+        return Response("Too many requests", status=429)
 
 ALLOWED_PATHS = (
     "/api/health",
