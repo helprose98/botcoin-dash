@@ -943,7 +943,8 @@ body {
 
   <footer class="footer">
     <div class="footer-left" id="footer-status">Stacking BTC</div>
-    <div class="footer-right">
+    <div class="footer-right" style="display:flex;align-items:center;gap:var(--space-4);">
+      <span id="dash-version-display" style="font-size:var(--text-xs);color:var(--text-faint);">dash v—</span>
       <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
     </div>
   </footer>
@@ -1601,6 +1602,8 @@ async function checkDashVersion() {
   try {
     const v = await fetch('/dash/version').then(r => r.json());
     _dashVersionData = v;
+    const el = document.getElementById('dash-version-display');
+    if (el) el.textContent = `dash v${v.current}`;
     const badge = document.getElementById('dash-update-badge');
     if (v.update_available) {
       document.getElementById('dash-update-badge-text').textContent = `Dash v${v.latest}`;
