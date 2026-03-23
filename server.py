@@ -13,7 +13,7 @@ request body/headers from the browser, same as before.
 import os
 import json
 import requests
-from flask import Flask, send_from_directory, request, Response, stream_with_context
+from flask import Flask, send_from_directory, request, Response
 from pathlib import Path
 
 app = Flask(__name__, static_folder="static")
@@ -290,55 +290,31 @@ Your job is to help users understand their dashboard, their BTC stack, how the b
 Keep answers clear, plain-English, and concise. Never give financial advice — you can explain how things work but always note that investing decisions are personal.
 {bot_context if bot_context else "(Bot data unavailable — answer generally.)"}\n"""
 
-    # ── Stream from OpenAI ────────────────────────────────────────────────────
-    def generate():
-        try:
-            resp = requests.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type":  "application/json",
-                },
-                json={
-                    "model":    "gpt-4o-mini",
-                    "stream":   True,
-                    "messages": [
-                        {"role": "system",  "content": system_prompt},
-                        {"role": "user",    "content": question},
-                    ],
-                    "max_tokens": 500,
-                    "temperature": 0.7,
-                },
-                stream=True,
-                timeout=30,
-            )
-            for line in resp.iter_lines():
-                if not line:
-                    continue
-                line = line.decode("utf-8")
-                if line.startswith("data: "):
-                    data = line[6:]
-                    if data == "[DONE]":
-                        break
-                    try:
-                        chunk = json.loads(data)
-                        delta = chunk["choices"][0]["delta"].get("content", "")
-                        if delta:
-                            yield f"data: {json.dumps({'text': delta})}\n\n"
-                    except Exception:
-                        continue
-        except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
-        yield "data: [DONE]\n\n"
-
-    return Response(
-        stream_with_context(generate()),
-        mimetype="text/event-stream",
-        headers={
-            "Cache-Control":   "no-cache",
-            "X-Accel-Buffering": "no",
-        }
-    )
+    # ── Call OpenAI (non-streaming — Cloudflare buffers SSE) ─────────────────
+    try:
+        resp = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type":  "application/json",
+            },
+            json={
+                "model":       "gpt-4o-mini",
+                "stream":      False,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": question},
+                ],
+                "max_tokens":  500,
+                "temperature": 0.7,
+            },
+            timeout=30,
+        )
+        data = resp.json()
+        answer = data["choices"][0]["message"]["content"]
+        return {"ok": True, "answer": answer}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}, 500
 
 
 @app.route("/")

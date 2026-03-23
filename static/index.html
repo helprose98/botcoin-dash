@@ -2324,51 +2324,17 @@ function askSend() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ question, bot_ip: botIp, password: botPwd })
-  }).then(resp => {
-    const typing = document.getElementById(typingId);
-    // Replace typing with empty bot bubble for streaming
-    typing.querySelector('.ask-bubble').innerHTML = '';
-    const bubble = typing.querySelector('.ask-bubble');
-    let text = '';
-
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = '';
-
-    function read() {
-      reader.read().then(({ done, value }) => {
-        if (done) { finish(); return; }
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split('\n');
-        buf = lines.pop();
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6);
-          if (data === '[DONE]') { finish(); return; }
-          try {
-            const chunk = JSON.parse(data);
-            if (chunk.text) {
-              text += chunk.text;
-              bubble.textContent = text;
-              msgs.scrollTop = msgs.scrollHeight;
-            }
-            if (chunk.error) {
-              bubble.textContent = 'Sorry, something went wrong: ' + chunk.error;
-              finish(); return;
-            }
-          } catch(e) {}
-        }
-        read();
-      }).catch(() => { bubble.textContent = 'Connection error. Please try again.'; finish(); });
+  }).then(r => r.json()).then(data => {
+    const bubble = document.getElementById(typingId).querySelector('.ask-bubble');
+    if (data.ok && data.answer) {
+      bubble.textContent = data.answer;
+    } else {
+      bubble.textContent = 'Sorry, something went wrong: ' + (data.error || 'unknown error');
     }
-    read();
-
-    function finish() {
-      _askBusy = false;
-      document.getElementById('ask-send').disabled = false;
-      document.getElementById('ask-input').focus();
-      msgs.scrollTop = msgs.scrollHeight;
-    }
+    msgs.scrollTop = msgs.scrollHeight;
+    _askBusy = false;
+    document.getElementById('ask-send').disabled = false;
+    document.getElementById('ask-input').focus();
   }).catch(() => {
     document.getElementById(typingId).querySelector('.ask-bubble').textContent = 'Could not reach the server. Please try again.';
     _askBusy = false;
