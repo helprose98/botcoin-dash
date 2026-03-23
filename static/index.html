@@ -566,17 +566,24 @@ body {
 #ask-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(247,147,26,0.6); }
 #ask-fab svg { width: 1.4rem; height: 1.4rem; fill: #fff; }
 
-#ask-drawer {
-  position: fixed; bottom: 0; right: 0; z-index: 901;
-  width: min(420px, 100vw);
-  height: 520px;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  box-shadow: var(--shadow-lg);
-  display: flex; flex-direction: column;
-  transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+/* Backdrop */
+#ask-backdrop {
+  display: none; position: fixed; inset: 0; z-index: 901;
+  background: rgba(0,0,0,0.45); backdrop-filter: blur(2px);
+  opacity: 0; transition: opacity 0.3s ease;
 }
-#ask-drawer.open { transform: translateY(0); }
+#ask-backdrop.open { display: block; opacity: 1; }
+
+#ask-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 902;
+  width: min(480px, 100vw);
+  height: 100vh;
+  background: var(--surface); border-left: 1px solid var(--border);
+  box-shadow: -8px 0 32px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column;
+  transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+#ask-drawer.open { transform: translateX(0); }
 
 .ask-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -2224,6 +2231,7 @@ async function saveSettings() {
 </div>
 
 <!-- Ask BotCoin FAB + Drawer -->
+<div id="ask-backdrop" onclick="toggleAskDrawer()"></div>
 <button id="ask-fab" onclick="toggleAskDrawer()" title="Ask BotCoin AI" style="display:none">
   <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 9h-2V5h2v6zm0 4h-2v-2h2v2z"/></svg>
 </button>
@@ -2267,6 +2275,7 @@ let _askBusy = false;
 function toggleAskDrawer() {
   _askOpen = !_askOpen;
   document.getElementById('ask-drawer').classList.toggle('open', _askOpen);
+  document.getElementById('ask-backdrop').classList.toggle('open', _askOpen);
   if (_askOpen) {
     setTimeout(() => document.getElementById('ask-input').focus(), 320);
   }
