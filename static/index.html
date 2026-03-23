@@ -1176,10 +1176,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') connectToBot();
     });
   });
-  // Populate dash version in footer immediately on page load
+  // Populate dash version in footer and login screen immediately on page load
   fetch('/dash/version').then(r => r.json()).then(v => {
     const el = document.getElementById('dash-version-display');
     if (el) el.textContent = `dash v${v.current}`;
+    const loginEl = document.getElementById('login-dash-version');
+    if (loginEl) loginEl.textContent = `dash v${v.current}`;
   }).catch(() => {});
 });
 
