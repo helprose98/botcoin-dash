@@ -716,6 +716,7 @@ body {
         New to BotCoin? Set up your bot →
       </button>
     </div>
+    <p id="login-dash-version" style="margin-top:var(--space-8);text-align:center;font-size:var(--text-xs);color:var(--text-faint);">dash v—</p>
   </div>
 </div>
 
@@ -1732,6 +1733,8 @@ async function checkDashVersion() {
     _dashVersionData = v;
     const el = document.getElementById('dash-version-display');
     if (el) el.textContent = `dash v${v.current}`;
+    const loginEl = document.getElementById('login-dash-version');
+    if (loginEl) loginEl.textContent = `dash v${v.current}`;
     const badge = document.getElementById('dash-update-badge');
     if (v.update_available) {
       document.getElementById('dash-update-badge-text').textContent = `Dash v${v.latest}`;
