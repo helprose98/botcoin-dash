@@ -10,8 +10,10 @@ allowed API paths. It holds NO credentials — the password travels in the
 request body/headers from the browser, same as before.
 """
 
+import os
+import json
 import requests
-from flask import Flask, send_from_directory, request, Response
+from flask import Flask, send_from_directory, request, Response, stream_with_context
 from pathlib import Path
 
 app = Flask(__name__, static_folder="static")
@@ -221,6 +223,122 @@ def dash_update():
         return {"ok": True, "message": "Dash update started. Page will reload in ~2 minutes."}
     except Exception as e:
         return {"ok": False, "error": str(e)}, 500
+
+
+# ── Ask BotCoin AI Chat ────────────────────────────────────────────────────────
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    """Stream an AI response using live bot data as context."""
+    body       = request.get_json(force=True, silent=True) or {}
+    question   = body.get("question", "").strip()
+    bot_ip     = body.get("bot_ip", "").strip()
+    password   = body.get("password", "").strip()
+
+    if not question:
+        return {"error": "No question provided"}, 400
+
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        return {"error": "OpenAI API key not configured"}, 500
+
+    # ── Fetch live bot data for context ──────────────────────────────────────
+    bot_context = ""
+    if bot_ip and password:
+        try:
+            import re
+            if re.match(r'^[\d.]+$', bot_ip):
+                headers = {"X-Dashboard-Password": password}
+                status_r = requests.get(f"http://{bot_ip}:8081/api/status",
+                                        headers=headers, timeout=5)
+                trades_r = requests.get(f"http://{bot_ip}:8081/api/trades",
+                                        headers=headers, timeout=5)
+                if status_r.ok:
+                    s = status_r.json()
+                    btc   = s.get("btc_balance", "unknown")
+                    usd   = s.get("usd_balance", "unknown")
+                    price = s.get("current_price", "unknown")
+                    basis = s.get("cost_basis", "unknown")
+                    mode  = s.get("mode", "unknown")
+                    aggr  = s.get("aggression", "unknown")
+                    dca_a = s.get("dca_amount", "unknown")
+                    dca_f = s.get("dca_frequency", "unknown")
+                    worth = round(float(btc) * float(price), 2) if btc != "unknown" and price != "unknown" else "unknown"
+                    bot_context += f"""
+Live account data:
+- BTC stack: {btc} BTC (worth ~${worth} at current price)
+- USD reserve: ${usd}
+- Current BTC price: ${price}
+- Average cost basis: ${basis} per BTC
+- Bot mode: {mode}
+- Aggression level: {aggr}
+- DCA amount: ${dca_a} per {dca_f}"""
+                if trades_r.ok:
+                    trades = trades_r.json().get("trades", [])[-5:]
+                    if trades:
+                        bot_context += "\n- Recent trades (last 5): "
+                        bot_context += ", ".join(
+                            f"${t.get('usd_spent','?')} on {t.get('timestamp','?')[:10]}"
+                            for t in trades
+                        )
+        except Exception:
+            pass  # context is best-effort; answer without it if bot unreachable
+
+    system_prompt = f"""You are BotCoin Assistant — a friendly, knowledgeable helper built into the BotCoin dashboard.
+BotCoin is a self-hosted Bitcoin DCA (dollar-cost averaging) savings bot that runs on a personal server and trades on Kraken.
+Your job is to help users understand their dashboard, their BTC stack, how the bot works, and Bitcoin investing concepts.
+Keep answers clear, plain-English, and concise. Never give financial advice — you can explain how things work but always note that investing decisions are personal.
+{bot_context if bot_context else "(Bot data unavailable — answer generally.)"}\n"""
+
+    # ── Stream from OpenAI ────────────────────────────────────────────────────
+    def generate():
+        try:
+            resp = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type":  "application/json",
+                },
+                json={
+                    "model":    "gpt-4o-mini",
+                    "stream":   True,
+                    "messages": [
+                        {"role": "system",  "content": system_prompt},
+                        {"role": "user",    "content": question},
+                    ],
+                    "max_tokens": 500,
+                    "temperature": 0.7,
+                },
+                stream=True,
+                timeout=30,
+            )
+            for line in resp.iter_lines():
+                if not line:
+                    continue
+                line = line.decode("utf-8")
+                if line.startswith("data: "):
+                    data = line[6:]
+                    if data == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data)
+                        delta = chunk["choices"][0]["delta"].get("content", "")
+                        if delta:
+                            yield f"data: {json.dumps({'text': delta})}\n\n"
+                    except Exception:
+                        continue
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control":   "no-cache",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 
 @app.route("/")
