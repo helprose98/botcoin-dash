@@ -465,8 +465,9 @@ body {
 .aggression-divider span { font-size: var(--text-xs); color: var(--text-faint); white-space: nowrap; }
 
 .settings-save-row { display: flex; align-items: center; gap: var(--space-4); justify-content: flex-end; }
-.btn-save { padding: var(--space-3) var(--space-6); background: var(--accent); color: var(--text-inverse); font-weight: 600; font-size: var(--text-sm); border-radius: var(--radius-md); cursor: pointer; border: none; transition: background var(--transition); display: flex; align-items: center; gap: var(--space-2); }
-.btn-save:hover { background: var(--accent-hover); }
+.btn-save { padding: var(--space-3) var(--space-6); background: var(--surface-3); color: var(--text-muted); font-weight: 600; font-size: var(--text-sm); border-radius: var(--radius-md); cursor: not-allowed; border: 1px solid var(--border); transition: all var(--transition); display: flex; align-items: center; gap: var(--space-2); }
+.btn-save.dirty { background: var(--accent); color: var(--text-inverse); border-color: var(--accent); cursor: pointer; }
+.btn-save.dirty:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
 .save-status { font-size: var(--text-sm); color: var(--green); display: none; }
 .save-status.show { display: block; }
@@ -2521,6 +2522,7 @@ function markDirty() {
   document.getElementById('unsaved-dot').classList.add('dirty');
   document.getElementById('unsaved-indicator').classList.add('dirty');
   document.getElementById('settings-sticky-save').classList.add('dirty');
+  document.getElementById('btn-save-all').classList.add('dirty');
   document.getElementById('unsaved-label').textContent = 'Unsaved changes';
 }
 
@@ -2529,6 +2531,7 @@ function markClean() {
   document.getElementById('unsaved-dot').classList.remove('dirty');
   document.getElementById('unsaved-indicator').classList.remove('dirty');
   document.getElementById('settings-sticky-save').classList.remove('dirty');
+  document.getElementById('btn-save-all').classList.remove('dirty');
   document.getElementById('unsaved-label').textContent = 'All settings saved';
 }
 
