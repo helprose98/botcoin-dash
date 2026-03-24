@@ -1564,7 +1564,9 @@ function renderDashboard(d) {
 
   // Mood banner
   const mood = d.mood;
-  const modeClass = b.active_mode === 'btc_accumulate' ? 'btc' : 'usd';
+  // modeClass driven by configured setting, not active_mode
+  const cfgMode   = window._cfgMode || b.active_mode || 'auto';
+  const modeClass = (cfgMode === 'usd_accumulate') ? 'usd' : 'btc';
   const modeLabel = b.active_mode === 'btc_accumulate' ? 'BTC MODE' : 'USD MODE';
 
   // Breakeven progress
