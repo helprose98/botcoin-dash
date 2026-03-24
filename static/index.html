@@ -1495,8 +1495,12 @@ function renderAcquisitionBreakdown(trades, data, settings) {
     const btc    = parseFloat(t.btc_amount) || 0;
     const usd    = parseFloat(t.usd_amount)  || 0;
 
-    // Recycler sell — add USD to house money pool
-    if (t.side === 'sell' && (reason === 'recycler_sell' || reason.includes('recycl'))) {
+    // Any bot sell — add USD to house money pool
+    if (t.side === 'sell' && (
+      reason.includes('recycl') ||
+      reason.includes('spike_sell') ||
+      reason === 'usd_dca_sell'
+    )) {
       houseMoneyPool += usd;
       return;
     }
@@ -1529,9 +1533,12 @@ function renderAcquisitionBreakdown(trades, data, settings) {
   const pct = v => total > 0 ? Math.round((v / total) * 100) : 0;
   const fmt = v => v.toFixed(6);
   // Find most recent recycler sell to calculate rebuy target
-  const lastRecyclerSell = sorted.slice().reverse().find(t =>
-    t.side === 'sell' && (t.reason || '').toLowerCase().includes('recycl')
-  );
+  const lastRecyclerSell = sorted.slice().reverse().find(t => {
+    const r = (t.reason || '').toLowerCase();
+    return t.side === 'sell' && (
+      r.includes('recycl') || r.includes('spike_sell') || r === 'usd_dca_sell'
+    );
+  });
   let recyclerRebuyHtml = '';
   if (lastRecyclerSell && settings?.recycler_sell_threshold) {
     const sellPrice  = parseFloat(lastRecyclerSell.price_usd) || 0;
@@ -2814,7 +2821,12 @@ function _calcRecyclerPool(trades) {
     const reason = (t.reason || '').toLowerCase();
     const usd    = parseFloat(t.usd_amount) || 0;
 
-    if (t.side === 'sell' && reason.includes('recycl')) {
+    const isBotSell = t.side === 'sell' && (
+      reason.includes('recycl') ||
+      reason.includes('spike_sell') ||
+      reason === 'usd_dca_sell'
+    );
+    if (isBotSell) {
       // Start a new cycle — reset pool to this sell amount
       pool = usd;
       inRecyclerCycle = true;
