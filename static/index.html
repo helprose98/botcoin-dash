@@ -1369,7 +1369,8 @@ function renderAcquisitionBreakdown(trades) {
     if (reason === 'dca')                                      btcByType.dca      += btc;
     else if (reason.includes('dip'))                           btcByType.dip      += btc;
     else if (reason === 'quick_buy' || reason === 'quickbuy')  btcByType.quick    += btc;
-    else if (reason.includes('recycl') || reason.includes('rebuy')) btcByType.recycler += btc;
+    else if (reason === 'recycler_rebuy' || reason === 'usd_recycler_buy' ||
+             reason.includes('recycl') || reason.includes('rebuy'))  btcByType.recycler += btc;
   });
 
   const total = btcByType.dca + btcByType.dip + btcByType.quick + btcByType.recycler;
