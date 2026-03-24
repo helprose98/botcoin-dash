@@ -1527,6 +1527,20 @@ function renderAcquisitionBreakdown(trades, data, settings) {
 
   const pct = v => total > 0 ? Math.round((v / total) * 100) : 0;
   const fmt = v => v.toFixed(6);
+  // Find most recent recycler sell to calculate rebuy target
+  const lastRecyclerSell = sorted.slice().reverse().find(t =>
+    t.side === 'sell' && (t.reason || '').toLowerCase().includes('recycl')
+  );
+  let recyclerRebuyHtml = '';
+  if (lastRecyclerSell && settings?.recycler_sell_threshold) {
+    const sellPrice  = parseFloat(lastRecyclerSell.price_usd) || 0;
+    const threshold  = parseFloat(settings.recycler_sell_threshold);
+    const rebuyPrice = sellPrice * (1 - threshold);
+    if (rebuyPrice > 0) {
+      recyclerRebuyHtml = `<div class="acq-trigger">rebuy target<br>$${Math.round(rebuyPrice).toLocaleString()}</div>`;
+    }
+  }
+
   const divider = 'style="border-left:1px solid var(--border);"';
 
   el.innerHTML = `
@@ -1547,7 +1561,7 @@ function renderAcquisitionBreakdown(trades, data, settings) {
         <div class="acq-pct recycler">${pct(btcByType.recycler)}%</div>
         <div class="acq-label">♻️ Recycler</div>
         <div class="acq-sub">${fmt(btcByType.recycler)} BTC</div>
-        ${recyclerTriggerHtml}
+        ${recyclerRebuyHtml}
       </div>
       <div class="acq-stat" ${divider}>
         <div class="acq-pct quick">${pct(btcByType.quick)}%</div>
