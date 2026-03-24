@@ -1360,17 +1360,42 @@ function renderAcquisitionBreakdown(trades) {
   const el = document.getElementById('acq-breakdown');
   if (!el) return;
 
-  // Filter out onboarding entries, sum BTC by reason
+  // Walk trades chronologically (oldest first) to tag house-money buys
+  const sorted = [...(trades || [])].reverse();
   const btcByType = { dca: 0, dip: 0, quick: 0, recycler: 0 };
-  (trades || []).forEach(t => {
-    if (t.side !== 'buy') return;
-    const btc = parseFloat(t.btc_amount) || 0;
+  let houseMoneyPool = 0;  // USD pool funded by recycler sells
+
+  sorted.forEach(t => {
     const reason = (t.reason || '').toLowerCase();
-    if (reason === 'dca')                                      btcByType.dca      += btc;
-    else if (reason.includes('dip'))                           btcByType.dip      += btc;
-    else if (reason === 'quick_buy' || reason === 'quickbuy')  btcByType.quick    += btc;
-    else if (reason === 'recycler_rebuy' || reason === 'usd_recycler_buy' ||
-             reason.includes('recycl') || reason.includes('rebuy'))  btcByType.recycler += btc;
+    const btc    = parseFloat(t.btc_amount) || 0;
+    const usd    = parseFloat(t.usd_amount)  || 0;
+
+    // Recycler sell — add USD to house money pool
+    if (t.side === 'sell' && (reason === 'recycler_sell' || reason.includes('recycl'))) {
+      houseMoneyPool += usd;
+      return;
+    }
+
+    if (t.side !== 'buy') return;
+
+    // Explicit recycler rebuy path
+    if (reason === 'recycler_rebuy' || reason === 'usd_recycler_buy') {
+      btcByType.recycler += btc;
+      houseMoneyPool = Math.max(0, houseMoneyPool - usd);
+      return;
+    }
+
+    // House money pool still has funds — tag this buy as recycler-funded
+    if (houseMoneyPool > 0) {
+      btcByType.recycler += btc;
+      houseMoneyPool = Math.max(0, houseMoneyPool - usd);
+      return;
+    }
+
+    // Regular categorization
+    if (reason === 'dca')                                     btcByType.dca   += btc;
+    else if (reason.includes('dip'))                          btcByType.dip   += btc;
+    else if (reason === 'quick_buy' || reason === 'quickbuy') btcByType.quick += btc;
   });
 
   const total = btcByType.dca + btcByType.dip + btcByType.quick + btcByType.recycler;
