@@ -733,6 +733,11 @@ body {
 .gauge-sub {
   font-size: var(--text-xs); color: var(--text-muted);
 }
+.gauge-mode {
+  font-size: var(--text-xs); color: var(--text-muted);
+  margin-top: var(--space-1); letter-spacing: 0.01em;
+}
+.gauge-mode strong { color: var(--text); font-weight: 600; }
 .gauge-disclaimer {
   font-size: 0.65rem; color: var(--text-faint); margin-top: var(--space-2);
   font-style: italic;
@@ -1291,7 +1296,8 @@ async function loadData() {
     updateGauge(
       data.portfolio?.current_price,
       data.bot?.ma200,
-      data.bot?.ma_days_built
+      data.bot?.ma_days_built,
+      data.bot?.active_mode
     );
     document.getElementById('last-updated').textContent =
       'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -1304,7 +1310,7 @@ async function loadData() {
 let _gaugeMA200 = null;   // cached once fetched from Kraken history
 let _gaugeFromHistory = false;
 
-async function updateGauge(currentPrice, botMA200, maDaysBuilt) {
+async function updateGauge(currentPrice, botMA200, maDaysBuilt, activeMode) {
   const needle   = document.getElementById('gauge-needle');
   const labelEl  = document.getElementById('gauge-label');
   const subEl    = document.getElementById('gauge-sub');
@@ -1360,6 +1366,27 @@ async function updateGauge(currentPrice, botMA200, maDaysBuilt) {
   discEl.textContent   = usingHistory
     ? `Using historical 200MA data — updates live as your bot builds its own (${maDaysBuilt || 0}/200 days)`
     : '';
+
+  // Mode description
+  const modeEl = document.getElementById('gauge-mode');
+  if (modeEl && activeMode) {
+    const mode = (activeMode || '').toLowerCase();
+    let modeText = '';
+    if (mode === 'btc_accumulate') {
+      modeText = '<strong>Auto mode</strong> — actively stacking BTC';
+    } else if (mode === 'usd_accumulate' || mode === 'usd') {
+      modeText = '<strong>Auto mode</strong> — holding USD, waiting for better entry';
+    } else if (mode === 'auto') {
+      modeText = '<strong>Auto mode</strong> — monitoring market conditions';
+    } else if (mode === 'btc' || mode === 'manual_btc') {
+      modeText = '<strong>Manual mode</strong> — always buying BTC';
+    } else if (mode === 'usd' || mode === 'manual_usd') {
+      modeText = '<strong>Manual mode</strong> — holding USD (bot paused)';
+    } else {
+      modeText = `<strong>${activeMode}</strong>`;
+    }
+    modeEl.innerHTML = modeText;
+  }
 }
 
 function renderAcquisitionBreakdown(trades, data, settings) {
@@ -1498,7 +1525,7 @@ function renderDashboard(d) {
         <div class="mood-label">${mood.label}</div>
         <div class="mood-detail">${mood.detail}</div>
       </div>
-      <div class="mood-mode ${modeClass}">${modeLabel}</div>
+
     </div>
 
     <div class="acq-card" id="acq-breakdown"></div>
@@ -1526,6 +1553,7 @@ function renderDashboard(d) {
         </svg>
         <div class="gauge-label" id="gauge-label">—</div>
         <div class="gauge-sub" id="gauge-sub">—</div>
+        <div class="gauge-mode" id="gauge-mode"></div>
         <div class="gauge-disclaimer" id="gauge-disclaimer"></div>
       </div>
     </div>
