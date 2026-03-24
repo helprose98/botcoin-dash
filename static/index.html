@@ -1367,6 +1367,7 @@ async function loadData() {
       botFetch('/api/settings').catch(() => {})
     ]);
     _cachedTrades = trades || [];
+    _cachedSettings = settings || {};
     renderDashboard(data);
     renderAcquisitionBreakdown(trades, data, settings);
     updateGauge(
@@ -1708,11 +1709,22 @@ function renderDashboard(d) {
         <div class="stat-value ${p.pnl_pct >= 0 ? 'green' : 'red'}">${p.pnl_pct >= 0 ? '+' : ''}${p.pnl_pct.toFixed(1)}%</div>
         <div class="stat-sub">${p.pnl_pct >= 0 ? 'above' : 'below'} cost basis</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">USD Reserve</div>
-        <div class="stat-value">$${p.usd_balance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-        <div class="stat-sub">dry powder available</div>
-      </div>
+      <div class="stat-card">${(() => {
+        const recyclerUsd = Math.min(_calcRecyclerPool(_cachedTrades), p.usd_balance);
+        const investUsd   = Math.max(0, p.usd_balance - recyclerUsd);
+        const hasSplit    = recyclerUsd > 0.01 && investUsd > 0.01;
+        const fmt2 = v => '$' + v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+        return `
+          <div class="stat-label">USD Reserve</div>
+          <div class="stat-value">${fmt2(p.usd_balance)}</div>
+          ${hasSplit ? `
+            <div class="stat-sub" style="margin-top:var(--space-2);">
+              <span style="color:var(--text-muted)">${fmt2(investUsd)}</span> invested
+              <span style="color:var(--text-faint)"> · </span>
+              <span style="color:var(--gold)">${fmt2(recyclerUsd)}</span> house money
+            </div>` : `<div class="stat-sub">dry powder available</div>`
+          }`;
+      })()}</div>
       <div class="stat-card">
         <div class="stat-label">200-Day MA</div>
         <div class="stat-value gold">${maDisplay}</div>
@@ -2790,6 +2802,26 @@ async function saveSettings() {
 <script>
 // ── Trade History Modal ──────────────────────────────────────────────────────
 let _cachedTrades = [];
+let _cachedSettings = {};
+
+function _calcRecyclerPool(trades) {
+  // Walk chronologically — same house money logic as acquisition breakdown
+  // Returns the USD currently sitting in the recycler pool (unredeployed)
+  const sorted = [...(trades || [])].reverse();
+  let pool = 0;
+  sorted.forEach(t => {
+    const reason = (t.reason || '').toLowerCase();
+    const usd    = parseFloat(t.usd_amount) || 0;
+    if (t.side === 'sell' && reason.includes('recycl')) {
+      pool += usd;
+    } else if (t.side === 'buy') {
+      if (reason === 'recycler_rebuy' || reason === 'usd_recycler_buy' || pool > 0) {
+        pool = Math.max(0, pool - usd);
+      }
+    }
+  });
+  return pool;
+}
 
 function openTradeModal() {
   const overlay = document.getElementById('trade-modal-overlay');
