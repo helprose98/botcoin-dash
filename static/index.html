@@ -1446,15 +1446,11 @@ async function updateGauge(currentPrice, botMA200, maDaysBuilt, activeMode) {
     const mode = (activeMode || '').toLowerCase();
     let modeText = '';
     if (mode === 'btc_accumulate') {
-      modeText = '<strong>Auto mode</strong> — actively stacking BTC';
-    } else if (mode === 'usd_accumulate' || mode === 'usd') {
-      modeText = '<strong>Auto mode</strong> — holding USD, waiting for better entry';
+      modeText = '<strong>Stack BTC</strong> — buying on schedule + dips';
+    } else if (mode === 'usd_accumulate') {
+      modeText = '<strong>Stack USD</strong> — holding, waiting for entry';
     } else if (mode === 'auto') {
-      modeText = '<strong>Auto mode</strong> — monitoring market conditions';
-    } else if (mode === 'btc' || mode === 'manual_btc') {
-      modeText = '<strong>Manual mode</strong> — always buying BTC';
-    } else if (mode === 'usd' || mode === 'manual_usd') {
-      modeText = '<strong>Manual mode</strong> — holding USD (bot paused)';
+      modeText = '<strong>Auto</strong> — bot decides based on market';
     } else {
       modeText = `<strong>${activeMode}</strong>`;
     }
@@ -1599,11 +1595,9 @@ function renderDashboard(d) {
         <div class="mood-detail">${mood.detail}</div>
       </div>
       <div class="mood-mode-pill ${modeClass}">${
-        b.active_mode === 'btc_accumulate' ? 'Auto — stacking BTC' :
-        b.active_mode === 'usd_accumulate' ? 'Auto — holding USD' :
-        b.active_mode === 'auto'           ? 'Auto — monitoring' :
-        b.active_mode === 'btc'            ? 'Manual — buying BTC' :
-        b.active_mode === 'usd'            ? 'Manual — paused' :
+        b.active_mode === 'btc_accumulate' ? 'Stack BTC' :
+        b.active_mode === 'usd_accumulate' ? 'Stack USD' :
+        b.active_mode === 'auto'           ? 'Auto' :
         b.active_mode
       }</div>
     </div>
@@ -2666,9 +2660,9 @@ async function saveSettings() {
       const pill = document.querySelector('.mood-mode-pill');
       if (pill) {
         const modeMap = {
-          'btc':  { text: 'Manual — buying BTC',  cls: 'btc' },
-          'usd':  { text: 'Manual — paused',       cls: 'usd' },
-          'auto': { text: 'Auto — monitoring',     cls: 'btc' },
+          'btc_accumulate': { text: 'Stack BTC', cls: 'btc' },
+          'usd_accumulate': { text: 'Stack USD', cls: 'usd' },
+          'auto':           { text: 'Auto',      cls: 'btc' },
         };
         const m = modeMap[mode] || { text: mode, cls: 'btc' };
         pill.textContent = m.text;
