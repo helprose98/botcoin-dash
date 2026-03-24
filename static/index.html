@@ -312,6 +312,14 @@ body {
 }
 .mood-mode.btc { color: var(--accent); background: var(--accent-dim); }
 .mood-mode.usd { color: var(--blue);   background: var(--blue-dim); }
+.mood-mode-pill {
+  font-size: var(--text-xs); font-weight: 600;
+  padding: var(--space-1) var(--space-4); border-radius: 9999px;
+  white-space: nowrap; margin-left: auto; flex-shrink: 0;
+  letter-spacing: .02em;
+}
+.mood-mode-pill.btc { color: var(--accent); background: var(--accent-dim); border: 1px solid var(--accent-glow); }
+.mood-mode-pill.usd { color: var(--blue);   background: var(--blue-dim);   border: 1px solid rgba(96,165,250,0.2); }
 
 /* ── Stats Grid ─────────────────────────────────────────────────────── */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-4); }
@@ -554,6 +562,57 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
 .no-data { color: var(--text-faint); font-size: var(--text-sm); font-style: italic; }
+
+/* ── Trade History Modal ────────────────────────────────────────────────── */
+.info-card.clickable { cursor: pointer; transition: border-color var(--transition), box-shadow var(--transition); }
+.info-card.clickable:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-glow); }
+.info-card.clickable .info-card-title::after { content: ' ↗'; font-size: 0.7em; opacity: 0.5; }
+
+#trade-modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 950;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center;
+}
+#trade-modal-overlay.open { display: flex; }
+#trade-modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-xl); width: min(520px, 95vw);
+  max-height: 80vh; display: flex; flex-direction: column;
+  box-shadow: var(--shadow-lg);
+}
+.trade-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.trade-modal-title { font-size: var(--text-sm); font-weight: 700; color: var(--text); }
+.trade-modal-close {
+  background: none; border: none; cursor: pointer; color: var(--text-muted);
+  font-size: 1.2rem; padding: var(--space-1); border-radius: var(--radius-sm);
+  transition: color var(--transition);
+}
+.trade-modal-close:hover { color: var(--text); }
+.trade-modal-body {
+  overflow-y: auto; padding: var(--space-3) var(--space-4);
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.trade-row {
+  display: grid; grid-template-columns: 2.5rem 1fr auto;
+  align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--divider);
+}
+.trade-row:last-child { border-bottom: none; }
+.trade-row-side {
+  font-size: var(--text-xs); font-weight: 700; text-transform: uppercase;
+  text-align: center; padding: 2px 6px; border-radius: var(--radius-sm);
+}
+.trade-row-side.buy  { color: var(--green); background: var(--green-dim); }
+.trade-row-side.sell { color: var(--red);   background: var(--red-dim);   }
+.trade-row-info { display: flex; flex-direction: column; gap: 2px; }
+.trade-row-label { font-size: var(--text-xs); color: var(--text); font-weight: 600; }
+.trade-row-meta  { font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono); }
+.trade-row-time  { font-size: 0.7rem; color: var(--text-faint); text-align: right; white-space: nowrap; }
 
 /* ── Ask BotCoin Chat ─────────────────────────────────────────────────────── */
 #ask-fab {
@@ -1291,6 +1350,7 @@ async function loadData() {
       botFetch('/api/trades').catch(() => []),
       botFetch('/api/settings').catch(() => {})
     ]);
+    _cachedTrades = trades || [];
     renderDashboard(data);
     renderAcquisitionBreakdown(trades, data, settings);
     updateGauge(
@@ -1525,7 +1585,14 @@ function renderDashboard(d) {
         <div class="mood-label">${mood.label}</div>
         <div class="mood-detail">${mood.detail}</div>
       </div>
-
+      <div class="mood-mode-pill ${modeClass}">${
+        b.active_mode === 'btc_accumulate' ? 'Auto — stacking BTC' :
+        b.active_mode === 'usd_accumulate' ? 'Auto — holding USD' :
+        b.active_mode === 'auto'           ? 'Auto — monitoring' :
+        b.active_mode === 'btc'            ? 'Manual — buying BTC' :
+        b.active_mode === 'usd'            ? 'Manual — paused' :
+        b.active_mode
+      }</div>
     </div>
 
     <div class="acq-card" id="acq-breakdown"></div>
@@ -1553,7 +1620,6 @@ function renderDashboard(d) {
         </svg>
         <div class="gauge-label" id="gauge-label">—</div>
         <div class="gauge-sub" id="gauge-sub">—</div>
-        <div class="gauge-mode" id="gauge-mode"></div>
         <div class="gauge-disclaimer" id="gauge-disclaimer"></div>
       </div>
     </div>
@@ -1653,7 +1719,7 @@ function renderDashboard(d) {
     </div>
 
     <div class="info-row">
-      <div class="info-card">
+      <div class="info-card clickable" onclick="openTradeModal()">
         <div class="info-card-title">Last Trade</div>
         ${d.last_trade ? `
           <div class="trade-item">
@@ -1701,12 +1767,52 @@ function renderStackChart(chartData) {
         data: chartData.map(d => d.btc),
         borderColor: '#f7931a', backgroundColor: 'rgba(247,147,26,0.08)',
         borderWidth: 2, fill: true, tension: 0.3,
-        pointRadius: 0, pointHoverRadius: 4,
+        pointRadius: 0, pointHoverRadius: 5,
+        pointHoverBackgroundColor: '#f7931a',
       }]
     },
-    options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.parsed.y.toFixed(8) + ' BTC' } } },
-      scales: { x: { display: false }, y: { display: false, beginAtZero: false } }
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(22,21,20,0.95)',
+          borderColor: '#2e2d2b', borderWidth: 1,
+          padding: 10, cornerRadius: 8,
+          callbacks: {
+            title: items => {
+              const d = new Date(items[0].label);
+              return d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+            },
+            label: ctx => '  ' + ctx.parsed.y.toFixed(8) + ' BTC'
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: true,
+          ticks: {
+            color: '#4a4845', font: { size: 9 },
+            maxTicksLimit: 4,
+            callback: function(val, i) {
+              const d = new Date(this.getLabelForValue(val));
+              return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+            }
+          },
+          grid: { display: false },
+          border: { display: false }
+        },
+        y: {
+          display: true, position: 'right', beginAtZero: false,
+          ticks: {
+            color: '#4a4845', font: { size: 9 }, maxTicksLimit: 3,
+            callback: val => val.toFixed(4) + '₿'
+          },
+          grid: { color: 'rgba(46,45,43,0.5)' },
+          border: { display: false }
+        }
+      }
     }
   });
 }
@@ -1723,12 +1829,51 @@ function renderPriceChart(priceHistory) {
         data: priceHistory.map(d => d.price),
         borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.06)',
         borderWidth: 1.5, fill: true, tension: 0.3,
-        pointRadius: 0, pointHoverRadius: 4,
+        pointRadius: 0, pointHoverRadius: 5,
+        pointHoverBackgroundColor: '#60a5fa',
       }]
     },
-    options: { responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => '$' + ctx.parsed.y.toLocaleString() } } },
-      scales: { x: { display: false }, y: { display: false, beginAtZero: false } }
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(22,21,20,0.95)',
+          borderColor: '#2e2d2b', borderWidth: 1,
+          padding: 10, cornerRadius: 8,
+          callbacks: {
+            title: items => {
+              const d = new Date(items[0].label);
+              return d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+            },
+            label: ctx => '  $' + Math.round(ctx.parsed.y).toLocaleString()
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: true,
+          ticks: {
+            color: '#4a4845', font: { size: 9 }, maxTicksLimit: 4,
+            callback: function(val, i) {
+              const d = new Date(this.getLabelForValue(val));
+              return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+            }
+          },
+          grid: { display: false },
+          border: { display: false }
+        },
+        y: {
+          display: true, position: 'right', beginAtZero: false,
+          ticks: {
+            color: '#4a4845', font: { size: 9 }, maxTicksLimit: 3,
+            callback: val => '$' + Math.round(val / 1000) + 'k'
+          },
+          grid: { color: 'rgba(46,45,43,0.5)' },
+          border: { display: false }
+        }
+      }
     }
   });
 }
@@ -2531,6 +2676,17 @@ async function saveSettings() {
   </div>
 </div>
 
+<!-- Trade History Modal -->
+<div id="trade-modal-overlay" onclick="if(event.target===this)closeTradeModal()">
+  <div id="trade-modal">
+    <div class="trade-modal-header">
+      <div class="trade-modal-title">Trade History</div>
+      <button class="trade-modal-close" onclick="closeTradeModal()">✕</button>
+    </div>
+    <div class="trade-modal-body" id="trade-modal-body"></div>
+  </div>
+</div>
+
 <!-- Ask BotCoin FAB + Drawer -->
 <div id="ask-backdrop" onclick="toggleAskDrawer()"></div>
 <button id="ask-fab" onclick="toggleAskDrawer()" title="Ask BotCoin AI" style="display:none">
@@ -2569,6 +2725,63 @@ async function saveSettings() {
 </div>
 
 <script>
+// ── Trade History Modal ──────────────────────────────────────────────────────
+let _cachedTrades = [];
+
+function openTradeModal() {
+  const overlay = document.getElementById('trade-modal-overlay');
+  const body    = document.getElementById('trade-modal-body');
+  if (!overlay || !body) return;
+
+  const trades = _cachedTrades || [];
+  if (trades.length === 0) {
+    body.innerHTML = '<div class="no-data" style="padding:1rem">No trades yet.</div>';
+  } else {
+    const reasonLabels = {
+      'dca': 'Scheduled DCA',
+      'dip_buy_tier1': 'Dip Buy — Tier 1',
+      'dip_buy_tier2': 'Dip Buy — Tier 2',
+      'dip_buy_tier3': 'Dip Buy — Tier 3',
+      'recycler_sell': 'Recycler Sell',
+      'recycler_rebuy': 'Recycler Rebuy',
+      'quick_buy': 'Quick Buy',
+      'usd_recycler_buy': 'Recycler Buy',
+      'usd_recycler_resell': 'Recycler Resell',
+    };
+    body.innerHTML = trades.map(t => {
+      const label = reasonLabels[t.reason] || t.label || t.reason;
+      const btc   = parseFloat(t.btc_amount).toFixed(8);
+      const price = '$' + parseFloat(t.price_usd).toLocaleString('en-US', {maximumFractionDigits:0});
+      const usd   = '$' + parseFloat(t.usd_amount).toFixed(2);
+      const fee   = '$' + parseFloat(t.fee_usd).toFixed(4);
+      const when  = timeAgo(t.timestamp);
+      const date  = new Date(t.timestamp + 'Z').toLocaleDateString('en-US',
+        {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+      return `
+        <div class="trade-row">
+          <div class="trade-row-side ${t.side}">${t.side === 'buy' ? 'BUY' : 'SELL'}</div>
+          <div class="trade-row-info">
+            <div class="trade-row-label">${label}</div>
+            <div class="trade-row-meta">${btc} BTC @ ${price} · ${usd} · fee ${fee}</div>
+          </div>
+          <div class="trade-row-time">${when}<br><span style="opacity:0.6">${date}</span></div>
+        </div>`;
+    }).join('');
+  }
+
+  overlay.classList.add('open');
+  document.addEventListener('keydown', _tradeModalEsc);
+}
+
+function closeTradeModal() {
+  document.getElementById('trade-modal-overlay')?.classList.remove('open');
+  document.removeEventListener('keydown', _tradeModalEsc);
+}
+
+function _tradeModalEsc(e) {
+  if (e.key === 'Escape') closeTradeModal();
+}
+
 // ── Ask BotCoin AI ──────────────────────────────────────────────────────────
 let _askOpen = false;
 let _askBusy = false;
