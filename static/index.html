@@ -1615,7 +1615,7 @@ function renderDashboard(d) {
     <div class="gauge-card" id="gauge-card">
       <div class="gauge-title">Market Position</div>
       <div class="gauge-wrap">
-        <svg id="gauge-svg" viewBox="0 0 280 170" width="280" height="170" xmlns="http://www.w3.org/2000/svg">
+        <svg id="gauge-svg" viewBox="0 0 280 175" width="280" height="175" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%"   stop-color="#f87171"/>
@@ -1634,10 +1634,10 @@ function renderDashboard(d) {
           <path d="M 40 148 A 100 100 0 0 1 240 148"
             fill="none" stroke="url(#gaugeGrad)" stroke-width="16" stroke-linecap="round"/>
 
-          <!-- Labels outside arc -->
-          <text x="12" y="155" font-size="9" fill="#f87171" font-family="Inter,sans-serif" font-weight="700" text-anchor="start">BEAR</text>
-          <text x="140" y="20" font-size="9" fill="#fbbf24" font-family="Inter,sans-serif" font-weight="700" text-anchor="middle">NEUTRAL</text>
-          <text x="268" y="155" font-size="9" fill="#4ade80" font-family="Inter,sans-serif" font-weight="700" text-anchor="end">BULL</text>
+          <!-- Labels: NEUTRAL above arc, BEAR/BULL below arc ends -->
+          <text x="140" y="22" font-size="9" fill="#fbbf24" font-family="Inter,sans-serif" font-weight="700" text-anchor="middle">NEUTRAL</text>
+          <text x="40" y="168" font-size="9" fill="#f87171" font-family="Inter,sans-serif" font-weight="700" text-anchor="middle">BEAR</text>
+          <text x="240" y="168" font-size="9" fill="#4ade80" font-family="Inter,sans-serif" font-weight="700" text-anchor="middle">BULL</text>
 
           <!-- Needle -->
           <line id="gauge-needle" x1="140" y1="148" x2="140" y2="58"
