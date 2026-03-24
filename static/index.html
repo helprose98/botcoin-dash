@@ -677,6 +677,39 @@ body {
 #ask-send:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 #ask-send svg { width: 1rem; height: 1rem; fill: #fff; }
 
+/* ── Acquisition Breakdown Card ───────────────────────────────────────────── */
+.acq-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-xl); padding: var(--space-5) var(--space-6);
+  margin-bottom: var(--space-4);
+}
+.acq-title {
+  font-size: var(--text-xs); font-weight: 600; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-muted); margin-bottom: var(--space-4);
+}
+.acq-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4);
+}
+.acq-stat { text-align: center; }
+.acq-pct {
+  font-size: var(--text-lg); font-weight: 700; font-family: var(--font-mono);
+  color: var(--text); line-height: 1.1;
+}
+.acq-pct.dca   { color: var(--accent); }
+.acq-pct.dip   { color: var(--green); }
+.acq-pct.quick { color: var(--blue); }
+.acq-label {
+  font-size: var(--text-xs); color: var(--text-muted);
+  margin-top: var(--space-1);
+}
+.acq-sub {
+  font-size: var(--text-xs); color: var(--text-faint);
+  font-family: var(--font-mono); margin-top: 2px;
+}
+.acq-divider {
+  width: 1px; background: var(--border); margin: 0 var(--space-2);
+}
+
 /* Markdown rendering inside bot bubbles */
 .ask-bubble p { margin: 0 0 0.5em 0; }
 .ask-bubble p:last-child { margin-bottom: 0; }
@@ -1220,13 +1253,60 @@ function showTab(tab) {
 // ── Data loading ──────────────────────────────────────────────────────
 async function loadData() {
   try {
-    const data = await botFetch('/api/status');
+    const [data, trades] = await Promise.all([
+      botFetch('/api/status'),
+      botFetch('/api/trades').catch(() => [])
+    ]);
     renderDashboard(data);
+    renderAcquisitionBreakdown(trades);
     document.getElementById('last-updated').textContent =
       'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
   } catch(e) {
     console.error('Failed to load data:', e);
   }
+}
+
+function renderAcquisitionBreakdown(trades) {
+  const el = document.getElementById('acq-breakdown');
+  if (!el) return;
+
+  // Filter out onboarding entries, sum BTC by reason
+  const btcByType = { dca: 0, dip: 0, quick: 0 };
+  (trades || []).forEach(t => {
+    if (t.side !== 'buy') return;
+    const btc = parseFloat(t.btc_amount) || 0;
+    const reason = (t.reason || '').toLowerCase();
+    if (reason === 'dca')                        btcByType.dca   += btc;
+    else if (reason.includes('dip'))             btcByType.dip   += btc;
+    else if (reason === 'quick_buy' || reason === 'quickbuy') btcByType.quick += btc;
+  });
+
+  const total = btcByType.dca + btcByType.dip + btcByType.quick;
+  if (total === 0) { el.style.display = 'none'; return; }
+
+  const pct = v => total > 0 ? Math.round((v / total) * 100) : 0;
+  const fmt = v => v.toFixed(6);
+
+  el.innerHTML = `
+    <div class="acq-title">How Your BTC Was Acquired</div>
+    <div class="acq-stats">
+      <div class="acq-stat">
+        <div class="acq-pct dca">${pct(btcByType.dca)}%</div>
+        <div class="acq-label">Scheduled DCA</div>
+        <div class="acq-sub">${fmt(btcByType.dca)} BTC</div>
+      </div>
+      <div class="acq-stat" style="border-left:1px solid var(--border);border-right:1px solid var(--border);">
+        <div class="acq-pct dip">${pct(btcByType.dip)}%</div>
+        <div class="acq-label">Dip Buys</div>
+        <div class="acq-sub">${fmt(btcByType.dip)} BTC</div>
+      </div>
+      <div class="acq-stat">
+        <div class="acq-pct quick">${pct(btcByType.quick)}%</div>
+        <div class="acq-label">Quick Buys</div>
+        <div class="acq-sub">${fmt(btcByType.quick)} BTC</div>
+      </div>
+    </div>
+  `;
 }
 
 function renderDashboard(d) {
@@ -1271,6 +1351,8 @@ function renderDashboard(d) {
       </div>
       <div class="mood-mode ${modeClass}">${modeLabel}</div>
     </div>
+
+    <div class="acq-card" id="acq-breakdown"></div>
 
     <div class="quick-buy-card">
       <div class="quick-buy-label">🟠 Quick Buy BTC</div>
