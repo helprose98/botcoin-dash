@@ -707,6 +707,11 @@ body {
   font-size: var(--text-xs); color: var(--text-faint);
   font-family: var(--font-mono); margin-top: 2px;
 }
+.acq-trigger {
+  font-size: 0.65rem; color: var(--text-faint);
+  margin-top: var(--space-2); font-style: italic;
+  line-height: 1.3;
+}
 .acq-divider {
   width: 1px; background: var(--border); margin: 0 var(--space-2);
 }
@@ -1276,12 +1281,13 @@ function showTab(tab) {
 // ── Data loading ──────────────────────────────────────────────────────
 async function loadData() {
   try {
-    const [data, trades] = await Promise.all([
+    const [data, trades, settings] = await Promise.all([
       botFetch('/api/status'),
-      botFetch('/api/trades').catch(() => [])
+      botFetch('/api/trades').catch(() => []),
+      botFetch('/api/settings').catch(() => {})
     ]);
     renderDashboard(data);
-    renderAcquisitionBreakdown(trades);
+    renderAcquisitionBreakdown(trades, data, settings);
     updateGauge(
       data.portfolio?.current_price,
       data.bot?.ma200,
@@ -1356,9 +1362,27 @@ async function updateGauge(currentPrice, botMA200, maDaysBuilt) {
     : '';
 }
 
-function renderAcquisitionBreakdown(trades) {
+function renderAcquisitionBreakdown(trades, data, settings) {
   const el = document.getElementById('acq-breakdown');
   if (!el) return;
+
+  // Calculate dip trigger prices from recent high
+  const recentHigh  = data?.bot?.recent_high || data?.portfolio?.current_price || 0;
+  const t1 = parseFloat(settings?.dip_tier1) || 0.015;
+  const t2 = parseFloat(settings?.dip_tier2) || 0.030;
+  const t3 = parseFloat(settings?.dip_tier3) || 0.060;
+  const fmt$ = v => '$' + Math.round(v).toLocaleString();
+  const triggerT1 = recentHigh * (1 - t1);
+  const triggerT2 = recentHigh * (1 - t2);
+  const triggerT3 = recentHigh * (1 - t3);
+  const dipTriggerHtml = recentHigh ? `
+    <div class="acq-trigger">
+      T1 dip &lt; ${fmt$(triggerT1)}<br>
+      T2 dip &lt; ${fmt$(triggerT2)}<br>
+      T3 dip &lt; ${fmt$(triggerT3)}
+    </div>` : '';
+  const recyclerTriggerHtml = recentHigh ? `
+    <div class="acq-trigger">buys when dip<br>follows a sell</div>` : '';
 
   // Walk trades chronologically (oldest first) to tag house-money buys
   const sorted = [...(trades || [])].reverse();
@@ -1417,11 +1441,13 @@ function renderAcquisitionBreakdown(trades) {
         <div class="acq-pct dip">${pct(btcByType.dip)}%</div>
         <div class="acq-label">Dip Buys</div>
         <div class="acq-sub">${fmt(btcByType.dip)} BTC</div>
+        ${dipTriggerHtml}
       </div>
       <div class="acq-stat" ${divider}>
         <div class="acq-pct recycler">${pct(btcByType.recycler)}%</div>
         <div class="acq-label">♻️ Recycler</div>
         <div class="acq-sub">${fmt(btcByType.recycler)} BTC</div>
+        ${recyclerTriggerHtml}
       </div>
       <div class="acq-stat" ${divider}>
         <div class="acq-pct quick">${pct(btcByType.quick)}%</div>
