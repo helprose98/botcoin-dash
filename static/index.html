@@ -2659,6 +2659,18 @@ async function saveSettings() {
       markClean();
       label.textContent = '\u2713 Saved — bot picks up within 5 min';
       setTimeout(() => { if (!_settingsDirty) label.textContent = 'All settings saved'; }, 4000);
+      // Immediately update the mode pill without waiting for next poll
+      const pill = document.querySelector('.mood-mode-pill');
+      if (pill) {
+        const modeMap = {
+          'btc':  { text: 'Manual — buying BTC',  cls: 'btc' },
+          'usd':  { text: 'Manual — paused',       cls: 'usd' },
+          'auto': { text: 'Auto — monitoring',     cls: 'btc' },
+        };
+        const m = modeMap[mode] || { text: mode, cls: 'btc' };
+        pill.textContent = m.text;
+        pill.className = 'mood-mode-pill ' + m.cls;
+      }
     } else {
       label.textContent = result.error || 'Save failed';
       document.getElementById('unsaved-indicator').classList.add('dirty');
