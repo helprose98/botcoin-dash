@@ -1712,15 +1712,14 @@ function renderDashboard(d) {
       <div class="stat-card">${(() => {
         const recyclerUsd = Math.min(_calcRecyclerPool(_cachedTrades), p.usd_balance);
         const investUsd   = Math.max(0, p.usd_balance - recyclerUsd);
-        const hasSplit    = recyclerUsd > 0.01 && investUsd > 0.01;
+        const hasSplit    = recyclerUsd > 0.01;
         const fmt2 = v => '$' + v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
         return `
           <div class="stat-label">USD Reserve</div>
           <div class="stat-value">${fmt2(p.usd_balance)}</div>
           ${hasSplit ? `
             <div class="stat-sub" style="margin-top:var(--space-2);">
-              <span style="color:var(--text-muted)">${fmt2(investUsd)}</span> invested
-              <span style="color:var(--text-faint)"> · </span>
+              ${investUsd > 0.01 ? `<span style="color:var(--text-muted)">${fmt2(investUsd)}</span> invested <span style="color:var(--text-faint)">·</span> ` : ''}
               <span style="color:var(--gold)">${fmt2(recyclerUsd)}</span> house money
             </div>` : `<div class="stat-sub">dry powder available</div>`
           }`;
