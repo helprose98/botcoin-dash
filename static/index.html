@@ -2804,19 +2804,23 @@ let _cachedTrades = [];
 let _cachedSettings = {};
 
 function _calcRecyclerPool(trades) {
-  // Walk chronologically — same house money logic as acquisition breakdown
-  // Returns the USD currently sitting in the recycler pool (unredeployed)
-  const sorted = [...(trades || [])].reverse();
+  // Find the most recent recycler sell, then subtract any buys that happened after it
+  // to get the remaining house money pool
+  const sorted = [...(trades || [])].reverse(); // oldest first
   let pool = 0;
+  let inRecyclerCycle = false;
+
   sorted.forEach(t => {
     const reason = (t.reason || '').toLowerCase();
     const usd    = parseFloat(t.usd_amount) || 0;
+
     if (t.side === 'sell' && reason.includes('recycl')) {
-      pool += usd;
-    } else if (t.side === 'buy') {
-      if (reason === 'recycler_rebuy' || reason === 'usd_recycler_buy' || pool > 0) {
-        pool = Math.max(0, pool - usd);
-      }
+      // Start a new cycle — reset pool to this sell amount
+      pool = usd;
+      inRecyclerCycle = true;
+    } else if (t.side === 'buy' && inRecyclerCycle) {
+      pool = Math.max(0, pool - usd);
+      if (pool <= 0) inRecyclerCycle = false;
     }
   });
   return pool;
