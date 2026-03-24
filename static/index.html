@@ -1024,7 +1024,7 @@ body {
         <path d="M11 10h6.5a3.5 3.5 0 0 1 0 7H11m0-7v12m0-12v-1m0 13v1m6.5-1H11m7.5-6h1"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <span class="name">BotCoin</span>
+      <span class="name">myBotCoin</span>
       <span class="tagline">Self-hosted BTC savings bot. Stacking, simplified.</span>
     </div>
     <div class="header-right">
@@ -1071,7 +1071,7 @@ body {
           <div class="mode-card" data-mode="auto" onclick="sSelectMode(this)">
             <div class="mode-card-icon" style="font-size:1.4rem;font-weight:800;color:#4ade80;font-family:var(--font-mono);">&#8383;&nbsp;&#8644;&nbsp;$</div>
             <div class="mode-card-name">Auto</div>
-            <div class="mode-card-desc">Let BotCoin read the market and switch modes automatically.
+            <div class="mode-card-desc">Let myBotCoin read the market and switch modes automatically.
           </div>
         </div>
         <div class="toggle-row-s" style="margin-top:var(--space-4)">
@@ -1136,7 +1136,7 @@ body {
         <div class="settings-section-title" style="display:flex;align-items:center;justify-content:space-between">
           <span>Aggression &amp; Thresholds</span>
           <div class="botcoin-recommends-toggle">
-            <span class="brt-label" id="brt-label">BotCoin Recommends</span>
+            <span class="brt-label" id="brt-label">myBotCoin Recommends</span>
             <label class="s-toggle" style="margin-left:var(--space-3)">
               <input type="checkbox" id="s-botcoin-recommends" checked onchange="onRecommendsToggle(this.checked)">
               <span class="s-toggle-slider"></span>
@@ -1600,15 +1600,11 @@ function renderDashboard(d) {
       </div>
       <div class="mood-mode-wrap">
         <div class="mood-mode-pill ${modeClass}">${
-          b.active_mode === 'btc_accumulate' ? 'Stack BTC' :
-          b.active_mode === 'usd_accumulate' ? 'Stack USD' :
-          b.active_mode === 'auto'           ? 'Auto' :
-          b.active_mode
+          (window._cfgMode === 'auto')
+            ? ('Auto \u00b7 ' + (['USD Mode Active','Bear Market Shield'].includes(mood.label) ? 'holding USD' : 'stacking BTC'))
+            : (b.active_mode === 'btc_accumulate' ? 'Stack BTC' :
+               b.active_mode === 'usd_accumulate' ? 'Stack USD' : b.active_mode)
         }</div>
-        ${b.active_mode === 'auto' ? `<div class="mood-mode-sub">${
-          ['USD Mode Active','Bear Market Shield'].includes(mood.label)
-            ? 'holding USD' : 'stacking BTC'
-        }</div>` : ''}
       </div>
     </div>
 
@@ -2569,6 +2565,7 @@ async function loadSettings() {
     document.getElementById('s-paper-toggle').checked = s.paper_trading === 'true';
     // Cache DCA amount for Quick Buy default
     window._dcaAmount = parseFloat(s.dca_amount) || 50;
+    window._cfgMode   = s.mode || 'auto';
     // Section 2
     document.getElementById('s-dca-amount').value    = s.dca_amount;
     document.getElementById('s-dca-frequency').value = s.dca_frequency || 'weekly';
@@ -2667,12 +2664,13 @@ async function saveSettings() {
       label.textContent = '\u2713 Saved — bot picks up within 5 min';
       setTimeout(() => { if (!_settingsDirty) label.textContent = 'All settings saved'; }, 4000);
       // Immediately update the mode pill without waiting for next poll
+      window._cfgMode = mode;
       const pill = document.querySelector('.mood-mode-pill');
       if (pill) {
         const modeMap = {
           'btc_accumulate': { text: 'Stack BTC', cls: 'btc' },
           'usd_accumulate': { text: 'Stack USD', cls: 'usd' },
-          'auto':           { text: 'Auto',      cls: 'btc' },
+          'auto':           { text: 'Auto · stacking BTC', cls: 'btc' },
         };
         const m = modeMap[mode] || { text: mode, cls: 'btc' };
         pill.textContent = m.text;
@@ -2696,7 +2694,7 @@ async function saveSettings() {
 <div class="update-modal-overlay" id="dash-update-modal-overlay">
   <div class="update-modal">
     <div class="update-modal-title">🟠 Dashboard Update Available</div>
-    <div class="update-modal-body">A new version of BotCoin Dashboard is available. The page will rebuild and reload automatically in about 2 minutes.</div>
+    <div class="update-modal-body">A new version of myBotCoin Dashboard is available. The page will rebuild and reload automatically in about 2 minutes.</div>
     <div class="update-modal-versions">
       <div class="update-version-chip current">Current: <span id="dash-modal-current">—</span></div>
       <div class="update-version-chip latest">⬆️ Latest: <span id="dash-modal-latest">—</span></div>
@@ -2713,7 +2711,7 @@ async function saveSettings() {
 <div class="update-modal-overlay" id="update-modal-overlay">
   <div class="update-modal">
     <div class="update-modal-title">🟠 BotCoin Update Available</div>
-    <div class="update-modal-body">A new version of BotCoin is available. The bot will pull the latest code from GitHub and rebuild automatically. This takes about 2 minutes — the dashboard will reconnect when it’s back up.</div>
+    <div class="update-modal-body">A new version of myBotCoin is available. The bot will pull the latest code from GitHub and rebuild automatically. This takes about 2 minutes — the dashboard will reconnect when it’s back up.</div>
     <div class="update-modal-versions">
       <div class="update-version-chip current">Current: <span id="modal-current-version">—</span></div>
       <div class="update-version-chip latest">⬆️ Latest: <span id="modal-latest-version">—</span></div>
