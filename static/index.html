@@ -323,7 +323,7 @@ body {
 }
 .mood-mode-pill.btc { color: var(--accent); background: var(--accent-dim); border: 1px solid var(--accent-glow); }
 .mood-mode-pill.usd { color: var(--blue);   background: var(--blue-dim);   border: 1px solid rgba(96,165,250,0.2); }
-.mood-mode-sub { font-size: 0.65rem; color: var(--text-faint); text-align: right; }
+.mood-mode-sub { font-size: var(--text-xs); color: var(--text-muted); text-align: right; font-weight: 500; }
 
 /* ── Stats Grid ─────────────────────────────────────────────────────── */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-4); }
@@ -2698,7 +2698,7 @@ async function saveSettings() {
       markClean();
       label.textContent = '\u2713 Saved — bot picks up within 5 min';
       setTimeout(() => { if (!_settingsDirty) label.textContent = 'All settings saved'; }, 4000);
-      // Immediately update the mode pill without waiting for next poll
+      // Immediately update the mode pill + aggression sub-text without waiting for next poll
       window._cfgMode = mode;
       const pill = document.querySelector('.mood-mode-pill');
       if (pill) {
@@ -2711,6 +2711,11 @@ async function saveSettings() {
         pill.textContent = m.text;
         pill.className = 'mood-mode-pill ' + m.cls;
       }
+      // Update aggression sub-text immediately
+      const newLevel = _detectAggressionLevel(body);
+      window._aggrName = newLevel >= 0 ? AGGRESSION_LEVELS[newLevel].name : window._aggrName;
+      const sub = document.querySelector('.mood-mode-sub');
+      if (sub && window._aggrName) sub.textContent = window._aggrName;
     } else {
       label.textContent = result.error || 'Save failed';
       document.getElementById('unsaved-indicator').classList.add('dirty');
