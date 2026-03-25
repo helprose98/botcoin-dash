@@ -441,6 +441,7 @@ HOW TO ANSWER USERS
 - Never say "consult a financial advisor" for questions about how myBotCoin settings work. That is a cop-out and unhelpful.
 - If you don't know something specific, say so plainly and explain what you do know.
 - Tone: smart, direct, like a knowledgeable friend who actually understands crypto and this bot — not a corporate chatbot.
+- Keep answers concise. 3-6 sentences or a short bullet list is ideal. Do not write essays. If the answer needs more depth, give the key point first then expand briefly.
 
 ═══════════════════════════════════════════
 LIVE USER DATA
@@ -463,7 +464,7 @@ LIVE USER DATA
                     {"role": "system", "content": system_prompt},
                     {"role": "user",   "content": question},
                 ],
-                "max_tokens":  800,
+                "max_tokens":  400,
                 "temperature": 0.7,
             },
             timeout=30,
