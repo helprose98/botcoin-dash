@@ -268,9 +268,9 @@ def chat():
     if not question:
         return {"error": "No question provided"}, 400
 
-    api_key = os.environ.get("OPENAI_API_KEY", "")
+    api_key = os.environ.get("GROK_API_KEY", "")
     if not api_key:
-        return {"error": "OpenAI API key not configured"}, 500
+        return {"error": "Grok API key not configured"}, 500
 
     # ── Fetch live bot data for context ──────────────────────────────────────
     bot_context = ""
@@ -379,16 +379,16 @@ HOW TO ANSWER:
 
 {bot_context if bot_context else "(Live bot data unavailable — answer based on general BotCoin context.)"}\n"""
 
-    # ── Call OpenAI (non-streaming — Cloudflare buffers SSE) ─────────────────
+    # ── Call Grok (non-streaming — Cloudflare buffers SSE) ──────────────────
     try:
         resp = requests.post(
-            "https://api.openai.com/v1/chat/completions",
+            "https://api.x.ai/v1/chat/completions",
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type":  "application/json",
             },
             json={
-                "model":       "gpt-4o-mini",
+                "model":       "grok-3-mini",
                 "stream":      False,
                 "messages": [
                     {"role": "system", "content": system_prompt},
