@@ -1475,10 +1475,10 @@ function _estimateRecyclerMonthly(data, settings) {
   // and current BTC stack + recycler settings
   try {
     const priceHistory = data?.price_history || [];
-    if (priceHistory.length < 14) return null; // need at least 2 weeks
+    if (priceHistory.length < 5) return null; // need at least 5 days
 
     const prices = priceHistory.slice(-30).map(p => p.price);
-    if (prices.length < 7) return null;
+    if (prices.length < 5) return null;
 
     // Calculate average daily swing (high-to-low as % of price)
     // Use rolling 3-day windows to estimate typical oscillation
@@ -1622,10 +1622,26 @@ function renderAcquisitionBreakdown(trades, data, settings) {
   let estHtml = '';
   if (est) {
     if (est.tooSmall) {
-      estHtml = `<div class="acq-estimate warn">Stack more BTC to activate meaningful recycler returns — target ~$${est.minStack.toLocaleString()} in BTC value</div>`;
+      estHtml = `<div class="acq-estimate warn">Stack more BTC for meaningful recycler returns — target ~$${est.minStack.toLocaleString()} in BTC value</div>`;
     } else {
       estHtml = `<div class="acq-estimate">Recycler est. <strong>$${est.monthlyLow}–$${est.monthlyHigh}/mo</strong> in extra sats &nbsp;·&nbsp; ~${est.cyclesPerMonth} cycles/mo based on ${est.avgSwingPct}% avg 30-day swing</div>`;
     }
+  } else {
+    // Fallback: use BTC's historical ~5% monthly avg swing as baseline
+    try {
+      const currentPrice = data?.portfolio?.current_price || 0;
+      const btcBalance   = data?.portfolio?.btc_balance   || 0;
+      const btcValueUsd  = btcBalance * currentPrice;
+      const sellThreshold = parseFloat(settings?.recycler_sell_threshold || 0.03);
+      const poolPct       = parseFloat(settings?.recycler_pool_percent   || 0.55);
+      const poolUsd       = btcValueUsd * poolPct;
+      const gainPerCycle  = poolUsd * sellThreshold * 0.7;
+      const estLow        = Math.round(gainPerCycle * 2);
+      const estHigh       = Math.round(gainPerCycle * 5);
+      if (btcValueUsd > 50) {
+        estHtml = `<div class="acq-estimate">Recycler est. <strong>$${estLow}–$${estHigh}/mo</strong> in extra sats &nbsp;·&nbsp; based on BTC historical avg volatility (building your price history...)</div>`;
+      }
+    } catch(e) {}
   }
 
   el.innerHTML = `
