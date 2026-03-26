@@ -798,6 +798,23 @@ body {
 .acq-estimate strong { color: var(--gold); }
 .acq-estimate.warn { color: var(--text-faint); font-style: italic; }
 
+/* ── Open Orders Banner ───────────────────────────────────────── */
+.open-orders-banner {
+  display: flex; align-items: center; gap: var(--space-3);
+  background: var(--blue-dim); border: 1px solid rgba(96,165,250,0.25);
+  border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-xs); color: var(--blue); font-weight: 500;
+  animation: pulse-border 2s ease-in-out infinite;
+}
+@keyframes pulse-border {
+  0%, 100% { border-color: rgba(96,165,250,0.25); }
+  50%       { border-color: rgba(96,165,250,0.6); }
+}
+.open-orders-banner .oob-icon { font-size: 1rem; flex-shrink: 0; animation: spin 2s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.open-orders-banner .oob-detail { color: var(--text-muted); margin-left: var(--space-1); }
+
 /* ── Market Position Gauge ─────────────────────────────────────────────── */
 .gauge-card {
   background: var(--surface); border: 1px solid var(--border);
@@ -1368,14 +1385,16 @@ function showTab(tab) {
 // ── Data loading ──────────────────────────────────────────────────────
 async function loadData() {
   try {
-    const [data, trades, settings] = await Promise.all([
+    const [data, trades, settings, openOrdersResp] = await Promise.all([
       botFetch('/api/status'),
       botFetch('/api/trades').catch(() => []),
-      botFetch('/api/settings').catch(() => {})
+      botFetch('/api/settings').catch(() => {}),
+      botFetch('/api/open_orders').catch(() => ({open_orders:[]}))
     ]);
+    const openOrders = openOrdersResp?.open_orders || [];
     _cachedTrades = trades || [];
     _cachedSettings = settings || {};
-    renderDashboard(data);
+    renderDashboard(data, openOrders);
     renderAcquisitionBreakdown(trades, data, settings);
     updateGauge(
       data.portfolio?.current_price,
@@ -1686,7 +1705,7 @@ async function renderAcquisitionBreakdown(trades, data, settings) {
   `;
 }
 
-function renderDashboard(d) {
+function renderDashboard(d, openOrders) {
   const p = d.portfolio;
   const b = d.bot;
 
@@ -1738,6 +1757,16 @@ function renderDashboard(d) {
         ${window._aggrName ? `<div class="mood-mode-sub">${window._aggrName}</div>` : ''}
       </div>
     </div>
+
+    ${(openOrders && openOrders.length > 0) ? `
+    <div class="open-orders-banner">
+      <span class="oob-icon">⏳</span>
+      <span>${openOrders.length === 1
+        ? `Order in progress &mdash; ${openOrders[0].type === 'buy' ? 'buying' : 'selling'} ${parseFloat(openOrders[0].volume).toFixed(6)} BTC @ $${parseFloat(openOrders[0].price).toLocaleString()}`
+        : `${openOrders.length} orders in progress`
+      }</span>
+      <span class="oob-detail">Balances will update when filled on Kraken</span>
+    </div>` : ''}
 
     <div class="acq-card" id="acq-breakdown"></div>
 

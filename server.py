@@ -57,6 +57,7 @@ ALLOWED_PATHS = (
     "/api/update",
     "/api/version",
     "/api/setup/",
+    "/api/open_orders",
 )
 
 
