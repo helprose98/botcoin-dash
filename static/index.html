@@ -1470,66 +1470,91 @@ async function updateGauge(currentPrice, botMA200, maDaysBuilt, activeMode) {
   }
 }
 
-function _estimateRecyclerMonthly(data, settings) {
-  // Estimate monthly recycler earnings based on observed 30-day volatility
-  // and current BTC stack + recycler settings
+let _recyclerKrakenPrices = null; // cached Kraken 30-day history
+
+async function _fetchKrakenPrices30() {
+  if (_recyclerKrakenPrices) return _recyclerKrakenPrices;
   try {
-    const priceHistory = data?.price_history || [];
-    if (priceHistory.length < 5) return null; // need at least 5 days
-
-    const prices = priceHistory.slice(-30).map(p => p.price);
-    if (prices.length < 5) return null;
-
-    // Calculate average daily swing (high-to-low as % of price)
-    // Use rolling 3-day windows to estimate typical oscillation
-    let totalSwing = 0, swingCount = 0;
-    for (let i = 2; i < prices.length; i++) {
-      const window = prices.slice(i - 2, i + 1);
-      const high = Math.max(...window);
-      const low  = Math.min(...window);
-      totalSwing += (high - low) / low;
-      swingCount++;
+    const r = await fetch('https://api.kraken.com/0/public/OHLC?pair=XBTUSD&interval=1440');
+    const j = await r.json();
+    const candles = j.result?.XXBTZUSD || Object.values(j.result || {})[0];
+    if (candles && candles.length >= 30) {
+      _recyclerKrakenPrices = candles.slice(-30).map(c => parseFloat(c[4])); // close prices
     }
-    const avgSwing = swingCount > 0 ? totalSwing / swingCount : 0;
+  } catch(e) {}
+  return _recyclerKrakenPrices;
+}
 
-    // Recycler fires when price rises X% above basis (sell threshold)
+function _calcAvgSwing(prices) {
+  let totalSwing = 0, swingCount = 0;
+  for (let i = 2; i < prices.length; i++) {
+    const w    = prices.slice(i - 2, i + 1);
+    const high = Math.max(...w);
+    const low  = Math.min(...w);
+    totalSwing += (high - low) / low;
+    swingCount++;
+  }
+  return swingCount > 0 ? totalSwing / swingCount : 0;
+}
+
+async function _estimateRecyclerMonthly(data, settings) {
+  try {
     const sellThreshold = parseFloat(settings?.recycler_sell_threshold || 0.03);
     const poolPct       = parseFloat(settings?.recycler_pool_percent   || 0.55);
     const currentPrice  = data?.portfolio?.current_price || 0;
     const btcBalance    = data?.portfolio?.btc_balance   || 0;
     const btcValueUsd   = btcBalance * currentPrice;
+    const minStack      = Math.round((20 / (sellThreshold * 0.7)) / poolPct);
 
-    if (btcValueUsd < 50) return { tooSmall: true, minStack: Math.round(50 / (sellThreshold * 0.5)) };
+    if (btcValueUsd < 50) return { tooSmall: true, minStack };
 
-    // Recycler pool value
+    // Build a blended price array: bot's own data + Kraken history to fill gaps
+    const botPrices    = (data?.price_history || []).map(p => p.price);
+    const botDays      = botPrices.length;
+    const daysNeeded   = 30;
+    let prices         = botPrices.slice(-daysNeeded);
+    let usingHistory   = false;
+    let historyDaysUsed = 0;
+
+    if (botDays < daysNeeded) {
+      // Pad with Kraken historical data for the missing days
+      const krakenPrices = await _fetchKrakenPrices30();
+      if (krakenPrices && krakenPrices.length > 0) {
+        const needed = daysNeeded - botDays;
+        const krakenSlice = krakenPrices.slice(-needed);
+        prices = [...krakenSlice, ...prices]; // older Kraken data first, then bot data
+        usingHistory   = botDays < daysNeeded;
+        historyDaysUsed = krakenSlice.length;
+      }
+    }
+
+    if (prices.length < 5) return null;
+
+    const avgSwing        = _calcAvgSwing(prices);
     const recyclerPoolUsd = btcValueUsd * poolPct;
-
-    // How many times per month does the market oscillate enough to trigger?
-    // Each oscillation needs to exceed the sell threshold
-    const oscillationsPerMonth = avgSwing >= sellThreshold
-      ? Math.round((30 / prices.length) * swingCount * (avgSwing / sellThreshold) * 0.4)
-      : Math.round((avgSwing / sellThreshold) * 4); // partial cycles
-    const cyclesPerMonth = Math.max(0.5, Math.min(oscillationsPerMonth, 12));
-
-    // Each cycle: sell pool at +sellThreshold%, rebuy lower = net gain ~= sellThreshold% of pool
-    const gainPerCycle  = recyclerPoolUsd * sellThreshold * 0.7; // 70% efficiency (fees, slippage)
-    const monthlyLow    = gainPerCycle * Math.max(1, cyclesPerMonth - 1);
-    const monthlyHigh   = gainPerCycle * (cyclesPerMonth + 1);
-    const minStack      = Math.round((20 / (sellThreshold * 0.7)) / poolPct); // stack needed for $20/mo
+    const oscillations    = avgSwing >= sellThreshold
+      ? Math.round((avgSwing / sellThreshold) * 3.5)
+      : Math.round((avgSwing / sellThreshold) * 2);
+    const cyclesPerMonth  = Math.max(0.5, Math.min(oscillations, 12));
+    const gainPerCycle    = recyclerPoolUsd * sellThreshold * 0.7;
+    const monthlyLow      = Math.round(gainPerCycle * Math.max(1, cyclesPerMonth - 1));
+    const monthlyHigh     = Math.round(gainPerCycle * (cyclesPerMonth + 1));
 
     return {
-      tooSmall:      btcValueUsd < minStack * poolPct,
-      monthlyLow:    Math.round(monthlyLow),
-      monthlyHigh:   Math.round(monthlyHigh),
+      tooSmall:       false,
+      monthlyLow,
+      monthlyHigh,
       cyclesPerMonth: cyclesPerMonth.toFixed(1),
-      btcValueUsd:   Math.round(btcValueUsd),
-      minStack,
-      avgSwingPct:   (avgSwing * 100).toFixed(1),
+      avgSwingPct:    (avgSwing * 100).toFixed(1),
+      botDays,
+      usingHistory,
+      historyDaysUsed,
+      daysNeeded,
     };
   } catch(e) { return null; }
 }
 
-function renderAcquisitionBreakdown(trades, data, settings) {
+async function renderAcquisitionBreakdown(trades, data, settings) {
   const el = document.getElementById('acq-breakdown');
   if (!el) return;
 
@@ -1618,30 +1643,17 @@ function renderAcquisitionBreakdown(trades, data, settings) {
   const divider = 'style="border-left:1px solid var(--border);"';
 
   // Recycler monthly estimate
-  const est = _estimateRecyclerMonthly(data, settings);
+  const est = await _estimateRecyclerMonthly(data, settings);
   let estHtml = '';
   if (est) {
     if (est.tooSmall) {
       estHtml = `<div class="acq-estimate warn">Stack more BTC for meaningful recycler returns — target ~$${est.minStack.toLocaleString()} in BTC value</div>`;
     } else {
-      estHtml = `<div class="acq-estimate">Recycler est. <strong>$${est.monthlyLow}–$${est.monthlyHigh}/mo</strong> in extra sats &nbsp;·&nbsp; ~${est.cyclesPerMonth} cycles/mo based on ${est.avgSwingPct}% avg 30-day swing</div>`;
+      const sourceNote = est.usingHistory
+        ? `${est.botDays}/${est.daysNeeded} days your data · blended with Kraken history`
+        : `your 30-day data`;
+      estHtml = `<div class="acq-estimate">Recycler est. <strong>$${est.monthlyLow}–$${est.monthlyHigh}/mo</strong> in extra sats &nbsp;·&nbsp; ~${est.cyclesPerMonth} cycles/mo &nbsp;·&nbsp; ${sourceNote}</div>`;
     }
-  } else {
-    // Fallback: use BTC's historical ~5% monthly avg swing as baseline
-    try {
-      const currentPrice = data?.portfolio?.current_price || 0;
-      const btcBalance   = data?.portfolio?.btc_balance   || 0;
-      const btcValueUsd  = btcBalance * currentPrice;
-      const sellThreshold = parseFloat(settings?.recycler_sell_threshold || 0.03);
-      const poolPct       = parseFloat(settings?.recycler_pool_percent   || 0.55);
-      const poolUsd       = btcValueUsd * poolPct;
-      const gainPerCycle  = poolUsd * sellThreshold * 0.7;
-      const estLow        = Math.round(gainPerCycle * 2);
-      const estHigh       = Math.round(gainPerCycle * 5);
-      if (btcValueUsd > 50) {
-        estHtml = `<div class="acq-estimate">Recycler est. <strong>$${estLow}–$${estHigh}/mo</strong> in extra sats &nbsp;·&nbsp; based on BTC historical avg volatility (building your price history...)</div>`;
-      }
-    } catch(e) {}
   }
 
   el.innerHTML = `
