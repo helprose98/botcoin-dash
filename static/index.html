@@ -790,6 +790,13 @@ body {
 .acq-divider {
   width: 1px; background: var(--border); margin: 0 var(--space-2);
 }
+.acq-estimate {
+  margin-top: var(--space-4); padding-top: var(--space-3);
+  border-top: 1px solid var(--divider);
+  font-size: var(--text-xs); color: var(--text-muted); line-height: 1.5;
+}
+.acq-estimate strong { color: var(--gold); }
+.acq-estimate.warn { color: var(--text-faint); font-style: italic; }
 
 /* ── Market Position Gauge ─────────────────────────────────────────────── */
 .gauge-card {
@@ -1463,6 +1470,65 @@ async function updateGauge(currentPrice, botMA200, maDaysBuilt, activeMode) {
   }
 }
 
+function _estimateRecyclerMonthly(data, settings) {
+  // Estimate monthly recycler earnings based on observed 30-day volatility
+  // and current BTC stack + recycler settings
+  try {
+    const priceHistory = data?.price_history || [];
+    if (priceHistory.length < 14) return null; // need at least 2 weeks
+
+    const prices = priceHistory.slice(-30).map(p => p.price);
+    if (prices.length < 7) return null;
+
+    // Calculate average daily swing (high-to-low as % of price)
+    // Use rolling 3-day windows to estimate typical oscillation
+    let totalSwing = 0, swingCount = 0;
+    for (let i = 2; i < prices.length; i++) {
+      const window = prices.slice(i - 2, i + 1);
+      const high = Math.max(...window);
+      const low  = Math.min(...window);
+      totalSwing += (high - low) / low;
+      swingCount++;
+    }
+    const avgSwing = swingCount > 0 ? totalSwing / swingCount : 0;
+
+    // Recycler fires when price rises X% above basis (sell threshold)
+    const sellThreshold = parseFloat(settings?.recycler_sell_threshold || 0.03);
+    const poolPct       = parseFloat(settings?.recycler_pool_percent   || 0.55);
+    const currentPrice  = data?.portfolio?.current_price || 0;
+    const btcBalance    = data?.portfolio?.btc_balance   || 0;
+    const btcValueUsd   = btcBalance * currentPrice;
+
+    if (btcValueUsd < 50) return { tooSmall: true, minStack: Math.round(50 / (sellThreshold * 0.5)) };
+
+    // Recycler pool value
+    const recyclerPoolUsd = btcValueUsd * poolPct;
+
+    // How many times per month does the market oscillate enough to trigger?
+    // Each oscillation needs to exceed the sell threshold
+    const oscillationsPerMonth = avgSwing >= sellThreshold
+      ? Math.round((30 / prices.length) * swingCount * (avgSwing / sellThreshold) * 0.4)
+      : Math.round((avgSwing / sellThreshold) * 4); // partial cycles
+    const cyclesPerMonth = Math.max(0.5, Math.min(oscillationsPerMonth, 12));
+
+    // Each cycle: sell pool at +sellThreshold%, rebuy lower = net gain ~= sellThreshold% of pool
+    const gainPerCycle  = recyclerPoolUsd * sellThreshold * 0.7; // 70% efficiency (fees, slippage)
+    const monthlyLow    = gainPerCycle * Math.max(1, cyclesPerMonth - 1);
+    const monthlyHigh   = gainPerCycle * (cyclesPerMonth + 1);
+    const minStack      = Math.round((20 / (sellThreshold * 0.7)) / poolPct); // stack needed for $20/mo
+
+    return {
+      tooSmall:      btcValueUsd < minStack * poolPct,
+      monthlyLow:    Math.round(monthlyLow),
+      monthlyHigh:   Math.round(monthlyHigh),
+      cyclesPerMonth: cyclesPerMonth.toFixed(1),
+      btcValueUsd:   Math.round(btcValueUsd),
+      minStack,
+      avgSwingPct:   (avgSwing * 100).toFixed(1),
+    };
+  } catch(e) { return null; }
+}
+
 function renderAcquisitionBreakdown(trades, data, settings) {
   const el = document.getElementById('acq-breakdown');
   if (!el) return;
@@ -1551,6 +1617,17 @@ function renderAcquisitionBreakdown(trades, data, settings) {
 
   const divider = 'style="border-left:1px solid var(--border);"';
 
+  // Recycler monthly estimate
+  const est = _estimateRecyclerMonthly(data, settings);
+  let estHtml = '';
+  if (est) {
+    if (est.tooSmall) {
+      estHtml = `<div class="acq-estimate warn">Stack more BTC to activate meaningful recycler returns — target ~$${est.minStack.toLocaleString()} in BTC value</div>`;
+    } else {
+      estHtml = `<div class="acq-estimate">Recycler est. <strong>$${est.monthlyLow}–$${est.monthlyHigh}/mo</strong> in extra sats &nbsp;·&nbsp; ~${est.cyclesPerMonth} cycles/mo based on ${est.avgSwingPct}% avg 30-day swing</div>`;
+    }
+  }
+
   el.innerHTML = `
     <div class="acq-title">How Your BTC Was Acquired</div>
     <div class="acq-stats">
@@ -1577,6 +1654,7 @@ function renderAcquisitionBreakdown(trades, data, settings) {
         <div class="acq-sub">${fmt(btcByType.quick)} BTC</div>
       </div>
     </div>
+    ${estHtml}
   `;
 }
 
