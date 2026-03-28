@@ -13,12 +13,88 @@ request body/headers from the browser, same as before.
 import os
 import json
 import time
+import sqlite3
+import threading
 import requests
 from collections import defaultdict
 from flask import Flask, send_from_directory, request, Response
 from pathlib import Path
 
 app = Flask(__name__, static_folder="static")
+
+# ── Community Stats DB ─────────────────────────────────────────────────────
+STATS_DB   = Path("/app/data/community_stats.db")
+_stats_lock = threading.Lock()
+
+def _init_stats_db():
+    STATS_DB.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(STATS_DB) as con:
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS active_bots (
+                bot_ip      TEXT PRIMARY KEY,
+                first_seen  REAL,
+                last_seen   REAL,
+                trade_count INTEGER DEFAULT 0
+            )
+        """)
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS counters (
+                key   TEXT PRIMARY KEY,
+                value INTEGER DEFAULT 0
+            )
+        """)
+        # Seed counters if not present
+        con.execute("INSERT OR IGNORE INTO counters (key, value) VALUES ('total_installs', 0)")
+        con.execute("INSERT OR IGNORE INTO counters (key, value) VALUES ('total_trades', 0)")
+        con.commit()
+
+def _record_bot_seen(bot_ip: str, trade_count: int = 0):
+    """Record a bot IP as active and update its trade count."""
+    now = time.time()
+    with _stats_lock:
+        with sqlite3.connect(STATS_DB) as con:
+            con.execute("""
+                INSERT INTO active_bots (bot_ip, first_seen, last_seen, trade_count)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(bot_ip) DO UPDATE SET
+                    last_seen   = excluded.last_seen,
+                    trade_count = MAX(active_bots.trade_count, excluded.trade_count)
+            """, (bot_ip, now, now, trade_count))
+            # Update global trade total
+            con.execute("""
+                UPDATE counters SET value = (
+                    SELECT SUM(trade_count) FROM active_bots
+                ) WHERE key = 'total_trades'
+            """)
+            con.commit()
+
+def _increment_installs():
+    with _stats_lock:
+        with sqlite3.connect(STATS_DB) as con:
+            con.execute("UPDATE counters SET value = value + 1 WHERE key = 'total_installs'")
+            con.commit()
+
+def _get_community_stats():
+    cutoff_30d = time.time() - (30 * 86400)
+    with sqlite3.connect(STATS_DB) as con:
+        active = con.execute(
+            "SELECT COUNT(*) FROM active_bots WHERE last_seen > ?", (cutoff_30d,)
+        ).fetchone()[0]
+        total_bots = con.execute("SELECT COUNT(*) FROM active_bots").fetchone()[0]
+        installs   = con.execute(
+            "SELECT value FROM counters WHERE key = 'total_installs'"
+        ).fetchone()[0]
+        trades     = con.execute(
+            "SELECT value FROM counters WHERE key = 'total_trades'"
+        ).fetchone()[0]
+    return {
+        "active_bots":    active,
+        "total_bots":     total_bots,
+        "total_installs": installs,
+        "total_trades":   trades,
+    }
+
+_init_stats_db()
 
 # ── Simple rate limiter ────────────────────────────────────────────────────────
 # Tracks request counts per IP in a sliding 60-second window.
@@ -82,6 +158,13 @@ def proxy():
     target_url = f"http://{bot_ip}:8081{api_path}"
 
     try:
+        # Silently record bot activity for community stats
+        if api_path == "/api/status" and request.method == "GET":
+            threading.Thread(
+                target=lambda: _record_bot_seen(bot_ip),
+                daemon=True
+            ).start()
+
         resp = requests.request(
             method=request.method,
             url=target_url,
@@ -179,6 +262,7 @@ def install_start():
                         if line:
                             if "BOTCOIN_INSTALL_COMPLETE" in line:
                                 log("BotCoin installed successfully!", "done")
+                                _increment_installs()
                             else:
                                 log(line)
                 elif channel.exit_status_ready():
@@ -254,6 +338,22 @@ def dash_update():
         return {"ok": True, "message": "Dash update started. Page will reload in ~2 minutes."}
     except Exception as e:
         return {"ok": False, "error": str(e)}, 500
+
+
+# ── Community Stats ──────────────────────────────────────────────────────
+
+@app.route("/api/community-stats")
+def community_stats():
+    """Public endpoint — returns aggregate community stats, no personal data."""
+    try:
+        stats = _get_community_stats()
+        return Response(
+            json.dumps(stats),
+            mimetype="application/json",
+            headers={"Cache-Control": "public, max-age=60"}
+        )
+    except Exception as e:
+        return {"active_bots": 0, "total_bots": 0, "total_installs": 0, "total_trades": 0}
 
 
 # ── Ask BotCoin AI Chat ────────────────────────────────────────────────────────

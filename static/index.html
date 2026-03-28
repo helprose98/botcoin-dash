@@ -401,6 +401,20 @@ body {
 .next-dca-detail { font-size: var(--text-sm); color: var(--text-muted); }
 
 /* ── Footer ─────────────────────────────────────────────────────────── */
+/* Community stats bar */
+.community-bar {
+  display: flex; align-items: center; justify-content: center;
+  gap: var(--space-6); flex-wrap: wrap;
+  padding: var(--space-3) var(--space-6);
+  border-top: 1px solid var(--divider);
+  background: var(--surface);
+}
+.community-stat { display: flex; align-items: center; gap: var(--space-2); }
+.community-stat .cs-value { font-size: var(--text-sm); font-weight: 700; color: var(--accent); font-family: var(--font-mono); }
+.community-stat .cs-label { font-size: var(--text-xs); color: var(--text-faint); }
+.community-divider { width: 1px; height: 1rem; background: var(--border); }
+.community-title { font-size: var(--text-xs); color: var(--text-faint); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+
 .footer {
   padding: var(--space-3) var(--space-6);
   border-top: 1px solid var(--divider);
@@ -1243,6 +1257,25 @@ body {
     </div>
   </main>
 
+  <div class="community-bar" id="community-bar" style="display:none;">
+    <span class="community-title">myBotCoin Community</span>
+    <div class="community-divider"></div>
+    <div class="community-stat">
+      <span class="cs-value" id="cs-active">—</span>
+      <span class="cs-label">active bots</span>
+    </div>
+    <div class="community-divider"></div>
+    <div class="community-stat">
+      <span class="cs-value" id="cs-trades">—</span>
+      <span class="cs-label">trades executed</span>
+    </div>
+    <div class="community-divider"></div>
+    <div class="community-stat">
+      <span class="cs-value" id="cs-installs">—</span>
+      <span class="cs-label">bots installed</span>
+    </div>
+  </div>
+
   <footer class="footer">
     <div class="footer-left" id="footer-status">Stacking BTC</div>
     <div class="footer-right" style="display:flex;align-items:center;gap:var(--space-4);">
@@ -1345,6 +1378,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') connectToBot();
     });
   });
+  // Load community stats
+  fetch('/api/community-stats').then(r => r.json()).then(s => {
+    const bar = document.getElementById('community-bar');
+    if (!bar) return;
+    document.getElementById('cs-active').textContent    = s.active_bots    ?? 0;
+    document.getElementById('cs-trades').textContent    = (s.total_trades   ?? 0).toLocaleString();
+    document.getElementById('cs-installs').textContent  = s.total_installs  ?? 0;
+    bar.style.display = 'flex';
+  }).catch(() => {});
+
   // Populate dash version in footer and login screen immediately on page load
   fetch('/dash/version').then(r => r.json()).then(v => {
     const el = document.getElementById('dash-version-display');
