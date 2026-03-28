@@ -119,8 +119,9 @@ def _check_rate(ip):
 
 @app.before_request
 def rate_limit():
-    # Trust Cloudflare's real IP header, fall back to remote_addr
-    ip = request.headers.get("CF-Connecting-IP") or request.remote_addr
+    # Use remote_addr only — CF-Connecting-IP can be spoofed by non-Cloudflare traffic
+    # Cloudflare's own IP is what we see as remote_addr, which is trustworthy
+    ip = request.remote_addr
     if not _check_rate(ip):
         return Response("Too many requests", status=429)
 
@@ -153,6 +154,15 @@ def proxy():
 
     # Security: only allow plain IPs, no hostnames
     if not re.match(r'^[\d.]+$', bot_ip):
+        return {"error": "Invalid bot IP"}, 400
+
+    # Security: block private/loopback/link-local IPs (SSRF protection)
+    import ipaddress
+    try:
+        parsed_ip = ipaddress.ip_address(bot_ip)
+        if parsed_ip.is_private or parsed_ip.is_loopback or parsed_ip.is_link_local or parsed_ip.is_reserved:
+            return {"error": "Invalid bot IP"}, 400
+    except ValueError:
         return {"error": "Invalid bot IP"}, 400
 
     target_url = f"http://{bot_ip}:8081{api_path}"
@@ -331,13 +341,21 @@ def dash_version():
 
 @app.route("/dash/update", methods=["POST"])
 def dash_update():
-    """Trigger a self-update of the dash server via the update watcher."""
+    """Trigger a self-update of the dash server via the update watcher.
+    Requires a non-empty secret token in the request body to prevent
+    unauthenticated abuse — the dashboard JS sends the bot password.
+    """
+    body   = request.get_json(force=True, silent=True) or {}
+    secret = body.get("secret", "").strip()
+    if not secret or len(secret) < 6:
+        return {"ok": False, "error": "Unauthorized"}, 401
+
     trigger = Path("/app/data/update.trigger")
     try:
         trigger.write_text("update")
         return {"ok": True, "message": "Dash update started. Page will reload in ~2 minutes."}
     except Exception as e:
-        return {"ok": False, "error": str(e)}, 500
+        return {"ok": False, "error": "Update failed"}, 500
 
 
 # ── Community Stats ──────────────────────────────────────────────────────

@@ -23,6 +23,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <style>
 /* ── Reset & Tokens ─────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1791,8 +1792,8 @@ function renderDashboard(d, openOrders) {
     <div class="mood-banner ${mood.color}">
       <div class="mood-icon">${mood.icon}</div>
       <div class="mood-text">
-        <div class="mood-label">${mood.label}</div>
-        <div class="mood-detail">${mood.detail}</div>
+        <div class="mood-label">${esc(mood.label)}</div>
+        <div class="mood-detail">${esc(mood.detail)}</div>
       </div>
       <div class="mood-mode-wrap">
         <div class="mood-mode-pill ${modeClass}">${
@@ -1972,7 +1973,7 @@ function renderDashboard(d, openOrders) {
         ${d.last_trade ? `
           <div class="trade-item">
             <span class="trade-side ${d.last_trade.side}">${d.last_trade.side.toUpperCase()}</span>
-            <div class="trade-label">${d.last_trade.label}</div>
+            <div class="trade-label">${esc(d.last_trade.label)}</div>
             <div class="trade-meta">${d.last_trade.btc_amount.toFixed(8)} BTC @ $${d.last_trade.price_usd.toLocaleString()}</div>
             <div class="trade-meta">$${d.last_trade.usd_amount.toFixed(2)} &middot; fee $${d.last_trade.fee_usd.toFixed(4)} &middot; ${timeAgo(d.last_trade.timestamp)}</div>
             ${d.last_trade.paper_trade ? '<div class="trade-paper">PAPER TRADE</div>' : ''}
@@ -2457,7 +2458,11 @@ async function executeDashUpdate() {
   btn.textContent = 'Updating...';
   progress.textContent = 'Triggering dashboard update...';
   try {
-    const res = await fetch('/dash/update', { method: 'POST' }).then(r => r.json());
+    const res = await fetch('/dash/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: BOT_PW })
+    }).then(r => r.json());
     if (res.ok) {
       progress.textContent = res.message;
       btn.textContent = '\u2713 Update Started';
@@ -3060,8 +3065,8 @@ function openTradeModal() {
         <div class="trade-row">
           <div class="trade-row-side ${t.side}">${t.side === 'buy' ? 'BUY' : 'SELL'}</div>
           <div class="trade-row-info">
-            <div class="trade-row-label">${label}</div>
-            <div class="trade-row-meta">${btc} BTC @ ${price} · ${usd} · fee ${fee}</div>
+            <div class="trade-row-label">${esc(label)}</div>
+            <div class="trade-row-meta">${esc(btc)} BTC @ ${esc(price)} · ${esc(usd)} · fee ${esc(fee)}</div>
           </div>
           <div class="trade-row-time">${when}<br><span style="opacity:0.6">${date}</span></div>
         </div>`;
@@ -3149,7 +3154,7 @@ function askSend() {
   }).then(r => r.json()).then(data => {
     const bubble = document.getElementById(typingId).querySelector('.ask-bubble');
     if (data.ok && data.answer) {
-      bubble.innerHTML = marked.parse(data.answer);
+      bubble.innerHTML = DOMPurify.sanitize(marked.parse(data.answer));
     } else {
       bubble.textContent = 'Sorry, something went wrong: ' + (data.error || 'unknown error');
     }
@@ -3166,6 +3171,17 @@ function askSend() {
 
 function escAsk(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// General HTML escaper for server data injected into innerHTML
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#x27;');
 }
 
 // Expose bot credentials to chat once connected
