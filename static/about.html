@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What is myBotCoin?</title>
+<meta name="generator" content="Perplexity Computer">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0e0d; --surface: #161514; --surface-2: #1c1b19;
+    --border: #2e2d2b; --text: #e8e6e3; --text-muted: #7a7875;
+    --text-faint: #4a4845; --accent: #f7931a; --green: #4ade80;
+    --blue: #60a5fa; --gold: #fbbf24; --red: #f87171;
+    --radius-md: 0.5rem; --radius-lg: 0.75rem; --radius-xl: 1rem;
+  }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 2rem 1.5rem;
+    line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; }
+
+  /* Header */
+  .hero { text-align: center; padding: 3rem 0 2.5rem; border-bottom: 1px solid var(--border); margin-bottom: 2.5rem; }
+  .hero-logo { display: inline-flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
+  .hero-logo svg { color: var(--accent); }
+  .hero-logo span { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+  .hero h1 { font-size: 2rem; font-weight: 700; line-height: 1.2; margin-bottom: 0.75rem; }
+  .hero p { font-size: 1.05rem; color: var(--text-muted); max-width: 500px; margin: 0 auto; }
+
+  /* Sections */
+  h2 { font-size: 1.15rem; font-weight: 700; color: var(--accent); margin: 2rem 0 0.75rem;
+       padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin: 1.25rem 0 0.5rem; }
+  p { color: var(--text-muted); margin-bottom: 0.75rem; }
+  p strong { color: var(--text); }
+
+  ul, ol { color: var(--text-muted); padding-left: 1.5rem; margin-bottom: 0.75rem; }
+  li { margin-bottom: 0.4rem; }
+  li strong { color: var(--text); }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl);
+          padding: 1.25rem 1.5rem; margin: 1rem 0; }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 1rem 0; }
+  .card-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+               padding: 1rem 1.25rem; }
+  .card-item .label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+                       color: var(--text-faint); margin-bottom: 0.4rem; }
+  .card-item .value { font-size: 1rem; font-weight: 700; color: var(--text); }
+  .card-item .desc { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+  /* Highlight box */
+  .highlight { background: rgba(247,147,26,0.08); border: 1px solid rgba(247,147,26,0.25);
+               border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin: 1rem 0; }
+  .highlight p { color: var(--text); margin: 0; }
+
+  /* Earn table */
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th { text-align: left; padding: 0.6rem 0.75rem; font-size: 0.7rem; font-weight: 600;
+       text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint);
+       border-bottom: 1px solid var(--border); }
+  td { padding: 0.65rem 0.75rem; color: var(--text-muted); border-bottom: 1px solid var(--divider, #252422); }
+  td:first-child { color: var(--text); font-weight: 600; }
+  td.gold { color: var(--gold); font-weight: 700; }
+  tr:last-child td { border-bottom: none; }
+
+  /* Nav links */
+  .nav-links { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+  .nav-link { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.9rem;
+              background: var(--surface-2); border: 1px solid var(--border); border-radius: 2rem;
+              font-size: 0.8rem; color: var(--text-muted); text-decoration: none;
+              transition: border-color 0.15s, color 0.15s; }
+  .nav-link:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Footer */
+  footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
+           text-align: center; font-size: 0.78rem; color: var(--text-faint); }
+  footer a { color: var(--text-faint); text-decoration: none; }
+  footer a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Nav -->
+  <div class="nav-links" style="margin-top:1rem;">
+    <a href="setup-guide" class="nav-link">📖 Setup Guide</a>
+    <a href="/" class="nav-link">← Back to Dashboard</a>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-logo">
+      <svg width="36" height="36" viewBox="0 0 32 32" fill="none">
+        <circle cx="16" cy="16" r="15" stroke="currentColor" stroke-width="2"/>
+        <path d="M11 10h6.5a3.5 3.5 0 0 1 0 7H11m0-7v12m0-12v-1m0 13v1m6.5-1H11m7.5-6h1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>myBotCoin</span>
+    </div>
+    <h1>Your Bitcoin stacks itself.</h1>
+    <p>A self-hosted bot that buys Bitcoin automatically — on a schedule, on dips, and by outsmarting market volatility. Zero manual trading required.</p>
+  </div>
+
+  <!-- What is it -->
+  <h2>What is myBotCoin?</h2>
+  <p>myBotCoin is a <strong>self-hosted Bitcoin savings bot</strong>. It runs 24/7 on your own private cloud server and trades automatically on the Kraken exchange. You own everything — the server, the Kraken account, the keys. There is no middleman, no subscription, no company holding your funds.</p>
+  <p>The single mission: <strong>accumulate as much Bitcoin as possible over the long term.</strong></p>
+  <p>We measure success in BTC (satoshis), not USD. A lower BTC price isn't bad news — it means more sats per dollar.</p>
+
+  <!-- The Philosophy -->
+  <h2>The Philosophy</h2>
+  <p>Bitcoin operates on roughly <strong>4-year cycles</strong> tied to its halving events. Every cycle so far has followed a pattern: accumulation → bull run → correction → repeat. Long-term holders who bought consistently through bear markets ended up with the most Bitcoin.</p>
+  <p>The enemy of wealth building is <strong>emotion</strong>. People sell at bottoms because it feels right. They buy at tops because everyone else is excited. myBotCoin removes emotion entirely.</p>
+
+  <div class="highlight">
+    <p>💡 The bot buys on a schedule no matter what. It buys harder when prices dip. It doesn't panic. It doesn't get greedy. It just stacks.</p>
+  </div>
+
+  <!-- How it works -->
+  <h2>How It Works — The Three Engines</h2>
+
+  <h3>① Scheduled DCA (Dollar Cost Averaging)</h3>
+  <p>A fixed amount of USD is invested on a set schedule — daily, weekly, or monthly. This is the baseline: consistent accumulation regardless of what the market does. Nobody times the bottom perfectly. DCA smooths everything out.</p>
+
+  <h3>② Dip Buying</h3>
+  <p>The bot monitors Bitcoin's price around the clock. When price drops a set percentage from its recent high, it automatically deploys part of your USD reserve to buy more sats at a discount. Three tiers — the bigger the dip, the bigger the buy.</p>
+  <p>Your <strong>aggression level</strong> controls the thresholds:</p>
+  <div class="card-grid">
+    <div class="card-item">
+      <div class="label">Conservative 🐢</div>
+      <div class="value">3% / 6% / 12%</div>
+      <div class="desc">Waits for major dips</div>
+    </div>
+    <div class="card-item">
+      <div class="label">Balanced ⚖️</div>
+      <div class="value">2% / 4% / 8%</div>
+      <div class="desc">Sensible middle ground</div>
+    </div>
+    <div class="card-item">
+      <div class="label">Aggressive 🚀</div>
+      <div class="value">1.5% / 3% / 6%</div>
+      <div class="desc">Tighter triggers, bigger buys</div>
+    </div>
+    <div class="card-item">
+      <div class="label">Ultra ⚡</div>
+      <div class="value">1.5% / 3% / 6%</div>
+      <div class="desc">Best for sideways markets</div>
+    </div>
+  </div>
+
+  <h3>③ The Recycler — The Most Powerful Feature</h3>
+  <p>This is the bot playing the market for <strong>free money</strong>.</p>
+  <ol>
+    <li>The bot watches your BTC position and average cost basis</li>
+    <li>When BTC rises enough above your cost basis, it <strong>sells a portion for USD profit</strong></li>
+    <li>It waits for BTC to dip back down</li>
+    <li>It <strong>buys back at the lower price</strong></li>
+    <li>Result: you end up with <strong>more BTC than you started</strong> — funded by market volatility, not your wallet</li>
+  </ol>
+
+  <div class="highlight">
+    <p>💡 These gains are called "Recycler funds" — money the bot earned, not money you deposited. The dashboard shows exactly how much of your stack came from the Recycler vs. your own DCA contributions.</p>
+  </div>
+
+  <!-- The Numbers -->
+  <h2>The Numbers — What It Can Generate</h2>
+  <p>Based on Bitcoin's observed volatility (~2–4 recycler cycles per month), here's what the Recycler alone can generate in extra BTC — before counting DCA or dip buys:</p>
+
+  <table>
+    <tr><th>BTC Stack Value</th><th>Recycler Pool (55%)</th><th>Est. Monthly Extra Sats</th></tr>
+    <tr><td>$1,000</td><td>$550</td><td class="gold">$11–$33/mo</td></tr>
+    <tr><td>$5,000</td><td>$2,750</td><td class="gold">$58–$173/mo</td></tr>
+    <tr><td>$10,000</td><td>$5,500</td><td class="gold">$115–$346/mo</td></tr>
+    <tr><td>$30,000</td><td>$16,500</td><td class="gold">$346–$1,038/mo</td></tr>
+    <tr><td>$100,000</td><td>$55,000</td><td class="gold">$1,155–$3,465/mo</td></tr>
+  </table>
+  <p style="font-size:0.78rem;">Estimates based on Ultra aggression (3% sell threshold, 55% pool, 70% efficiency factor). Past volatility does not guarantee future results.</p>
+
+  <!-- The Flywheel -->
+  <h2>The Flywheel Effect</h2>
+  <div class="card">
+    <p style="color:var(--text);text-align:center;font-size:0.95rem;line-height:2;">
+      More BTC → Bigger Recycler pool → More house money → Buys more BTC on dips → Bigger stack → Bigger Recycler pool → ...
+    </p>
+  </div>
+  <p>The bot is self-funding its own growth. DCA is the fuel to get started. The Recycler is the engine that runs on its own once you have enough of a stack.</p>
+
+  <!-- What you need -->
+  <h2>What You Need to Get Started</h2>
+  <ul>
+    <li><strong>A Vultr account</strong> — cloud server, ~$6/month. <a href="https://vultr.com" target="_blank" style="color:var(--accent);">vultr.com</a></li>
+    <li><strong>A Kraken account</strong> — crypto exchange, free. <a href="https://kraken.com" target="_blank" style="color:var(--accent);">kraken.com</a></li>
+    <li><strong>Kraken API keys</strong> — trade-only, no withdrawal access needed</li>
+    <li><strong>About 10 minutes</strong> — the installer handles everything automatically</li>
+  </ul>
+
+  <div style="margin-top:2rem;text-align:center;">
+    <a href="setup-guide" style="display:inline-block;padding:0.75rem 2rem;background:var(--accent);color:#fff;font-weight:700;border-radius:var(--radius-md);text-decoration:none;font-size:0.95rem;">Read the Setup Guide →</a>
+  </div>
+
+  <footer>
+    <p>myBotCoin &mdash; Self-hosted BTC savings bot. Stacking, simplified.</p>
+    <p style="margin-top:0.5rem;"><a href="https://www.perplexity.ai/computer" target="_blank">Created with Perplexity Computer</a></p>
+  </footer>
+
+</div>
+</body>
+</html>

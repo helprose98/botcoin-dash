@@ -481,6 +481,14 @@ LIVE USER DATA
 def index():
     return send_from_directory("static", "index.html")
 
+@app.route("/about")
+def about_page():
+    return send_from_directory("static", "about.html")
+
+@app.route("/setup-guide")
+def setup_guide_page():
+    return send_from_directory("static", "setup-guide.html")
+
 
 @app.route("/<path:filename>")
 def static_files(filename):

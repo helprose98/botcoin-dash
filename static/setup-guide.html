@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>myBotCoin — Setup Guide</title>
+<meta name="generator" content="Perplexity Computer">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0e0d; --surface: #161514; --surface-2: #1c1b19;
+    --border: #2e2d2b; --divider: #252422; --text: #e8e6e3;
+    --text-muted: #7a7875; --text-faint: #4a4845;
+    --accent: #f7931a; --green: #4ade80; --green-dim: rgba(74,222,128,0.1);
+    --red: #f87171; --red-dim: rgba(248,113,113,0.1);
+    --blue: #60a5fa; --gold: #fbbf24;
+    --radius-md: 0.5rem; --radius-lg: 0.75rem; --radius-xl: 1rem;
+  }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 2rem 1.5rem;
+    line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; }
+
+  /* Hero */
+  .hero { text-align: center; padding: 2.5rem 0 2rem; border-bottom: 1px solid var(--border); margin-bottom: 2.5rem; }
+  .hero-logo { display: inline-flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+  .hero-logo svg { color: var(--accent); }
+  .hero-logo span { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+  .hero h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .hero p { color: var(--text-muted); }
+
+  /* Overview table */
+  .overview { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; margin: 1.5rem 0; }
+  .overview-header { background: var(--surface-2); padding: 0.75rem 1.25rem; display: grid; grid-template-columns: 2rem 1fr auto; gap: 1rem; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); }
+  .overview-row { padding: 0.75rem 1.25rem; display: grid; grid-template-columns: 2rem 1fr auto; gap: 1rem; align-items: center; border-top: 1px solid var(--divider); }
+  .overview-num { font-weight: 700; color: var(--accent); font-size: 0.95rem; }
+  .overview-label { font-size: 0.9rem; color: var(--text); }
+  .overview-time { font-size: 0.8rem; color: var(--text-faint); white-space: nowrap; }
+
+  /* Steps */
+  .step { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-xl);
+          border-top: 3px solid var(--accent); padding: 1.5rem; margin: 1.5rem 0; }
+  .step-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; }
+  .step-num { font-size: 2rem; font-weight: 700; color: var(--accent); line-height: 1; min-width: 2rem; }
+  .step-title { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+
+  ul, ol { color: var(--text-muted); padding-left: 1.5rem; margin-bottom: 0; }
+  li { margin-bottom: 0.5rem; line-height: 1.55; }
+  li strong { color: var(--text); }
+  p { color: var(--text-muted); margin-bottom: 0.75rem; }
+
+  /* Note / warning boxes */
+  .note { background: var(--green-dim); border-top: 2px solid var(--green); border-radius: var(--radius-md);
+          padding: 0.75rem 1rem; margin: 1rem 0; font-size: 0.85rem; color: var(--green); }
+  .warn { background: var(--red-dim); border-top: 2px solid var(--red); border-radius: var(--radius-md);
+          padding: 0.75rem 1rem; margin: 1rem 0; font-size: 0.85rem; color: var(--red); }
+  .warn strong, .note strong { font-weight: 700; }
+
+  /* Section heading */
+  h2 { font-size: 1.15rem; font-weight: 700; color: var(--accent); margin: 2.5rem 0 0.75rem;
+       padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+
+  /* Nav */
+  .nav-links { display: flex; gap: 1rem; margin-top: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+  .nav-link { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.9rem;
+              background: var(--surface-2); border: 1px solid var(--border); border-radius: 2rem;
+              font-size: 0.8rem; color: var(--text-muted); text-decoration: none;
+              transition: border-color 0.15s, color 0.15s; }
+  .nav-link:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* FAQ */
+  .faq-item { border-bottom: 1px solid var(--divider); padding: 1rem 0; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-q { font-weight: 600; color: var(--text); margin-bottom: 0.4rem; }
+  .faq-a { color: var(--text-muted); font-size: 0.9rem; }
+
+  /* Dashboard reference table */
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.88rem; }
+  th { text-align: left; padding: 0.6rem 0.75rem; font-size: 0.7rem; font-weight: 600;
+       text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint);
+       border-bottom: 1px solid var(--border); background: var(--surface-2); }
+  td { padding: 0.65rem 0.75rem; color: var(--text-muted); border-bottom: 1px solid var(--divider); }
+  td:first-child { color: var(--text); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+
+  footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
+           text-align: center; font-size: 0.78rem; color: var(--text-faint); }
+  footer a { color: var(--text-faint); text-decoration: none; }
+  footer a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Nav -->
+  <div class="nav-links">
+    <a href="about" class="nav-link">💡 What is myBotCoin?</a>
+    <a href="/" class="nav-link">← Back to Dashboard</a>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-logo">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <circle cx="16" cy="16" r="15" stroke="currentColor" stroke-width="2"/>
+        <path d="M11 10h6.5a3.5 3.5 0 0 1 0 7H11m0-7v12m0-12v-1m0 13v1m6.5-1H11m7.5-6h1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>myBotCoin</span>
+    </div>
+    <h1>Setup Guide</h1>
+    <p>From zero to a running Bitcoin bot in about 10 minutes. No Linux experience required.</p>
+  </div>
+
+  <!-- What you need -->
+  <div style="background:var(--surface-2);border:1px solid var(--border);border-top:3px solid var(--accent);border-radius:var(--radius-xl);padding:1.25rem 1.5rem;margin-bottom:1.5rem;">
+    <div style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:0.75rem;">What You'll Need</div>
+    <ul>
+      <li><strong>A Vultr account</strong> — cloud server hosting, ~$6/month &nbsp;·&nbsp; <a href="https://vultr.com" target="_blank" style="color:var(--accent);">vultr.com</a></li>
+      <li><strong>A Kraken account</strong> — crypto exchange, free &nbsp;·&nbsp; <a href="https://kraken.com" target="_blank" style="color:var(--accent);">kraken.com</a></li>
+      <li><strong>Your Kraken API Key &amp; Secret</strong> — we'll create these in Step 2</li>
+      <li><strong>About 10 minutes</strong></li>
+    </ul>
+  </div>
+
+  <!-- Overview -->
+  <div class="overview">
+    <div class="overview-header"><span>#</span><span>What Happens</span><span>Time</span></div>
+    <div class="overview-row"><span class="overview-num">1</span><span class="overview-label">Create your Vultr server</span><span class="overview-time">2 min</span></div>
+    <div class="overview-row"><span class="overview-num">2</span><span class="overview-label">Create your Kraken API keys</span><span class="overview-time">2 min</span></div>
+    <div class="overview-row"><span class="overview-num">3</span><span class="overview-label">Run the auto-installer from this dashboard</span><span class="overview-time">1 min</span></div>
+    <div class="overview-row"><span class="overview-num">4</span><span class="overview-label">Connect your Kraken account &amp; configure</span><span class="overview-time">3 min</span></div>
+    <div class="overview-row"><span class="overview-num">5</span><span class="overview-label">Fund Kraken and go live</span><span class="overview-time">2 min</span></div>
+  </div>
+
+  <h2>Step-by-Step</h2>
+
+  <!-- Step 1 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div class="step-title">Create Your Vultr Server</div>
+    </div>
+    <ol>
+      <li>Go to <a href="https://vultr.com" target="_blank" style="color:var(--accent);">vultr.com</a> and sign up or log in</li>
+      <li>Click <strong>"Deploy New Server"</strong> (the blue + button)</li>
+      <li>Choose <strong>"Cloud Compute — Shared CPU"</strong></li>
+      <li>Pick any location closest to you (e.g. Atlanta, Chicago)</li>
+      <li>Select <strong>"Ubuntu 24.04 LTS x64"</strong> as the operating system</li>
+      <li>Choose the <strong>$6/month plan</strong> (1 vCPU, 1 GB RAM — plenty)</li>
+      <li>Set hostname to: <code style="background:var(--surface-2);padding:0.1rem 0.4rem;border-radius:4px;font-size:0.85rem;">myBotCoin-Bot</code></li>
+      <li>Click <strong>"Deploy Now"</strong> — wait ~60 seconds for it to spin up</li>
+      <li>Copy your server's <strong>IP address</strong> and <strong>root password</strong> from the Vultr dashboard</li>
+    </ol>
+    <div class="note">✓ You don't need to SSH into the server — myBotCoin installs itself automatically in Step 3.</div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div class="step-title">Create Your Kraken API Keys</div>
+    </div>
+    <ol>
+      <li>Log in to your Kraken account at <a href="https://kraken.com" target="_blank" style="color:var(--accent);">kraken.com</a></li>
+      <li>Go to <strong>Security → API</strong> in the top-right menu</li>
+      <li>Click <strong>"Add key"</strong></li>
+      <li>Name it: <code style="background:var(--surface-2);padding:0.1rem 0.4rem;border-radius:4px;font-size:0.85rem;">myBotCoin</code></li>
+      <li>Enable only these two permissions:
+        <ul style="margin-top:0.4rem;">
+          <li><strong>"Query Funds"</strong> — to read your balances</li>
+          <li><strong>"Create &amp; Modify Orders"</strong> — to place trades</li>
+        </ul>
+      </li>
+      <li>Click <strong>"Generate Key"</strong></li>
+      <li>Copy and save both the <strong>API Key</strong> and <strong>API Secret</strong> — a notes app is fine</li>
+    </ol>
+    <div class="warn"><strong>Important:</strong> Do NOT enable Withdraw permissions. The bot never needs them.</div>
+    <div class="note">✓ Kraken only shows the API Secret once — copy it before closing the page.</div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div class="step-title">Run the Auto-Installer</div>
+    </div>
+    <ol>
+      <li>Browse to <a href="https://dash.mybotcoin.io" target="_blank" style="color:var(--accent);">dash.mybotcoin.io</a></li>
+      <li>Click <strong>"New to myBotCoin? Set up your bot →"</strong></li>
+      <li>Enter your server's IP address and root password from Vultr</li>
+      <li>Click <strong>"Install myBotCoin on My Server"</strong></li>
+      <li>Watch the log — installation takes about 60 seconds</li>
+      <li>When you see <strong>"myBotCoin Installed!"</strong> — you're ready for Step 4</li>
+    </ol>
+    <div class="note">✓ You'll see lines scrolling by as Docker and myBotCoin install automatically. No Linux commands needed.</div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">4</div>
+      <div class="step-title">Connect Your Kraken Account &amp; Configure</div>
+    </div>
+    <ol>
+      <li>After the installer finishes, a 3-step setup wizard will appear</li>
+      <li><strong>Step 1</strong> — Paste your Kraken API Key and API Secret, then click Next</li>
+      <li><strong>Step 2</strong> — Choose your settings:
+        <ul style="margin-top:0.4rem;">
+          <li><strong>Mode:</strong> Start with <em>Auto</em> — the bot reads the market and decides</li>
+          <li><strong>DCA Amount:</strong> How much USD to invest on each scheduled buy</li>
+          <li><strong>Aggression:</strong> Controls dip-buy sensitivity (start with Balanced or Ultra)</li>
+        </ul>
+      </li>
+      <li><strong>Step 3</strong> — Set a dashboard password</li>
+      <li>Click <strong>"Finish Setup"</strong> — your bot is now live</li>
+    </ol>
+    <div class="note">✓ You can change any setting anytime from the dashboard — no reinstall needed.</div>
+  </div>
+
+  <!-- Step 5 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">5</div>
+      <div class="step-title">Fund Kraken and Go Live</div>
+    </div>
+    <ol>
+      <li>In Kraken, go to <strong>Funding → Deposit</strong></li>
+      <li>Choose USD and select your deposit method (bank transfer, wire, etc.)</li>
+      <li>Deposit at least enough to cover your first few DCA purchases</li>
+      <li>That's it — the bot will execute your first buy at the scheduled time</li>
+    </ol>
+    <div class="note">✓ The bot only spends the amount you set. It will never exceed your DCA amount per scheduled buy.</div>
+  </div>
+
+  <!-- Dashboard Reference -->
+  <h2>Understanding Your Dashboard</h2>
+  <table>
+    <tr><th>Card</th><th>What It Shows</th></tr>
+    <tr><td>BTC Stack</td><td>Total Bitcoin you own, and its current USD value</td></tr>
+    <tr><td>USD Reserve</td><td>Cash in Kraken, split between your invested funds and Recycler earnings</td></tr>
+    <tr><td>Cost Basis</td><td>Your average purchase price per BTC across all trades</td></tr>
+    <tr><td>P&amp;L vs Basis</td><td>How much current price is above or below your average buy price</td></tr>
+    <tr><td>Break Even</td><td>The BTC price at which your stack value equals what you invested</td></tr>
+    <tr><td>Market Position</td><td>Where BTC sits vs. the 200-day moving average — Bear / Neutral / Bull</td></tr>
+    <tr><td>How BTC Was Acquired</td><td>Breakdown of DCA vs Dip Buys vs Recycler vs Quick Buys</td></tr>
+    <tr><td>Recycler Est.</td><td>Estimated monthly extra BTC from Recycler based on observed volatility</td></tr>
+    <tr><td>Dip Triggers</td><td>The exact BTC price at which each tier will fire next</td></tr>
+    <tr><td>Recycler Rebuy Target</td><td>Price the bot is waiting for to redeploy recycler cash</td></tr>
+  </table>
+
+  <!-- FAQ -->
+  <h2>Frequently Asked Questions</h2>
+  <div class="faq-item">
+    <div class="faq-q">Do I need to keep my computer on?</div>
+    <div class="faq-a">No — the bot runs on your Vultr server 24/7. Your laptop can be off.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">What if I want to stop the bot?</div>
+    <div class="faq-a">Go to Settings and switch Mode to Manual. It will stop placing trades immediately.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">Is my Kraken account safe?</div>
+    <div class="faq-a">Yes — the API keys only allow trading, never withdrawals. The bot cannot move money out of Kraken.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">How much does the Vultr server cost?</div>
+    <div class="faq-a">About $6/month. You can pause or destroy it anytime from the Vultr dashboard.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">My DCA only bought half the amount I set — why?</div>
+    <div class="faq-a">The bot reserves a portion of your USD for dip buying (the Recycler pool). If your balance is close to that reserve, the DCA buy is reduced to protect dry powder. Add more USD to Kraken to resolve this.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">What is the Recycler?</div>
+    <div class="faq-a">The bot's most powerful feature. It sells a portion of your BTC when it rises above your cost basis, then waits to buy back lower — ending up with more BTC than it started. These gains are "house money" that cost you nothing.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">What is Auto mode?</div>
+    <div class="faq-a">The bot reads the 200-day moving average. If BTC is above it, the bot stacks BTC aggressively. If below, it protects value by accumulating USD. It switches automatically — you don't have to watch the market.</div>
+  </div>
+
+  <div style="margin-top:2rem;text-align:center;">
+    <a href="about" style="display:inline-block;padding:0.75rem 2rem;background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);font-weight:600;border-radius:var(--radius-md);text-decoration:none;font-size:0.95rem;margin-right:1rem;">← What is myBotCoin?</a>
+    <a href="/" style="display:inline-block;padding:0.75rem 2rem;background:var(--accent);color:#fff;font-weight:700;border-radius:var(--radius-md);text-decoration:none;font-size:0.95rem;">Go to Dashboard →</a>
+  </div>
+
+  <footer>
+    <p>myBotCoin &mdash; Self-hosted BTC savings bot. Stacking, simplified.</p>
+    <p style="margin-top:0.5rem;"><a href="https://www.perplexity.ai/computer" target="_blank">Created with Perplexity Computer</a></p>
+  </footer>
+
+</div>
+</body>
+</html>
