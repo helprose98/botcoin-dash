@@ -1761,9 +1761,10 @@ function renderDashboard(d, openOrders) {
 
   // Mood banner
   const mood = d.mood;
-  // modeClass driven by configured setting, not active_mode
+  // modeClass: blue when actively optimizing USD, orange otherwise
   const cfgMode   = window._cfgMode || b.active_mode || 'auto';
-  const modeClass = (cfgMode === 'usd_accumulate') ? 'usd' : 'btc';
+  const modeClass = (cfgMode === 'usd_accumulate' ||
+    (cfgMode === 'auto' && b.active_mode === 'usd_accumulate')) ? 'usd' : 'btc';
   const modeLabel = b.active_mode === 'btc_accumulate' ? 'BTC MODE' : 'USD MODE';
 
   // Breakeven progress
@@ -1801,11 +1802,11 @@ function renderDashboard(d, openOrders) {
         <div class="mood-mode-pill ${modeClass}">${
           (window._cfgMode === 'auto')
             ? ('Auto \u00b7 ' + (
-                (b.ma_days_built < 100)
+                (b.ma_days_built < 100 && !b.ma200)
                   ? 'building history (' + b.ma_days_built + '/100 days)'
-                  : ['USD Mode Active','Bear Market Shield'].includes(mood.label)
-                    ? 'holding USD'
-                    : 'stacking BTC'
+                  : b.active_mode === 'usd_accumulate'
+                    ? 'optimizing USD'
+                    : 'optimizing BTC'
               ))
             : (b.active_mode === 'btc_accumulate' ? 'Stack BTC' :
                b.active_mode === 'usd_accumulate' ? 'Stack USD' : b.active_mode)
