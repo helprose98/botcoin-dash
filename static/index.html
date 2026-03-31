@@ -1800,7 +1800,13 @@ function renderDashboard(d, openOrders) {
       <div class="mood-mode-wrap">
         <div class="mood-mode-pill ${modeClass}">${
           (window._cfgMode === 'auto')
-            ? ('Auto \u00b7 ' + (['USD Mode Active','Bear Market Shield'].includes(mood.label) ? 'holding USD' : 'stacking BTC'))
+            ? ('Auto \u00b7 ' + (
+                (b.ma_days_built < 100)
+                  ? 'building history (' + b.ma_days_built + '/100 days)'
+                  : ['USD Mode Active','Bear Market Shield'].includes(mood.label)
+                    ? 'holding USD'
+                    : 'stacking BTC'
+              ))
             : (b.active_mode === 'btc_accumulate' ? 'Stack BTC' :
                b.active_mode === 'usd_accumulate' ? 'Stack USD' : b.active_mode)
         }</div>
