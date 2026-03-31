@@ -1282,6 +1282,8 @@ body {
   <footer class="footer">
     <div class="footer-left" id="footer-status">Stacking BTC</div>
     <div class="footer-right" style="display:flex;align-items:center;gap:var(--space-4);">
+      <span id="bot-version-display" style="font-size:var(--text-xs);color:var(--text-faint);">bot v—</span>
+      <span style="font-size:var(--text-xs);color:var(--text-faint);">·</span>
       <span id="dash-version-display" style="font-size:var(--text-xs);color:var(--text-faint);">dash v—</span>
       <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
     </div>
@@ -2508,6 +2510,9 @@ async function checkVersion() {
     } else {
       badge.classList.remove('visible');
     }
+    // Show bot version in footer
+    const botVerEl = document.getElementById('bot-version-display');
+    if (botVerEl && v.current) botVerEl.textContent = `bot v${v.current}`;
   } catch(e) { /* silently ignore — version check is non-critical */ }
 }
 
