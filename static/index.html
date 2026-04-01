@@ -2553,17 +2553,33 @@ async function executeUpdate() {
   try {
     const res = await botFetch('/api/update', { method: 'POST', body: JSON.stringify({ password: BOT_PW }) });
     if (res.ok) {
-      progress.textContent = res.message;
       btn.textContent = '\u2713 Update Started';
-      // Grey out the badge so user knows not to click again
+      cancel.style.display = 'none';
+      // Grey out the badge
       const badge = document.getElementById('update-badge');
       badge.style.opacity = '0.4';
       badge.style.cursor = 'default';
       badge.style.animation = 'none';
       badge.onclick = null;
-      document.getElementById('update-badge-text').textContent = 'Updating — reload page in 2 min';
-      // Auto-close modal after 3s
-      setTimeout(() => hideUpdateModal(), 3000);
+      document.getElementById('update-badge-text').textContent = 'Updating...';
+      // 2-minute countdown then auto-refresh
+      let secsLeft = 120;
+      function fmtSecs(s) {
+        const m = Math.floor(s / 60);
+        const sec = String(s % 60).padStart(2, '0');
+        return m + ':' + sec;
+      }
+      progress.textContent = '\u23f3 Bot is rebuilding — refreshing in ' + fmtSecs(secsLeft);
+      const countdownInterval = setInterval(() => {
+        secsLeft--;
+        if (secsLeft <= 0) {
+          clearInterval(countdownInterval);
+          progress.textContent = '\u2713 Done! Reloading dashboard...';
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          progress.textContent = '\u23f3 Bot is rebuilding — refreshing in ' + fmtSecs(secsLeft);
+        }
+      }, 1000);
     } else {
       progress.textContent = 'Error: ' + (res.error || 'Unknown error');
       btn.disabled = false;
