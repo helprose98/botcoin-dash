@@ -623,6 +623,32 @@ body {
 .acq-estimate strong { color: var(--gold); }
 .acq-estimate.warn { color: var(--text-faint); font-style: italic; }
 
+/* ── Bot vs DCA Baseline ─────────────────────────────────────────────── */
+.baseline-headline { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-faint); font-weight: 700; margin-bottom: var(--space-5); display: flex; align-items: center; justify-content: space-between; }
+.baseline-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); margin-bottom: var(--space-5); }
+@media (max-width: 540px) { .baseline-grid { grid-template-columns: 1fr; } }
+.baseline-col { display: flex; flex-direction: column; gap: var(--space-2); }
+.baseline-col-label { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-faint); font-weight: 700; margin-bottom: var(--space-1); }
+.baseline-btc { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 800; line-height: 1; }
+.baseline-btc.neutral { color: var(--text-muted); }
+.baseline-btc.actual  { color: var(--accent); }
+.baseline-usd { font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-1); }
+.baseline-usd span { font-family: var(--font-mono); color: var(--text); }
+.baseline-delta { display: flex; gap: var(--space-4); padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg); margin-bottom: var(--space-4); flex-wrap: wrap; align-items: center; }
+.baseline-delta.ahead  { background: var(--green-soft); border: 1px solid color-mix(in srgb, var(--green) 20%, transparent); }
+.baseline-delta.behind { background: var(--red-dim);    border: 1px solid color-mix(in srgb, var(--red) 20%, transparent); }
+.baseline-delta.neutral-bg { background: var(--surface-2); border: 1px solid var(--border); }
+.bd-icon { font-size: 1.5rem; flex-shrink: 0; }
+.bd-text { flex: 1; }
+.bd-headline { font-size: var(--text-base); font-weight: 700; line-height: 1.3; }
+.bd-headline.ahead  { color: var(--green); }
+.bd-headline.behind { color: var(--red); }
+.bd-headline.neutral { color: var(--text-muted); }
+.bd-sub { font-size: var(--text-xs); color: var(--text-muted); margin-top: 2px; }
+.baseline-chips { display: flex; gap: var(--space-3); flex-wrap: wrap; padding-top: var(--space-4); border-top: 1px solid var(--divider); }
+.bl-chip { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-full); font-size: var(--text-xs); color: var(--text-muted); }
+.bl-chip strong { font-family: var(--font-mono); color: var(--text); font-weight: 600; margin-left: 2px; }
+
 /* ── Gauge Card ─────────────────────────────────────────────────────────── */
 .gauge-card {
   background: var(--surface); border: 1.5px solid var(--border);
@@ -1472,6 +1498,7 @@ async function loadData() {
     _cachedSettings = settings || {};
     renderDashboard(data, openOrders);
     renderAcquisitionBreakdown(trades, data, settings);
+    renderBaselineComparison();
     updateGauge(
       data.portfolio?.current_price,
       data.bot?.ma200,
@@ -1796,6 +1823,74 @@ async function renderAcquisitionBreakdown(trades, data, settings) {
   `;
 }
 
+async function renderBaselineComparison() {
+  const card    = document.getElementById('baseline-card');
+  const content = document.getElementById('baseline-content');
+  if (!card || !content) return;
+  try {
+    const b = await botFetch('/api/dca_baseline');
+    if (!b || !b.ok) { card.style.display = 'none'; return; }
+    card.style.display = '';
+
+    const fmt8    = v => parseFloat(v).toFixed(6);
+    const fmtUsd  = v => '$' + parseFloat(v).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const fmtPct  = v => (v >= 0 ? '+' : '') + parseFloat(v).toFixed(1) + '%';
+    const ahead   = b.delta.outperforming;
+    const even    = Math.abs(b.delta.usd) < 1.00;
+    const deltaClass  = even ? 'neutral-bg' : (ahead ? 'ahead' : 'behind');
+    const headlineClass = even ? 'neutral' : (ahead ? 'ahead' : 'behind');
+    const icon   = even ? '\u23F3' : (ahead ? '\uD83D\uDE80' : '\uD83D\uDCC9');
+    const headline = even
+      ? 'Tracking pure DCA — bot is still early'
+      : ahead
+        ? `Bot is ahead by ${fmtUsd(b.delta.usd)} (${fmtPct(b.delta.pct)} vs pure DCA)`
+        : `Bot is behind by ${fmtUsd(Math.abs(b.delta.usd))} vs pure DCA — keep stacking`;
+    const sub = `Since ${b.start_date} \u00B7 ${b.days_running} days running \u00B7 $${b.dca_amount}/${b.dca_frequency} DCA \u00B7 ${b.baseline.dca_count} baseline buys simulated`;
+
+    content.innerHTML = `
+      <div class="baseline-headline">
+        <span>Bot vs Pure DCA Since Start</span>
+        <span style="font-size:var(--text-xs);color:var(--text-faint);font-family:var(--font-mono);font-weight:400;">@ ${fmtUsd(b.current_price)}</span>
+      </div>
+
+      <div class="baseline-delta ${deltaClass}">
+        <div class="bd-icon">${icon}</div>
+        <div class="bd-text">
+          <div class="bd-headline ${headlineClass}">${headline}</div>
+          <div class="bd-sub">${sub}</div>
+        </div>
+      </div>
+
+      <div class="baseline-grid">
+        <div class="baseline-col">
+          <div class="baseline-col-label">&#x1F4C5; Pure DCA baseline</div>
+          <div class="baseline-btc neutral">${fmt8(b.baseline.btc)} <span style="font-size:var(--text-sm);font-family:var(--font-body);font-weight:500;color:var(--text-faint);">BTC</span></div>
+          <div class="baseline-usd">Worth <span>${fmtUsd(b.baseline.value_usd)}</span> today</div>
+          <div class="baseline-usd"><span>${fmtUsd(b.baseline.usd_spent)}</span> spent &middot; <span>$${parseFloat(b.baseline.fees).toFixed(2)}</span> in fees</div>
+        </div>
+        <div class="baseline-col">
+          <div class="baseline-col-label">&#x26A1; Your actual bot</div>
+          <div class="baseline-btc actual">${fmt8(b.actual.btc)} <span style="font-size:var(--text-sm);font-family:var(--font-body);font-weight:500;color:var(--text-faint);">BTC</span></div>
+          <div class="baseline-usd">Worth <span>${fmtUsd(b.actual.value_usd)}</span> today</div>
+          <div class="baseline-usd"><span>${fmtUsd(b.actual.usd_spent)}</span> spent &middot; <span>$${parseFloat(b.actual.fees).toFixed(2)}</span> in fees</div>
+        </div>
+      </div>
+
+      <div class="baseline-chips">
+        <div class="bl-chip">&#x0394; BTC &nbsp;<strong>${b.delta.btc >= 0 ? '+' : ''}${fmt8(b.delta.btc)}</strong></div>
+        <div class="bl-chip">&#x0394; Value &nbsp;<strong>${b.delta.usd >= 0 ? '+' : ''}${fmtUsd(b.delta.usd)}</strong></div>
+        ${b.actual.recycler_usd_gained > 0
+          ? `<div class="bl-chip">Recycler gains &nbsp;<strong>${fmtUsd(b.actual.recycler_usd_gained)}</strong></div>`
+          : `<div class="bl-chip" style="color:var(--text-faint)">Recycler &nbsp;<strong style="color:var(--text-faint)">no cycles yet</strong></div>`}
+        <div class="bl-chip">Days running &nbsp;<strong>${b.days_running}</strong></div>
+      </div>
+    `;
+  } catch(e) {
+    console.warn('Baseline comparison failed:', e);
+    if (card) card.style.display = 'none';
+  }
+}
+
 function renderDashboard(d, openOrders) {
   const p = d.portfolio;
   const b = d.bot;
@@ -1867,6 +1962,10 @@ function renderDashboard(d, openOrders) {
     </div>` : ''}
 
     <div class="acq-card" id="acq-breakdown"></div>
+
+    <div class="card" id="baseline-card" style="display:none">
+      <div id="baseline-content"></div>
+    </div>
 
     <div class="gauge-card" id="gauge-card">
       <div class="gauge-title">Market Position</div>
