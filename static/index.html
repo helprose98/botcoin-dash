@@ -1638,46 +1638,23 @@ async function renderAcquisitionBreakdown(trades, data, settings) {
   const recyclerTriggerHtml = recentHigh ? `
     <div class="acq-trigger">buys when dip<br>follows a sell</div>` : '';
 
-  // Walk trades chronologically (oldest first) to tag house-money buys
+  // Walk trades and categorize by reason — each trade is what it says it is.
+  // Recycler = only explicit recycler_rebuy / usd_recycler_buy trades.
+  // DCA, dip buys, and quick buys are never reassigned regardless of USD balance.
   const sorted = [...(trades || [])].reverse();
   const btcByType = { dca: 0, dip: 0, quick: 0, recycler: 0 };
-  let houseMoneyPool = 0;  // USD pool funded by recycler sells
 
   sorted.forEach(t => {
+    if (t.side !== 'buy') return;
     const reason = (t.reason || '').toLowerCase();
     const btc    = parseFloat(t.btc_amount) || 0;
-    const usd    = parseFloat(t.usd_amount)  || 0;
 
-    // Any bot sell — add USD to house money pool
-    if (t.side === 'sell' && (
-      reason.includes('recycl') ||
-      reason.includes('spike_sell') ||
-      reason === 'usd_dca_sell'
-    )) {
-      houseMoneyPool += usd;
-      return;
-    }
-
-    if (t.side !== 'buy') return;
-
-    // Explicit recycler rebuy path
-    if (reason === 'recycler_rebuy' || reason === 'usd_recycler_buy') {
-      btcByType.recycler += btc;
-      houseMoneyPool = Math.max(0, houseMoneyPool - usd);
-      return;
-    }
-
-    // House money pool still has funds — tag this buy as recycler-funded
-    if (houseMoneyPool > 0) {
-      btcByType.recycler += btc;
-      houseMoneyPool = Math.max(0, houseMoneyPool - usd);
-      return;
-    }
-
-    // Regular categorization
-    if (reason === 'dca')                                     btcByType.dca   += btc;
-    else if (reason.includes('dip'))                          btcByType.dip   += btc;
-    else if (reason === 'quick_buy' || reason === 'quickbuy') btcByType.quick += btc;
+    if (reason === 'dca')                                         btcByType.dca      += btc;
+    else if (reason.includes('dip'))                              btcByType.dip      += btc;
+    else if (reason === 'recycler_rebuy' || reason === 'usd_recycler_buy') btcByType.recycler += btc;
+    else if (reason === 'quick_buy' || reason === 'quickbuy')     btcByType.quick    += btc;
+    // Any unrecognised buy reason falls into dip bucket as a safe default
+    else if (reason)                                              btcByType.dip      += btc;
   });
 
   const total = btcByType.dca + btcByType.dip + btcByType.quick + btcByType.recycler;
