@@ -1746,7 +1746,13 @@ async function renderAcquisitionBreakdown(trades, data, settings) {
     ? `<div class="acq-house-note">&#9989; <strong>${fmtBtc(houseBtc)} BTC</strong> was acquired with house money &mdash; the bot sold high, bought back lower, and kept the difference as extra sats. That BTC cost you nothing.</div>`
     : `<div class="acq-house-note" style="color:var(--text-faint);background:var(--surface-2);border-color:var(--border);">The recycler hasn&rsquo;t completed a full cycle yet &mdash; once it sells and rebuys, free sats will appear here.</div>`;
 
+  const isUsdMode = (window._activeMode === 'usd_accumulate');
+  const usdModeNotice = isUsdMode
+    ? `<div style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--blue-soft);border:1px solid var(--blue-dim);border-radius:var(--radius-md);font-size:var(--text-xs);color:var(--blue);margin-bottom:var(--space-4);">&#9208; Bot is in USD Accumulation mode &mdash; BTC acquisition paused. Numbers below reflect your stack history.</div>`
+    : '';
+
   el.innerHTML = `
+    ${usdModeNotice}
     <div class="acq-headline">Your Bitcoin Stack &mdash; Where It Came From</div>
 
     <div class="acq-hero">
