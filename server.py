@@ -135,6 +135,7 @@ ALLOWED_PATHS = (
     "/api/version",
     "/api/setup/",
     "/api/open_orders",
+    "/api/dca_baseline",
 )
 
 
