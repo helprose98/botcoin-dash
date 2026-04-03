@@ -1890,10 +1890,10 @@ async function renderStackCard(trades, data, settings) {
         botPausedNote +
       '</div>' +
     '</div>' +
-    '<div class="stack-section">What you got for free</div>' +
+    '<div class="stack-section">House Money</div>' +
     '<div class="stack-free ' + (freeBtc > 0 ? 'active' : 'pending') + '">' +
       '<div class="stack-free-main">' +
-        '<div class="stack-free-label"><span class="sf-dot"></span> Free BTC</div>' +
+        '<div class="stack-free-label"><span class="sf-dot"></span> House Money</div>' +
         '<div class="stack-free-btc">' + fmtBtc(freeBtc) + ' <span class="sf-unit">BTC</span></div>' +
         (freeBtc > 0
           ? '<div class="stack-free-detail">Worth <span>' + fmtUsd(freeWorth) + '</span> today \u00B7 <span>' + recyclerCycles + '</span> cycles completed</div>'
@@ -1901,8 +1901,8 @@ async function renderStackCard(trades, data, settings) {
       '</div>' +
       '<div class="stack-free-note">' +
         (freeBtc > 0
-          ? 'This BTC cost you $0. The bot sold high, rebought lower, and kept the difference.'
-          : 'The bot sells high and rebuys lower. The BTC difference is yours \u2014 at zero cost.') +
+          ? 'Won by the bot \u2014 yours to keep. Sold high, rebought lower, banked the difference.'
+          : 'The bot sells high and rebuys lower. The BTC difference is house money \u2014 yours to keep.') +
       '</div>' +
     '</div>' +
     estHtml;
@@ -2075,7 +2075,7 @@ function renderDashboard(d, openOrders) {
           ${hasSplit ? `
             <div class="stat-sub" style="margin-top:var(--space-2);">
               ${investUsd > 0.01 ? `<span style="color:var(--text-muted)">${fmt2(investUsd)}</span> invested <span style="color:var(--text-faint)">·</span> ` : ''}
-              <span style="color:var(--gold)">${fmt2(recyclerUsd)}</span> Recycler funds
+              <span style="color:var(--gold)">${fmt2(recyclerUsd)}</span> House Money
             </div>` : `<div class="stat-sub">dry powder available</div>`
           }`;
       })()}</div>
