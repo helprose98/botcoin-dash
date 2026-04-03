@@ -490,6 +490,20 @@ body {
   padding: var(--space-1) var(--space-4); border-radius: var(--radius-full);
   border: 1px solid rgba(45,125,70,0.2); font-weight: 600;
 }
+.btc-hero-usd {
+  margin-top: var(--space-5); padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+.btc-hero-usd-label {
+  font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-faint); margin-bottom: var(--space-1);
+}
+.btc-hero-usd-value {
+  font-size: var(--text-2xl); font-weight: 800; color: var(--text);
+}
+.btc-hero-usd-split {
+  margin-top: var(--space-1); font-size: var(--text-xs); color: var(--text-muted);
+}
 
 /* ── Two-col grid ───────────────────────────────────────────────────────── */
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
@@ -1985,6 +1999,19 @@ function renderDashboard(d, openOrders) {
       <div class="btc-hero-number">${p.btc_balance.toFixed(8)}</div>
       <div class="btc-hero-sub">Worth <strong>$${p.portfolio_value.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> at current price</div>
       ${botNetBtc > 0 ? `<div class="bot-added">+ ${botNetBtc.toFixed(8)} BTC added by the bot</div>` : ''}
+      ${(() => {
+        const recyclerUsd = Math.min(_calcRecyclerPool(_cachedTrades), p.usd_balance);
+        const investUsd   = Math.max(0, p.usd_balance - recyclerUsd);
+        const hasSplit    = recyclerUsd > 0.01;
+        const fmt2 = v => '$' + v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+        return `<div class="btc-hero-usd">
+          <div class="btc-hero-usd-label">USD Reserve</div>
+          <div class="btc-hero-usd-value">${fmt2(p.usd_balance)}</div>
+          ${hasSplit ? `<div class="btc-hero-usd-split">
+            ${investUsd > 0.01 ? `<span>${fmt2(investUsd)}</span> invested <span style="color:var(--text-faint)">\u00B7</span> ` : ''}<span style="color:var(--gold)">${fmt2(recyclerUsd)}</span> House Money
+          </div>` : `<div class="btc-hero-usd-split">dry powder available</div>`}
+        </div>`;
+      })()}
     </div>
     <div class="gauge-card" id="gauge-card">
       <div class="gauge-title">Market Position</div>
@@ -2064,21 +2091,7 @@ function renderDashboard(d, openOrders) {
         <div class="stat-value ${p.pnl_pct >= 0 ? 'green' : 'red'}">${p.pnl_pct >= 0 ? '+' : ''}${p.pnl_pct.toFixed(1)}%</div>
         <div class="stat-sub">${p.pnl_pct >= 0 ? 'above' : 'below'} cost basis</div>
       </div>
-      <div class="stat-card">${(() => {
-        const recyclerUsd = Math.min(_calcRecyclerPool(_cachedTrades), p.usd_balance);
-        const investUsd   = Math.max(0, p.usd_balance - recyclerUsd);
-        const hasSplit    = recyclerUsd > 0.01;
-        const fmt2 = v => '$' + v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-        return `
-          <div class="stat-label">USD Reserve</div>
-          <div class="stat-value">${fmt2(p.usd_balance)}</div>
-          ${hasSplit ? `
-            <div class="stat-sub" style="margin-top:var(--space-2);">
-              ${investUsd > 0.01 ? `<span style="color:var(--text-muted)">${fmt2(investUsd)}</span> invested <span style="color:var(--text-faint)">·</span> ` : ''}
-              <span style="color:var(--gold)">${fmt2(recyclerUsd)}</span> House Money
-            </div>` : `<div class="stat-sub">dry powder available</div>`
-          }`;
-      })()}</div>
+
       <div class="stat-card">
         <div class="stat-label">200-Day MA</div>
         <div class="stat-value gold">${maDisplay}</div>
