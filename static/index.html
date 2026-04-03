@@ -496,6 +496,12 @@ body {
 .info-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
 @media (max-width: 680px) { .info-row { grid-template-columns: 1fr; } }
 
+/* ── Hero + Gauge top row ───────────────────────────────────────────────── */
+.hero-gauge-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); align-items: stretch; }
+@media (max-width: 680px) { .hero-gauge-row { grid-template-columns: 1fr; } }
+.hero-gauge-row .btc-hero { margin: 0; }
+.hero-gauge-row .gauge-card { margin: 0; display: flex; flex-direction: column; justify-content: center; }
+
 /* ── Chart Cards ────────────────────────────────────────────────────────── */
 .chart-card {
   background: var(--surface); border: 1.5px solid var(--border);
@@ -1804,30 +1810,12 @@ async function renderStackCard(trades, data, settings) {
   const recyclerCycles = cats.recycler.count;
 
   // ── Bot vs DCA baseline (single fetch, reused for days running) ────────
-  let vsHtml = '';
   let daysRunning = '';
   let baselineData = null;
   try {
     baselineData = await botFetch('/api/dca_baseline');
     if (baselineData && baselineData.ok) {
-      const b = baselineData;
-      daysRunning = b.days_running + ' days';
-      const ahead = b.delta.outperforming;
-      const even  = Math.abs(b.delta.usd) < 1.00;
-      const cls   = even ? 'even' : (ahead ? 'ahead' : 'behind');
-      const icon  = even ? '\u23F3' : (ahead ? '\uD83D\uDE80' : '\uD83D\uDCC9');
-      const headline = even
-        ? 'Tracking pure DCA \u2014 bot is still early'
-        : ahead
-          ? 'Bot is ahead by ' + fmtUsd(b.delta.usd) + ' vs pure DCA'
-          : 'Bot is behind by ' + fmtUsd(Math.abs(b.delta.usd)) + ' vs pure DCA \u2014 keep stacking';
-      const sub = fmtPct(b.delta.pct) + ' \u00B7 $' + b.dca_amount + '/' + b.dca_frequency + ' DCA \u00B7 since ' + b.start_date;
-      vsHtml = '<div class="stack-vs ' + cls + '">' +
-        '<div class="sv-icon">' + icon + '</div>' +
-        '<div class="sv-text">' +
-          '<div class="sv-headline ' + cls + '">' + headline + '</div>' +
-          '<div class="sv-sub">' + sub + '</div>' +
-        '</div></div>';
+      daysRunning = baselineData.days_running + ' days';
     }
   } catch(e) { /* baseline not available, skip */ }
 
@@ -1870,7 +1858,6 @@ async function renderStackCard(trades, data, settings) {
       '<span class="stack-meta">' + metaRight + '</span>' +
     '</div>' +
     usdNotice +
-    vsHtml +
     '<div class="stack-section">Your investment</div>' +
     '<div class="stack-grid">' +
       '<div class="stack-col">' +
@@ -1991,8 +1978,13 @@ function renderDashboard(d, openOrders) {
       <span class="oob-detail">Balances will update when filled on Kraken</span>
     </div>` : ''}
 
-    <div class="stack-card" id="stack-card"></div>
-
+    <div class="hero-gauge-row">
+    <div class="btc-hero">
+      <div class="btc-hero-label">YOUR BTC STACK</div>
+      <div class="btc-hero-number">${p.btc_balance.toFixed(8)}</div>
+      <div class="btc-hero-sub">Worth <strong>$${p.portfolio_value.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> at current price</div>
+      ${botNetBtc > 0 ? `<div class="bot-added">+ ${botNetBtc.toFixed(8)} BTC added by the bot</div>` : ''}
+    </div>
     <div class="gauge-card" id="gauge-card">
       <div class="gauge-title">Market Position</div>
       <div class="gauge-wrap">
@@ -2034,6 +2026,9 @@ function renderDashboard(d, openOrders) {
         <div class="gauge-disclaimer" id="gauge-disclaimer"></div>
       </div>
     </div>
+    </div>
+
+    <div class="stack-card" id="stack-card"></div>
 
     <div class="quick-buy-card">
       <div class="quick-buy-label">🟠 Quick Buy BTC</div>
@@ -2050,13 +2045,6 @@ function renderDashboard(d, openOrders) {
         </button>
       </div>
       <div class="quick-buy-result" id="qb-result">Hold the button for 3 seconds to confirm</div>
-    </div>
-
-    <div class="btc-hero">
-      <div class="btc-hero-label">YOUR BTC STACK</div>
-      <div class="btc-hero-number">${p.btc_balance.toFixed(8)}</div>
-      <div class="btc-hero-sub">Worth <strong>$${p.portfolio_value.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong> at current price</div>
-      ${botNetBtc > 0 ? `<div class="bot-added">+ ${botNetBtc.toFixed(8)} BTC added by the bot</div>` : ''}
     </div>
 
     <div class="stats-grid">
