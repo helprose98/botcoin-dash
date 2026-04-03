@@ -571,85 +571,163 @@ body {
 }
 .next-dca-detail { font-size: var(--text-sm); color: var(--text-muted); }
 
-/* ── Acquisition Breakdown ──────────────────────────────────────────────── */
-.acq-card {
+/* ── Stack Card (merged acquisition + baseline) ────────────────────────── */
+.stack-card {
   background: var(--surface); border: 1.5px solid var(--border);
   border-radius: var(--radius-lg); padding: var(--space-5) var(--space-6);
   box-shadow: var(--shadow-card);
 }
-/* ── New Acquisition Layout ─────────────────────────────────── */
-.acq-headline { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-faint); font-weight: 700; margin-bottom: var(--space-5); }
-.acq-split-bar-wrap { margin-bottom: var(--space-5); }
-.acq-split-bar { display: flex; height: 12px; border-radius: var(--radius-full); overflow: hidden; gap: 2px; }
-.acq-bar-yours { background: var(--accent); border-radius: var(--radius-full) 0 0 var(--radius-full); transition: width 0.8s cubic-bezier(0.16,1,0.3,1); }
-.acq-bar-house { background: var(--green); border-radius: 0 var(--radius-full) var(--radius-full) 0; transition: width 0.8s cubic-bezier(0.16,1,0.3,1); }
-.acq-split-labels { display: flex; justify-content: space-between; margin-top: var(--space-3); }
-.acq-split-label { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--text-muted); }
-.acq-split-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.acq-split-label strong { font-family: var(--font-mono); color: var(--text); font-weight: 600; }
-.acq-hero { display: flex; gap: var(--space-6); margin-bottom: var(--space-5); flex-wrap: wrap; }
-.acq-hero-block { flex: 1; min-width: 140px; }
-.acq-hero-val { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 800; line-height: 1; margin-bottom: var(--space-1); }
-.acq-hero-val.yours { color: var(--accent); }
-.acq-hero-val.house { color: var(--green); }
-.acq-hero-sub { font-size: var(--text-xs); color: var(--text-muted); line-height: 1.4; }
-.acq-hero-sub span { font-family: var(--font-mono); color: var(--text); }
-.acq-detail-row { display: flex; gap: var(--space-3); flex-wrap: wrap; padding-top: var(--space-4); border-top: 1px solid var(--divider); }
-.acq-detail-chip { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-full); font-size: var(--text-xs); color: var(--text-muted); }
-.acq-detail-chip .chip-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.acq-detail-chip strong { font-family: var(--font-mono); color: var(--text); font-weight: 600; margin-left: 2px; }
-.acq-house-note { margin-top: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--green-soft); border-radius: var(--radius-md); border: 1px solid color-mix(in srgb, var(--green) 15%, transparent); font-size: var(--text-xs); color: var(--green); line-height: 1.5; }
-[data-theme="dark"] .acq-house-note { background: var(--green-dim); }
-.acq-estimate { margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--divider); font-size: var(--text-xs); color: var(--text-muted); line-height: 1.5; }
-.acq-estimate strong { color: var(--gold); }
-.acq-estimate.warn { color: var(--text-faint); font-style: italic; }
-/* keep old classes in case anything refs them */
-.acq-title {
-  font-size: var(--text-xs); font-weight: 700; text-transform: uppercase;
-  letter-spacing: .07em; color: var(--text-muted); margin-bottom: var(--space-4);
+.stack-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: var(--space-5);
 }
-.acq-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
-.acq-stat { text-align: center; }
-.acq-pct { font-size: var(--text-lg); font-weight: 700; font-family: var(--font-mono); color: var(--text); line-height: 1.1; }
-.acq-pct.dca      { color: var(--accent); }
-.acq-pct.dip      { color: var(--green); }
-.acq-pct.quick    { color: var(--blue); }
-.acq-pct.recycler { color: var(--gold); }
-.acq-label { font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-1); }
-.acq-sub   { font-size: var(--text-xs); color: var(--text-faint); font-family: var(--font-mono); margin-top: 2px; }
-.acq-trigger { font-size: 0.65rem; color: var(--text-faint); margin-top: var(--space-2); font-style: italic; line-height: 1.3; }
-.acq-divider { width: 1px; background: var(--border); margin: 0 var(--space-2); }
-.acq-estimate { margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--divider); font-size: var(--text-xs); color: var(--text-muted); line-height: 1.5; }
-.acq-estimate strong { color: var(--gold); }
-.acq-estimate.warn { color: var(--text-faint); font-style: italic; }
-
-/* ── Bot vs DCA Baseline ─────────────────────────────────────────────── */
-.baseline-headline { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-faint); font-weight: 700; margin-bottom: var(--space-5); display: flex; align-items: center; justify-content: space-between; }
-.baseline-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); margin-bottom: var(--space-5); }
-@media (max-width: 540px) { .baseline-grid { grid-template-columns: 1fr; } }
-.baseline-col { display: flex; flex-direction: column; gap: var(--space-2); }
-.baseline-col-label { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-faint); font-weight: 700; margin-bottom: var(--space-1); }
-.baseline-btc { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 800; line-height: 1; }
-.baseline-btc.neutral { color: var(--text-muted); }
-.baseline-btc.actual  { color: var(--accent); }
-.baseline-usd { font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-1); }
-.baseline-usd span { font-family: var(--font-mono); color: var(--text); }
-.baseline-delta { display: flex; gap: var(--space-4); padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg); margin-bottom: var(--space-4); flex-wrap: wrap; align-items: center; }
-.baseline-delta.ahead  { background: var(--green-soft); border: 1px solid color-mix(in srgb, var(--green) 20%, transparent); }
-.baseline-delta.behind { background: var(--red-dim);    border: 1px solid color-mix(in srgb, var(--red) 20%, transparent); }
-.baseline-delta.neutral-bg { background: var(--surface-2); border: 1px solid var(--border); }
-.bd-icon { font-size: 1.5rem; flex-shrink: 0; }
-.bd-text { flex: 1; }
-.bd-headline { font-size: var(--text-base); font-weight: 700; line-height: 1.3; }
-.bd-headline.ahead  { color: var(--green); }
-.bd-headline.behind { color: var(--red); }
-.bd-headline.neutral { color: var(--text-muted); }
-.bd-sub { font-size: var(--text-xs); color: var(--text-muted); margin-top: 2px; }
-.baseline-chips { display: flex; gap: var(--space-3); flex-wrap: wrap; padding-top: var(--space-4); border-top: 1px solid var(--divider); }
-.bl-chip { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-full); font-size: var(--text-xs); color: var(--text-muted); }
-.bl-chip strong { font-family: var(--font-mono); color: var(--text); font-weight: 600; margin-left: 2px; }
+.stack-title {
+  font-size: var(--text-xs); text-transform: uppercase;
+  letter-spacing: 0.09em; color: var(--text-faint); font-weight: 700;
+}
+.stack-meta {
+  font-size: var(--text-xs); color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+.stack-usd-notice {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--blue-soft); border: 1px solid var(--blue-dim);
+  border-radius: var(--radius-md); font-size: var(--text-xs);
+  color: var(--blue); margin-bottom: var(--space-5);
+}
+/* Bot vs DCA banner */
+.stack-vs {
+  display: flex; gap: var(--space-4); align-items: center;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md); margin-bottom: var(--space-5); flex-wrap: wrap;
+}
+.stack-vs.ahead { background: var(--green-soft); border: 1px solid color-mix(in srgb, var(--green) 20%, transparent); }
+.stack-vs.behind { background: var(--red-dim); border: 1px solid color-mix(in srgb, var(--red) 20%, transparent); }
+.stack-vs.even { background: var(--surface-2); border: 1px solid var(--border); }
+.stack-vs .sv-icon { font-size: 1.4rem; flex-shrink: 0; }
+.stack-vs .sv-text { flex: 1; }
+.sv-headline { font-size: var(--text-base); font-weight: 700; line-height: 1.3; }
+.sv-headline.ahead { color: var(--green); }
+.sv-headline.behind { color: var(--red); }
+.sv-headline.even { color: var(--text-muted); }
+.sv-sub { font-size: var(--text-xs); color: var(--text-muted); margin-top: 2px; }
+/* Section labels */
+.stack-section {
+  font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--text-faint); font-weight: 700;
+  margin-bottom: var(--space-3);
+}
+/* Investment grid */
+.stack-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px; background: var(--divider);
+  border: 1px solid var(--divider); border-radius: var(--radius-md);
+  overflow: hidden; margin-bottom: var(--space-5);
+}
+@media (max-width: 540px) { .stack-grid { grid-template-columns: 1fr; } }
+.stack-col {
+  background: var(--surface); padding: var(--space-4);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.stack-col.bot-col { background: rgba(37,99,235,0.04); }
+[data-theme="dark"] .stack-col.bot-col { background: rgba(96,165,250,0.06); }
+.stack-col.bot-col.paused { opacity: 0.55; }
+.stack-col-label {
+  font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-faint); font-weight: 700;
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: var(--space-2);
+}
+.stack-col-label .sc-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.stack-col-label .sc-badge {
+  font-size: 0.58rem; padding: 1px 5px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--blue) 15%, transparent);
+  color: var(--blue); font-weight: 600; letter-spacing: 0.03em;
+  margin-left: 2px;
+}
+.stack-col-btc {
+  font-family: var(--font-display); font-size: 1.15rem;
+  font-weight: 800; line-height: 1; color: var(--text);
+}
+.stack-col-btc .sc-unit {
+  font-size: 0.75rem; font-family: var(--font-body);
+  font-weight: 500; color: var(--text-faint);
+}
+.stack-col-detail {
+  font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;
+}
+.stack-col-detail span {
+  font-family: var(--font-mono); color: var(--text); font-size: 0.72rem;
+}
+.stack-col-detail.faint { color: var(--text-faint); }
+.stack-col-detail.faint span { color: var(--text-faint); }
+.stack-paused-note {
+  font-size: 0.65rem; color: var(--blue); font-style: italic; margin-top: 2px;
+}
+/* Free BTC section */
+.stack-free {
+  border: 1px solid var(--divider); border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5); margin-bottom: var(--space-5);
+  display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap;
+}
+.stack-free-main { flex: 1; min-width: 200px; }
+.stack-free-label {
+  font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.06em; font-weight: 700;
+  margin-bottom: var(--space-2);
+  display: flex; align-items: center; gap: 6px;
+}
+.stack-free-label .sf-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.stack-free-btc {
+  font-family: var(--font-display); font-size: 1.4rem;
+  font-weight: 800; line-height: 1; margin-bottom: 4px;
+}
+.stack-free-btc .sf-unit {
+  font-size: 0.8rem; font-family: var(--font-body);
+  font-weight: 500; color: var(--text-faint);
+}
+.stack-free-detail {
+  font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;
+}
+.stack-free-detail span {
+  font-family: var(--font-mono); color: var(--text); font-size: 0.72rem;
+}
+.stack-free-note {
+  font-size: 0.72rem; color: var(--text-faint); line-height: 1.5;
+  max-width: 240px;
+}
+.stack-free.pending { background: var(--surface-2); }
+.stack-free.pending .stack-free-label { color: var(--text-faint); }
+.stack-free.pending .stack-free-label .sf-dot { background: var(--text-faint); }
+.stack-free.pending .stack-free-btc { color: var(--text-faint); }
+.stack-free.active {
+  background: var(--green-soft);
+  border-color: color-mix(in srgb, var(--green) 15%, transparent);
+}
+.stack-free.active .stack-free-label { color: var(--green); }
+.stack-free.active .stack-free-label .sf-dot { background: var(--green); }
+.stack-free.active .stack-free-btc { color: var(--green); }
+[data-theme="dark"] .stack-free.active { background: rgba(74,222,128,0.06); }
+/* Estimates footer */
+.stack-est {
+  border-top: 1px solid var(--divider); padding-top: var(--space-4);
+}
+.stack-est-label {
+  font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-faint);
+  font-weight: 700; margin-bottom: 4px;
+}
+.stack-est-value {
+  font-family: var(--font-mono); font-size: var(--text-sm);
+  font-weight: 600; color: var(--gold);
+}
+.stack-est-detail { font-size: 0.72rem; color: var(--text-faint); margin-top: 2px; }
+.stack-est-warn { font-size: var(--text-xs); color: var(--text-faint); font-style: italic; }
 
 /* ── Gauge Card ─────────────────────────────────────────────────────────── */
+
 .gauge-card {
   background: var(--surface); border: 1.5px solid var(--border);
   border-radius: var(--radius-lg); padding: var(--space-5) var(--space-6);
@@ -1497,8 +1575,7 @@ async function loadData() {
     _cachedTrades = trades || [];
     _cachedSettings = settings || {};
     renderDashboard(data, openOrders);
-    renderAcquisitionBreakdown(trades, data, settings);
-    renderBaselineComparison();
+    renderStackCard(trades, data, settings);
     updateGauge(
       data.portfolio?.current_price,
       data.bot?.ma200,
@@ -1676,220 +1753,156 @@ async function _estimateRecyclerMonthly(data, settings) {
   } catch(e) { return null; }
 }
 
-async function renderAcquisitionBreakdown(trades, data, settings) {
-  const el = document.getElementById('acq-breakdown');
+async function renderStackCard(trades, data, settings) {
+  const el = document.getElementById('stack-card');
   if (!el) return;
 
-  // Calculate dip trigger prices from recent high
-  const recentHigh  = data?.bot?.recent_high || data?.portfolio?.current_price || 0;
-  const t1 = parseFloat(settings?.dip_tier1) || 0.015;
-  const t2 = parseFloat(settings?.dip_tier2) || 0.030;
-  const t3 = parseFloat(settings?.dip_tier3) || 0.060;
-  const fmt$ = v => '$' + Math.round(v).toLocaleString();
-  const triggerT1 = recentHigh * (1 - t1);
-  const triggerT2 = recentHigh * (1 - t2);
-  const triggerT3 = recentHigh * (1 - t3);
-  const dipTriggerHtml = recentHigh ? `
-    <div class="acq-trigger">
-      T1 dip &lt; ${fmt$(triggerT1)}<br>
-      T2 dip &lt; ${fmt$(triggerT2)}<br>
-      T3 dip &lt; ${fmt$(triggerT3)}
-    </div>` : '';
-  const recyclerTriggerHtml = recentHigh ? `
-    <div class="acq-trigger">buys when dip<br>follows a sell</div>` : '';
+  const sorted = [...(trades || [])].reverse(); // oldest first
+  const currentPrice = data?.portfolio?.current_price || 0;
+  const fmtBtc = v => v.toFixed(6);
+  const fmtUsd = v => '$' + v.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const fmtPct = v => (v >= 0 ? '+' : '') + parseFloat(v).toFixed(1) + '%';
 
-  // Walk trades and categorize by reason — each trade is what it says it is.
-  // Recycler = only explicit recycler_rebuy / usd_recycler_buy trades.
-  // DCA, dip buys, and quick buys are never reassigned regardless of USD balance.
-  const sorted = [...(trades || [])].reverse();
-  const btcByType = { dca: 0, dip: 0, quick: 0, recycler: 0 };
+  // ── Categorise trades ──────────────────────────────────────────────────
+  const cats = { dca: {btc:0,usd:0,count:0}, dip: {btc:0,usd:0,count:0},
+                 quick: {btc:0,usd:0,count:0}, recycler: {btc:0,usd:0,count:0} };
 
   sorted.forEach(t => {
     if (t.side !== 'buy') return;
     const reason = (t.reason || '').toLowerCase();
-    const btc    = parseFloat(t.btc_amount) || 0;
-
-    if (reason === 'dca')                                         btcByType.dca      += btc;
-    else if (reason.includes('dip'))                              btcByType.dip      += btc;
-    else if (reason === 'recycler_rebuy' || reason === 'usd_recycler_buy') btcByType.recycler += btc;
-    else if (reason === 'quick_buy' || reason === 'quickbuy')     btcByType.quick    += btc;
-    // Any unrecognised buy reason falls into dip bucket as a safe default
-    else if (reason)                                              btcByType.dip      += btc;
+    const btc = parseFloat(t.btc_amount) || 0;
+    const usd = parseFloat(t.usd_amount) || 0;
+    let cat;
+    if (reason === 'dca')                                                   cat = 'dca';
+    else if (reason === 'recycler_rebuy' || reason === 'usd_recycler_buy')  cat = 'recycler';
+    else if (reason === 'quick_buy' || reason === 'quickbuy')               cat = 'quick';
+    else                                                                    cat = 'dip';
+    cats[cat].btc   += btc;
+    cats[cat].usd   += usd;
+    cats[cat].count += 1;
   });
 
-  const total = btcByType.dca + btcByType.dip + btcByType.quick + btcByType.recycler;
-  if (total === 0) { el.style.display = 'none'; return; }
+  const totalBtc = cats.dca.btc + cats.dip.btc + cats.quick.btc + cats.recycler.btc;
+  if (totalBtc === 0) { el.style.display = 'none'; return; }
+  el.style.display = '';
 
-  const pct = v => total > 0 ? Math.round((v / total) * 100) : 0;
-  const fmt = v => v.toFixed(6);
-  // Find most recent recycler sell to calculate rebuy target
-  const lastRecyclerSell = sorted.slice().reverse().find(t => {
-    const r = (t.reason || '').toLowerCase();
-    return t.side === 'sell' && (
-      r.includes('recycl') || r.includes('spike_sell') || r === 'usd_dca_sell'
-    );
-  });
-  let recyclerRebuyHtml = '';
-  if (lastRecyclerSell && settings?.recycler_sell_threshold) {
-    const sellPrice  = parseFloat(lastRecyclerSell.price_usd) || 0;
-    const threshold  = parseFloat(settings.recycler_sell_threshold);
-    const rebuyPrice = sellPrice * (1 - threshold);
-    if (rebuyPrice > 0) {
-      recyclerRebuyHtml = `<div class="acq-trigger">rebuy target<br>$${Math.round(rebuyPrice).toLocaleString()}</div>`;
+  // ── Free BTC (recycler) ────────────────────────────────────────────────
+  const freeBtc = cats.recycler.btc;
+  const freeWorth = freeBtc * currentPrice;
+  // Count completed recycler cycles (each rebuy = 1 completed cycle)
+  const recyclerCycles = cats.recycler.count;
+
+  // ── Bot vs DCA baseline (single fetch, reused for days running) ────────
+  let vsHtml = '';
+  let daysRunning = '';
+  let baselineData = null;
+  try {
+    baselineData = await botFetch('/api/dca_baseline');
+    if (baselineData && baselineData.ok) {
+      const b = baselineData;
+      daysRunning = b.days_running + ' days';
+      const ahead = b.delta.outperforming;
+      const even  = Math.abs(b.delta.usd) < 1.00;
+      const cls   = even ? 'even' : (ahead ? 'ahead' : 'behind');
+      const icon  = even ? '\u23F3' : (ahead ? '\uD83D\uDE80' : '\uD83D\uDCC9');
+      const headline = even
+        ? 'Tracking pure DCA \u2014 bot is still early'
+        : ahead
+          ? 'Bot is ahead by ' + fmtUsd(b.delta.usd) + ' vs pure DCA'
+          : 'Bot is behind by ' + fmtUsd(Math.abs(b.delta.usd)) + ' vs pure DCA \u2014 keep stacking';
+      const sub = fmtPct(b.delta.pct) + ' \u00B7 $' + b.dca_amount + '/' + b.dca_frequency + ' DCA \u00B7 since ' + b.start_date;
+      vsHtml = '<div class="stack-vs ' + cls + '">' +
+        '<div class="sv-icon">' + icon + '</div>' +
+        '<div class="sv-text">' +
+          '<div class="sv-headline ' + cls + '">' + headline + '</div>' +
+          '<div class="sv-sub">' + sub + '</div>' +
+        '</div></div>';
     }
-  }
+  } catch(e) { /* baseline not available, skip */ }
 
-  const divider = 'style="border-left:1px solid var(--border);"';
+  // ── USD mode ───────────────────────────────────────────────────────────
+  const isUsdMode = (window._activeMode === 'usd_accumulate');
+  const usdNotice = isUsdMode
+    ? '<div class="stack-usd-notice">&#9208; BTC acquisition paused \u2014 USD Accumulation mode</div>'
+    : '';
 
-  // Recycler monthly estimate
+  // ── Recycler estimate ──────────────────────────────────────────────────
   const est = await _estimateRecyclerMonthly(data, settings);
   let estHtml = '';
   if (est) {
     if (est.tooSmall) {
-      estHtml = `<div class="acq-estimate warn">Stack more BTC for meaningful recycler returns — target ~$${est.minStack.toLocaleString()} in BTC value</div>`;
+      estHtml = '<div class="stack-est"><div class="stack-est-warn">Stack more BTC for meaningful returns \u2014 target ~$' + est.minStack.toLocaleString() + ' in BTC value</div></div>';
     } else {
       const sourceNote = est.usingHistory
-        ? `${est.botDays}/${est.daysNeeded} days your data · blended with Kraken history`
-        : `your 30-day data`;
-      estHtml = `<div class="acq-estimate">Recycler est. <strong>$${est.monthlyLow}–$${est.monthlyHigh}/mo</strong> in extra sats &nbsp;·&nbsp; ~${est.cyclesPerMonth} cycles/mo &nbsp;·&nbsp; ${sourceNote}</div>`;
+        ? est.botDays + '/' + est.daysNeeded + ' days your data \u00B7 blended with Kraken history'
+        : 'your 30-day data';
+      estHtml = '<div class="stack-est">' +
+        '<div class="stack-est-label">Est. earnings / mo</div>' +
+        '<div class="stack-est-value">$' + est.monthlyLow + ' \u2013 $' + est.monthlyHigh + '</div>' +
+        '<div class="stack-est-detail">' + sourceNote + '</div>' +
+      '</div>';
     }
   }
 
-  // Two buckets: money YOU put in vs money the BOT generated
-  const yoursBtc = btcByType.dca + btcByType.dip + btcByType.quick;
-  const houseBtc = btcByType.recycler;
-  const yoursUsd = (() => {
-    let u = 0;
-    sorted.forEach(t => {
-      if (t.side !== 'buy') return;
-      const r = (t.reason || '').toLowerCase();
-      if (r === 'recycler_rebuy' || r === 'usd_recycler_buy') return;
-      u += parseFloat(t.usd_amount) || 0;
-    });
-    return u;
-  })();
+  // ── Header meta ────────────────────────────────────────────────────────
+  const metaRight = (daysRunning ? daysRunning + ' \u00B7 ' : '') + '@ ' + fmtUsd(currentPrice);
 
-  const yoursPct = total > 0 ? Math.round((yoursBtc / total) * 100) : 100;
-  const housePct = 100 - yoursPct;
-  const fmtBtc = v => v.toFixed(6);
-  const fmtUsd = v => '$' + v.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-
-  // House money note — only show if recycler has actually run
-  const houseNoteHtml = houseBtc > 0
-    ? `<div class="acq-house-note">&#9989; <strong>${fmtBtc(houseBtc)} BTC</strong> was acquired with house money &mdash; the bot sold high, bought back lower, and kept the difference as extra sats. That BTC cost you nothing.</div>`
-    : `<div class="acq-house-note" style="color:var(--text-faint);background:var(--surface-2);border-color:var(--border);">The recycler hasn&rsquo;t completed a full cycle yet &mdash; once it sells and rebuys, free sats will appear here.</div>`;
-
-  const isUsdMode = (window._activeMode === 'usd_accumulate');
-  const usdModeNotice = isUsdMode
-    ? `<div style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--blue-soft);border:1px solid var(--blue-dim);border-radius:var(--radius-md);font-size:var(--text-xs);color:var(--blue);margin-bottom:var(--space-4);">&#9208; Bot is in USD Accumulation mode &mdash; BTC acquisition paused. Numbers below reflect your stack history.</div>`
+  // ── Render ─────────────────────────────────────────────────────────────
+  const botColClass = 'stack-col bot-col' + (isUsdMode ? ' paused' : '');
+  const botPausedNote = isUsdMode
+    ? '<div class="stack-paused-note">paused \u2014 USD mode</div>'
     : '';
 
-  el.innerHTML = `
-    ${usdModeNotice}
-    <div class="acq-headline">Your Bitcoin Stack &mdash; Where It Came From</div>
-
-    <div class="acq-hero">
-      <div class="acq-hero-block">
-        <div class="acq-hero-val yours">${fmtBtc(yoursBtc)} <span style="font-size:var(--text-sm);font-family:var(--font-body);color:var(--text-muted);font-weight:500;">BTC</span></div>
-        <div class="acq-hero-sub">Your money &mdash; <span>${fmtUsd(yoursUsd)}</span> invested<br>via DCA, dip buys &amp; manual buys</div>
-      </div>
-      <div class="acq-hero-block">
-        <div class="acq-hero-val house">${fmtBtc(houseBtc)} <span style="font-size:var(--text-sm);font-family:var(--font-body);color:var(--text-muted);font-weight:500;">BTC</span></div>
-        <div class="acq-hero-sub">House money &mdash; <span>$0 from you</span><br>bot profit recycled into sats</div>
-      </div>
-    </div>
-
-    <div class="acq-split-bar-wrap">
-      <div class="acq-split-bar">
-        <div class="acq-bar-yours" style="width:${yoursPct}%"></div>
-        <div class="acq-bar-house" style="width:${housePct}%"></div>
-      </div>
-      <div class="acq-split-labels">
-        <div class="acq-split-label"><span class="acq-split-dot" style="background:var(--accent)"></span> Your contributions &nbsp;<strong>${yoursPct}%</strong></div>
-        <div class="acq-split-label"><span class="acq-split-dot" style="background:var(--green)"></span> House money &nbsp;<strong>${housePct}%</strong></div>
-      </div>
-    </div>
-
-    ${houseNoteHtml}
-
-    <div class="acq-detail-row">
-      <div class="acq-detail-chip"><span class="chip-dot" style="background:var(--accent)"></span> DCA &nbsp;<strong>${fmtBtc(btcByType.dca)} BTC</strong></div>
-      <div class="acq-detail-chip"><span class="chip-dot" style="background:var(--blue)"></span> Dip Buys &nbsp;<strong>${fmtBtc(btcByType.dip)} BTC</strong></div>
-      ${btcByType.quick > 0 ? `<div class="acq-detail-chip"><span class="chip-dot" style="background:var(--text-muted)"></span> Quick Buys &nbsp;<strong>${fmtBtc(btcByType.quick)} BTC</strong></div>` : ''}
-      ${houseBtc > 0 ? `<div class="acq-detail-chip"><span class="chip-dot" style="background:var(--green)"></span> Recycler &nbsp;<strong>${fmtBtc(houseBtc)} BTC</strong></div>` : ''}
-    </div>
-
-    ${estHtml}
-  `;
+  el.innerHTML =
+    '<div class="stack-header">' +
+      '<span class="stack-title">Your Stack</span>' +
+      '<span class="stack-meta">' + metaRight + '</span>' +
+    '</div>' +
+    usdNotice +
+    vsHtml +
+    '<div class="stack-section">Your investment</div>' +
+    '<div class="stack-grid">' +
+      '<div class="stack-col">' +
+        '<div class="stack-col-label"><span class="sc-dot" style="background:var(--accent)"></span> DCA</div>' +
+        '<div class="stack-col-btc">' + fmtBtc(cats.dca.btc) + ' <span class="sc-unit">BTC</span></div>' +
+        '<div class="stack-col-detail">Worth <span>' + fmtUsd(cats.dca.btc * currentPrice) + '</span></div>' +
+        '<div class="stack-col-detail"><span>' + fmtUsd(cats.dca.usd) + '</span> spent</div>' +
+        '<div class="stack-col-detail faint"><span>' + cats.dca.count + '</span> buys</div>' +
+      '</div>' +
+      '<div class="stack-col">' +
+        '<div class="stack-col-label"><span class="sc-dot" style="background:var(--text-muted)"></span> Quick Buys</div>' +
+        '<div class="stack-col-btc">' + fmtBtc(cats.quick.btc) + ' <span class="sc-unit">BTC</span></div>' +
+        '<div class="stack-col-detail">Worth <span>' + fmtUsd(cats.quick.btc * currentPrice) + '</span></div>' +
+        '<div class="stack-col-detail"><span>' + fmtUsd(cats.quick.usd) + '</span> spent</div>' +
+        '<div class="stack-col-detail faint"><span>' + cats.quick.count + '</span> buys</div>' +
+      '</div>' +
+      '<div class="' + botColClass + '">' +
+        '<div class="stack-col-label"><span class="sc-dot" style="background:var(--blue)"></span> Bot Buys <span class="sc-badge">AUTO</span></div>' +
+        '<div class="stack-col-btc">' + fmtBtc(cats.dip.btc) + ' <span class="sc-unit">BTC</span></div>' +
+        '<div class="stack-col-detail">Worth <span>' + fmtUsd(cats.dip.btc * currentPrice) + '</span></div>' +
+        '<div class="stack-col-detail"><span>' + fmtUsd(cats.dip.usd) + '</span> spent</div>' +
+        '<div class="stack-col-detail faint"><span>' + cats.dip.count + '</span> buys</div>' +
+        botPausedNote +
+      '</div>' +
+    '</div>' +
+    '<div class="stack-section">What you got for free</div>' +
+    '<div class="stack-free ' + (freeBtc > 0 ? 'active' : 'pending') + '">' +
+      '<div class="stack-free-main">' +
+        '<div class="stack-free-label"><span class="sf-dot"></span> Free BTC</div>' +
+        '<div class="stack-free-btc">' + fmtBtc(freeBtc) + ' <span class="sf-unit">BTC</span></div>' +
+        (freeBtc > 0
+          ? '<div class="stack-free-detail">Worth <span>' + fmtUsd(freeWorth) + '</span> today \u00B7 <span>' + recyclerCycles + '</span> cycles completed</div>'
+          : '<div class="stack-free-detail faint">No completed cycles yet</div>') +
+      '</div>' +
+      '<div class="stack-free-note">' +
+        (freeBtc > 0
+          ? 'This BTC cost you $0. The bot sold high, rebought lower, and kept the difference.'
+          : 'The bot sells high and rebuys lower. The BTC difference is yours \u2014 at zero cost.') +
+      '</div>' +
+    '</div>' +
+    estHtml;
 }
 
-async function renderBaselineComparison() {
-  const card    = document.getElementById('baseline-card');
-  const content = document.getElementById('baseline-content');
-  if (!card || !content) return;
-  try {
-    const b = await botFetch('/api/dca_baseline');
-    if (!b || !b.ok) { card.style.display = 'none'; return; }
-    card.style.display = '';
-
-    const fmt8    = v => parseFloat(v).toFixed(6);
-    const fmtUsd  = v => '$' + parseFloat(v).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    const fmtPct  = v => (v >= 0 ? '+' : '') + parseFloat(v).toFixed(1) + '%';
-    const ahead   = b.delta.outperforming;
-    const even    = Math.abs(b.delta.usd) < 1.00;
-    const deltaClass  = even ? 'neutral-bg' : (ahead ? 'ahead' : 'behind');
-    const headlineClass = even ? 'neutral' : (ahead ? 'ahead' : 'behind');
-    const icon   = even ? '\u23F3' : (ahead ? '\uD83D\uDE80' : '\uD83D\uDCC9');
-    const headline = even
-      ? 'Tracking pure DCA — bot is still early'
-      : ahead
-        ? `Bot is ahead by ${fmtUsd(b.delta.usd)} (${fmtPct(b.delta.pct)} vs pure DCA)`
-        : `Bot is behind by ${fmtUsd(Math.abs(b.delta.usd))} vs pure DCA — keep stacking`;
-    const sub = `Since ${b.start_date} \u00B7 ${b.days_running} days running \u00B7 $${b.dca_amount}/${b.dca_frequency} DCA \u00B7 ${b.baseline.dca_count} baseline buys simulated`;
-
-    content.innerHTML = `
-      <div class="baseline-headline">
-        <span>Bot vs Pure DCA Since Start</span>
-        <span style="font-size:var(--text-xs);color:var(--text-faint);font-family:var(--font-mono);font-weight:400;">@ ${fmtUsd(b.current_price)}</span>
-      </div>
-
-      <div class="baseline-delta ${deltaClass}">
-        <div class="bd-icon">${icon}</div>
-        <div class="bd-text">
-          <div class="bd-headline ${headlineClass}">${headline}</div>
-          <div class="bd-sub">${sub}</div>
-        </div>
-      </div>
-
-      <div class="baseline-grid">
-        <div class="baseline-col">
-          <div class="baseline-col-label">&#x1F4C5; Pure DCA baseline</div>
-          <div class="baseline-btc neutral">${fmt8(b.baseline.btc)} <span style="font-size:var(--text-sm);font-family:var(--font-body);font-weight:500;color:var(--text-faint);">BTC</span></div>
-          <div class="baseline-usd">Worth <span>${fmtUsd(b.baseline.value_usd)}</span> today</div>
-          <div class="baseline-usd"><span>${fmtUsd(b.baseline.usd_spent)}</span> spent &middot; <span>$${parseFloat(b.baseline.fees).toFixed(2)}</span> in fees</div>
-        </div>
-        <div class="baseline-col">
-          <div class="baseline-col-label">&#x26A1; Your actual bot</div>
-          <div class="baseline-btc actual">${fmt8(b.actual.btc)} <span style="font-size:var(--text-sm);font-family:var(--font-body);font-weight:500;color:var(--text-faint);">BTC</span></div>
-          <div class="baseline-usd">Worth <span>${fmtUsd(b.actual.value_usd)}</span> today</div>
-          <div class="baseline-usd"><span>${fmtUsd(b.actual.usd_spent)}</span> spent &middot; <span>$${parseFloat(b.actual.fees).toFixed(2)}</span> in fees</div>
-        </div>
-      </div>
-
-      <div class="baseline-chips">
-        <div class="bl-chip">&#x0394; BTC &nbsp;<strong>${b.delta.btc >= 0 ? '+' : ''}${fmt8(b.delta.btc)}</strong></div>
-        <div class="bl-chip">&#x0394; Value &nbsp;<strong>${b.delta.usd >= 0 ? '+' : ''}${fmtUsd(b.delta.usd)}</strong></div>
-        ${b.actual.recycler_usd_gained > 0
-          ? `<div class="bl-chip">Recycler gains &nbsp;<strong>${fmtUsd(b.actual.recycler_usd_gained)}</strong></div>`
-          : `<div class="bl-chip" style="color:var(--text-faint)">Recycler &nbsp;<strong style="color:var(--text-faint)">no cycles yet</strong></div>`}
-        <div class="bl-chip">Days running &nbsp;<strong>${b.days_running}</strong></div>
-      </div>
-    `;
-  } catch(e) {
-    console.warn('Baseline comparison failed:', e);
-    if (card) card.style.display = 'none';
-  }
-}
 
 function renderDashboard(d, openOrders) {
   const p = d.portfolio;
@@ -1961,11 +1974,7 @@ function renderDashboard(d, openOrders) {
       <span class="oob-detail">Balances will update when filled on Kraken</span>
     </div>` : ''}
 
-    <div class="acq-card" id="acq-breakdown"></div>
-
-    <div class="card" id="baseline-card" style="display:none">
-      <div id="baseline-content"></div>
-    </div>
+    <div class="stack-card" id="stack-card"></div>
 
     <div class="gauge-card" id="gauge-card">
       <div class="gauge-title">Market Position</div>
