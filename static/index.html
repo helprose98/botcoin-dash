@@ -620,12 +620,13 @@ body {
 }
 /* Investment grid */
 .stack-grid {
-  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 1px; background: var(--divider);
   border: 1px solid var(--divider); border-radius: var(--radius-md);
   overflow: hidden; margin-bottom: var(--space-5);
 }
-@media (max-width: 540px) { .stack-grid { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .stack-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 400px) { .stack-grid { grid-template-columns: 1fr; } }
 .stack-col {
   background: var(--surface); padding: var(--space-4);
   display: flex; flex-direction: column; gap: 4px;
@@ -1782,9 +1783,19 @@ async function renderStackCard(trades, data, settings) {
     cats[cat].count += 1;
   });
 
-  const totalBtc = cats.dca.btc + cats.dip.btc + cats.quick.btc + cats.recycler.btc;
-  if (totalBtc === 0) { el.style.display = 'none'; return; }
+  const totalTradeBtc = cats.dca.btc + cats.dip.btc + cats.quick.btc + cats.recycler.btc;
+  // Show the card as long as there's any BTC in the account (deposits count too)
+  const totalStack_ = parseFloat(data?.portfolio?.btc_balance) || 0;
+  if (totalTradeBtc === 0 && totalStack_ === 0) { el.style.display = 'none'; return; }
   el.style.display = '';
+
+  // ── Deposits (BTC that arrived via direct transfer, not bot trades) ────
+  const totalStack = parseFloat(data?.portfolio?.btc_balance) || 0;
+  const tradeAcquiredBtc = cats.dca.btc + cats.dip.btc + cats.quick.btc + cats.recycler.btc;
+  // Also subtract BTC the bot has sold (those reduce the stack but aren't deposits)
+  let totalSoldBtc = 0;
+  sorted.forEach(t => { if (t.side === 'sell') totalSoldBtc += parseFloat(t.btc_amount) || 0; });
+  const depositsBtc = Math.max(0, totalStack - tradeAcquiredBtc + totalSoldBtc);
 
   // ── Free BTC (recycler) ────────────────────────────────────────────────
   const freeBtc = cats.recycler.btc;
@@ -1863,6 +1874,12 @@ async function renderStackCard(trades, data, settings) {
     '<div class="stack-section">Your investment</div>' +
     '<div class="stack-grid">' +
       '<div class="stack-col">' +
+        '<div class="stack-col-label"><span class="sc-dot" style="background:var(--gold)"></span> Deposits</div>' +
+        '<div class="stack-col-btc">' + fmtBtc(depositsBtc) + ' <span class="sc-unit">BTC</span></div>' +
+        '<div class="stack-col-detail">Worth <span>' + fmtUsd(depositsBtc * currentPrice) + '</span></div>' +
+        '<div class="stack-col-detail faint">direct transfers</div>' +
+      '</div>' +
+      '<div class="stack-col">' +
         '<div class="stack-col-label"><span class="sc-dot" style="background:var(--accent)"></span> DCA</div>' +
         '<div class="stack-col-btc">' + fmtBtc(cats.dca.btc) + ' <span class="sc-unit">BTC</span></div>' +
         '<div class="stack-col-detail">Worth <span>' + fmtUsd(cats.dca.btc * currentPrice) + '</span></div>' +
@@ -1880,7 +1897,7 @@ async function renderStackCard(trades, data, settings) {
         '<div class="stack-col-label"><span class="sc-dot" style="background:var(--blue)"></span> Bot Buys <span class="sc-badge">AUTO</span></div>' +
         '<div class="stack-col-btc">' + fmtBtc(cats.dip.btc) + ' <span class="sc-unit">BTC</span></div>' +
         '<div class="stack-col-detail">Worth <span>' + fmtUsd(cats.dip.btc * currentPrice) + '</span></div>' +
-        '<div class="stack-col-detail"><span>' + fmtUsd(cats.dip.usd) + '</span> spent</div>' +
+        '<div class="stack-col-detail"><span>' + fmtUsd(cats.dip.usd) + '</span> traded</div>' +
         '<div class="stack-col-detail faint"><span>' + cats.dip.count + '</span> buys</div>' +
         botPausedNote +
       '</div>' +
