@@ -461,6 +461,7 @@ body {
   border-radius: var(--radius-xl); padding: var(--space-8) var(--space-8) var(--space-8);
   text-align: center; position: relative; overflow: hidden;
   box-shadow: var(--shadow-card);
+  display: flex; flex-direction: column; justify-content: center;
 }
 .btc-hero::before {
   content: '₿'; position: absolute; font-size: 12rem; font-weight: 900;
@@ -2088,22 +2089,6 @@ function renderDashboard(d, openOrders) {
         <div class="stat-value">${tradeCount}</div>
         <div class="stat-sub">${feesDisplay} in fees</div>
       </div>
-    </div>
-
-    <div class="progress-card">
-      <div class="progress-label">Road to Break Even</div>
-      <div class="progress-bar-wrap">
-        <div class="progress-bar-fill" style="width:${progressPct}%"></div>
-      </div>
-      <div class="progress-prices">
-        <span>$${(p.current_price * 0.5).toLocaleString('en-US',{maximumFractionDigits:0})}</span>
-        <span>Break even: $${p.breakeven_price.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
-        <span>$${(p.avg_cost_basis * 1.5).toLocaleString('en-US',{maximumFractionDigits:0})}</span>
-      </div>
-      ${gapToBreakeven > 0
-        ? `<div class="progress-current">Current price <strong>$${p.current_price.toLocaleString('en-US',{maximumFractionDigits:1})}</strong> — need <strong>$${gapToBreakeven.toLocaleString('en-US',{maximumFractionDigits:0})}</strong> more to break even</div>`
-        : `<div class="progress-current" style="color:var(--green)">Above break even by <strong>$${Math.abs(gapToBreakeven).toLocaleString('en-US',{maximumFractionDigits:0})}</strong></div>`
-      }
     </div>
 
     <div class="two-col">
