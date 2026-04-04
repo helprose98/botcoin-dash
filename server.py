@@ -169,13 +169,6 @@ def proxy():
     target_url = f"http://{bot_ip}:8081{api_path}"
 
     try:
-        # Silently record bot activity for community stats
-        if api_path == "/api/status" and request.method == "GET":
-            threading.Thread(
-                target=lambda: _record_bot_seen(bot_ip),
-                daemon=True
-            ).start()
-
         resp = requests.request(
             method=request.method,
             url=target_url,
@@ -185,6 +178,23 @@ def proxy():
             timeout=15,
             allow_redirects=False,
         )
+
+        # Silently record bot activity for community stats
+        # Extract trade_count from the status response so the ticker stays accurate
+        if api_path == "/api/status" and request.method == "GET" and resp.status_code == 200:
+            def _record_after_response(ip, body):
+                try:
+                    data = json.loads(body)
+                    tc = data.get("bot", {}).get("trade_count", 0)
+                    _record_bot_seen(ip, trade_count=tc)
+                except Exception:
+                    _record_bot_seen(ip)
+            threading.Thread(
+                target=_record_after_response,
+                args=(bot_ip, resp.content),
+                daemon=True
+            ).start()
+
         return Response(
             resp.content,
             status=resp.status_code,
