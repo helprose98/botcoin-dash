@@ -469,6 +469,16 @@ Live account data:
 - Max single order: ${max_order}
 - Paper trading: {paper}"""
 
+                # Sideways Market data
+                sideways = bot.get("sideways", {})
+                if sideways.get("active"):
+                    bot_context += f"""
+- Sideways Market: ACTIVE (14d range: {sideways.get('range_pct', '?')}%, threshold: {sideways.get('threshold_pct', 12)}%)
+- Range Recycler positions: {sideways.get('positions', 0)}/{sideways.get('max_positions', 5)}
+- Range Recycler thresholds: buy at {sideways.get('buy_threshold_pct', -4)}%, sell at +{sideways.get('sell_threshold_pct', 6)}%"""
+                elif sideways:
+                    bot_context += f"\n- Sideways Market: inactive (14d range: {sideways.get('range_pct', '?')}%)"
+
                 if trades_r.ok:
                     trades_list = trades_r.json()[:10] if isinstance(trades_r.json(), list) else []
                     if trades_list:
@@ -539,6 +549,25 @@ The Recycler is the bot playing the market for free money.
 4. It buys BTC back at the lower price.
 5. Result: you end up with MORE BTC than you started, funded entirely by market volatility. The USD from step 2 is called "House Money" — money the bot earned, not money you deposited. The BTC from step 4 is called "Winnings" — free BTC that cost the user nothing.
 The Recycler pool % controls how much of your USD reserve is set aside for this strategy.
+
+**SIDEWAYS MARKET MODE (Pro Feature):**
+The bot detects when Bitcoin is trading in a range-bound (sideways) market and automatically activates the Range Recycler to harvest profits from the chop.
+
+How it works:
+1. Detection: The bot monitors a 14-day rolling price window. If the high-to-low range is less than 12%, it declares a sideways market.
+2. Range Recycler: Uses fixed -4% buy / +6% sell thresholds (backtested over 720 days of real Kraken data as optimal). Buys dips within the range, sells pops at the top. Max 5 concurrent positions.
+3. Mode sync: Sideways Market is NOT a separate mode — it's an overlay on top of Auto Mode. If Auto has selected Stack BTC, the Range Recycler accumulates BTC through the chop. If Auto has selected Stack USD, it accumulates USD.
+4. Exit (Option 3): When the range breaks (volatility returns above 12%), the bot pauses new range trades. Existing positions become normal recycler positions — they don't get panic-sold.
+5. Thresholds are fixed and proven — the aggressiveness slider does NOT affect Sideways Market operations. This prevents users from over-tuning a strategy that's already optimized.
+
+Key stats from backtesting:
+- Winner: -4% buy / +6% sell over 720 days of real Kraken OHLC data
+- 35 completed cycles, 87.5% win rate, 8.9% fee drag (viable)
+- Market was range-bound 53% of the time (379 of 720 days)
+- Estimated ~$40/month at $500/trade size
+
+Trades from the Range Recycler show as "Range Recycler" in the trade history with a "SIDEWAYS" badge.
+This is a meaningful Pro-tier feature — it turns boring sideways markets into profit opportunities.
 
 **USD RESERVE BREAKDOWN:**
 - "Invested" = USD you deposited that hasn't been deployed yet

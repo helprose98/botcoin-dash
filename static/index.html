@@ -669,6 +669,29 @@ body {
   color: var(--blue); font-weight: 600; letter-spacing: 0.03em;
   margin-left: 2px;
 }
+.stack-col-label .sc-badge.sideways {
+  background: color-mix(in srgb, #5B8A8A 15%, transparent);
+  color: #5B8A8A;
+}
+.badge-sideways {
+  display: inline-block; font-size: 0.55rem; padding: 1px 5px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, #5B8A8A 15%, transparent);
+  color: #5B8A8A; font-weight: 700; letter-spacing: 0.04em;
+  margin-left: 4px; vertical-align: middle;
+}
+.sideways-indicator {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font-size: var(--text-xs); color: #5B8A8A; font-weight: 600;
+  padding: var(--space-1) var(--space-3);
+  background: color-mix(in srgb, #5B8A8A 8%, transparent);
+  border-radius: var(--radius-full); white-space: nowrap;
+}
+.sideways-indicator .si-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #5B8A8A;
+  animation: si-pulse 2s infinite;
+}
+@keyframes si-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 .stack-col-btc {
   font-family: var(--font-display); font-size: 1.15rem;
   font-weight: 800; line-height: 1; color: var(--text);
@@ -1787,7 +1810,8 @@ async function renderStackCard(trades, data, settings) {
 
   // ── Categorise trades ──────────────────────────────────────────────────
   const cats = { dca: {btc:0,usd:0,count:0}, dip: {btc:0,usd:0,count:0},
-                 quick: {btc:0,usd:0,count:0}, recycler: {btc:0,usd:0,count:0} };
+                 quick: {btc:0,usd:0,count:0}, recycler: {btc:0,usd:0,count:0},
+                 range: {btc:0,usd:0,count:0} };
 
   sorted.forEach(t => {
     if (t.side !== 'buy') return;
@@ -1796,6 +1820,7 @@ async function renderStackCard(trades, data, settings) {
     const usd = parseFloat(t.usd_amount) || 0;
     let cat;
     if (reason === 'dca')                                                   cat = 'dca';
+    else if (reason === 'range_recycler_buy')                               cat = 'range';
     else if (reason === 'recycler_rebuy' || reason === 'usd_recycler_buy')  cat = 'recycler';
     else if (reason === 'quick_buy' || reason === 'quickbuy')               cat = 'quick';
     else                                                                    cat = 'dip';
@@ -1804,7 +1829,7 @@ async function renderStackCard(trades, data, settings) {
     cats[cat].count += 1;
   });
 
-  const totalTradeBtc = cats.dca.btc + cats.dip.btc + cats.quick.btc + cats.recycler.btc;
+  const totalTradeBtc = cats.dca.btc + cats.dip.btc + cats.quick.btc + cats.recycler.btc + cats.range.btc;
   // Show the card as long as there's any BTC in the account (deposits count too)
   const totalStack_ = parseFloat(data?.portfolio?.btc_balance) || 0;
   if (totalTradeBtc === 0 && totalStack_ === 0) { el.style.display = 'none'; return; }
@@ -1903,6 +1928,14 @@ async function renderStackCard(trades, data, settings) {
         '<div class="stack-col-detail faint"><span>' + cats.dip.count + '</span> buys</div>' +
         botPausedNote +
       '</div>' +
+      (cats.range.count > 0 ? (
+      '<div class="stack-col">' +
+        '<div class="stack-col-label"><span class="sc-dot" style="background:#5B8A8A"></span> Range Recycler <span class="sc-badge sideways">SIDEWAYS</span></div>' +
+        '<div class="stack-col-btc">' + fmtBtc(cats.range.btc) + ' <span class="sc-unit">BTC</span></div>' +
+        '<div class="stack-col-detail">Worth <span>' + fmtUsd(cats.range.btc * currentPrice) + '</span></div>' +
+        '<div class="stack-col-detail"><span>' + fmtUsd(cats.range.usd) + '</span> traded</div>' +
+        '<div class="stack-col-detail faint"><span>' + cats.range.count + '</span> buys</div>' +
+      '</div>') : '') +
     '</div>' +
     '<div class="stack-section">Playing with the House\'s Money</div>' +
     '<div class="stack-free ' + (freeBtc > 0 ? 'active' : 'pending') + '">' +
@@ -1980,6 +2013,7 @@ function renderDashboard(d, openOrders) {
                b.active_mode === 'usd_accumulate' ? 'Stack USD' : b.active_mode)
         }</div>
         ${window._aggrName ? `<div class="mood-mode-sub">${window._aggrName}</div>` : ''}
+        ${b.sideways?.active ? `<div class="sideways-indicator"><span class="si-dot"></span>Sideways Market \u00b7 ${b.sideways.window_days || 14}d: ${b.sideways.range_pct?.toFixed(1) ?? '?'}%</div>` : ''}
       </div>
     </div>
 
@@ -2103,6 +2137,13 @@ function renderDashboard(d, openOrders) {
         <div class="stat-sub">${feesDisplay} in fees</div>
       </div>
     </div>
+
+    ${b.sideways?.active ? `
+    <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);background:color-mix(in srgb, #5B8A8A 6%, transparent);border:1px solid color-mix(in srgb, #5B8A8A 20%, transparent);border-radius:var(--radius-md);margin-top:var(--space-3)">
+      <span class="si-dot" style="width:6px;height:6px;border-radius:50%;background:#5B8A8A;animation:si-pulse 2s infinite;flex-shrink:0"></span>
+      <span style="font-size:var(--text-xs);color:#5B8A8A;font-weight:600">Sideways Market</span>
+      <span style="font-size:var(--text-xs);color:var(--text-muted)">${b.sideways.window_days || 14}d range: ${b.sideways.range_pct?.toFixed(1) ?? '?'}% · ${b.sideways.positions ?? 0}/${b.sideways.max_positions ?? 5} positions</span>
+    </div>` : ''}
 
     <div class="two-col">
       <div class="chart-card">
@@ -3270,9 +3311,12 @@ function openTradeModal() {
       'quick_buy': 'Quick Buy',
       'usd_recycler_buy': 'Recycler Buy',
       'usd_recycler_resell': 'Recycler Resell',
+      'range_recycler_buy': 'Range Recycler Buy',
+      'range_recycler_sell': 'Range Recycler Sell',
     };
     body.innerHTML = trades.map(t => {
       const label = reasonLabels[t.reason] || t.label || t.reason;
+      const isRange = (t.reason || '').startsWith('range_recycler_');
       const btc   = parseFloat(t.btc_amount).toFixed(8);
       const price = '$' + parseFloat(t.price_usd).toLocaleString('en-US', {maximumFractionDigits:0});
       const usd   = '$' + parseFloat(t.usd_amount).toFixed(2);
@@ -3284,7 +3328,7 @@ function openTradeModal() {
         <div class="trade-row">
           <div class="trade-row-side ${t.side}">${t.side === 'buy' ? 'BUY' : 'SELL'}</div>
           <div class="trade-row-info">
-            <div class="trade-row-label">${esc(label)}</div>
+            <div class="trade-row-label">${esc(label)}${isRange ? ' <span class="badge-sideways">SIDEWAYS</span>' : ''}</div>
             <div class="trade-row-meta">${esc(btc)} BTC @ ${esc(price)} · ${esc(usd)} · fee ${esc(fee)}</div>
           </div>
           <div class="trade-row-time">${when}<br><span style="opacity:0.6">${date}</span></div>
