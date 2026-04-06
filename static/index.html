@@ -2175,7 +2175,7 @@ function renderDashboard(d, openOrders) {
         ${d.last_trade ? `
           <div class="trade-item">
             <span class="trade-side ${d.last_trade.side}">${d.last_trade.side.toUpperCase()}</span>
-            <div class="trade-label">${esc(d.last_trade.label)}</div>
+            <div class="trade-label">${esc(d.last_trade.label)}${(d.last_trade.reason || '').startsWith('range_recycler_') ? ' <span class="badge-sideways">SIDEWAYS</span>' : ''}</div>
             <div class="trade-meta">${d.last_trade.btc_amount.toFixed(8)} BTC @ $${d.last_trade.price_usd.toLocaleString()}</div>
             <div class="trade-meta">$${d.last_trade.usd_amount.toFixed(2)} &middot; fee $${d.last_trade.fee_usd.toFixed(4)} &middot; ${timeAgo(d.last_trade.timestamp)}</div>
             ${d.last_trade.paper_trade ? '<div class="trade-paper">PAPER TRADE</div>' : ''}
