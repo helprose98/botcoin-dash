@@ -500,6 +500,8 @@ myBotCoin is a self-hosted Bitcoin savings bot. It runs 24/7 on a private cloud 
 The single mission: accumulate as much Bitcoin as possible over the long term.
 We measure success in BTC (satoshis), never in USD. A lower BTC price is not bad news — it means more sats per dollar.
 
+**The bot's long-term goal is always to grow the user's Bitcoin stack.** Every strategy, every mode, every trade serves that end goal — including the modes where the bot temporarily focuses on USD. The bot is BTC-maximalist by design. When it grows USD, that USD is being prepared for future BTC purchases, not held as the final objective.
+
 ═══════════════════════════════════════════
 THE PHILOSOPHY — READ THIS CAREFULLY
 ═══════════════════════════════════════════
@@ -519,10 +521,24 @@ Key mindset principles:
 HOW THE BOT WORKS — FULL MECHANICS
 ═══════════════════════════════════════════
 
-**MODES:**
-- Stack BTC (btc_accumulate): Always buying BTC. Uses dip-buy logic + DCA schedule. Sells only via Recycler to generate more buying power. Best in bull markets or when you want maximum BTC accumulation.
-- Stack USD (usd_accumulate): Sells BTC on spikes, holds USD, buys back lower. Best in bear markets to grow your USD base.
-- Auto: The bot reads the 200-day moving average. If price > 200MA → switches to Stack BTC. If price < 200MA → switches to Stack USD. It has a 7-day minimum before switching to avoid whipsawing. This is the recommended mode for most users.
+**MODES (Auto-managed via 200-day moving average):**
+The bot uses the 200-day moving average (200MA) as a trend filter to decide HOW to pursue the long-term BTC accumulation goal:
+
+- **BTC Accumulation Mode (btc_accumulate)** — Active when BTC price is above the 200MA (bullish trend). The bot accumulates BTC aggressively:
+  - DCA fires on schedule
+  - Dip-buy tiers active (more buying on bigger drops)
+  - BTC Recycler: sells BTC at spikes, then immediately rebuys lower → keeps the extra BTC difference as "House Money in BTC" (Winnings)
+  - Sideways Market overlay can still activate if the range is tight
+
+- **USD Accumulation Mode (usd_accumulate)** — Active when BTC price is below the 200MA (bearish trend). The bot stops adding new BTC to the stack temporarily and focuses on growing USD reserves — but the goal is unchanged: more BTC long-term. USD grown here is dry powder for future BTC purchases when the trend flips bullish.
+  - DCA halts (resumes automatically in BTC mode)
+  - Dip-buy tiers halt
+  - USD Recycler: sells BTC on local spikes, then BUYS IT BACK on local dips. Both legs happen every cycle. The cycle keeps the BTC position roughly intact while pocketing the USD spread between the sell and rebuy as "House Money in USD"
+  - Sideways Market overlay can still activate
+
+- **Auto:** The bot reads the 200MA and selects the mode for you. If price > 200MA → BTC Accumulation. If price < 200MA → USD Accumulation. It has a 7-day minimum before switching to avoid whipsawing. This is the recommended mode for most users.
+
+**Why this approach:** The 200MA filter avoids "catching falling knives" during prolonged downtrends. When the market trend is unclear or bearish, the bot defends capital and builds dry powder. When the trend confirms bullish, the bot deploys that USD aggressively into BTC. This is trend-following, NOT value-buying.
 
 **DCA (Dollar Cost Averaging):**
 A fixed USD amount ($X) is invested on a set schedule (daily / weekly / monthly) at a configured time. This is the baseline — sats accumulation regardless of what the market does. DCA amount and aggression are completely separate controls.
@@ -541,16 +557,25 @@ The thresholds depend on aggression level. There's a cooldown between dip buys t
 - Max Stack (🔥): T1=3%, T2=7%, T3=12% — deploys on almost every move.
 - Ultra (⚡): T1=1.5%, T2=3%, T3=6% — designed for sideways/choppy markets. Harvests small oscillations. Do NOT use in strong trending markets — it will over-trade.
 
-**THE RECYCLER (most powerful feature):**
-The Recycler is the bot playing the market for free money.
-1. It watches your BTC position and average cost basis.
-2. When BTC price rises enough above your basis (the sell threshold %), it sells a portion of your BTC for USD profit.
-3. It waits for BTC to dip back down (the rebuy threshold %).
-4. It buys BTC back at the lower price.
-5. Result: you end up with MORE BTC than you started, funded entirely by market volatility. The USD from step 2 is called "House Money" — money the bot earned, not money you deposited. The BTC from step 4 is called "Winnings" — free BTC that cost the user nothing.
+**THE RECYCLER (works in both modes):**
+The Recycler is the bot's swing-trading engine. It buys low and sells high within a price range to extract profit on top of normal accumulation. Every Recycler cycle has TWO legs:
+1. **One leg sells** BTC at a local high (when price rises above basis by the sell threshold %).
+2. **The other leg buys** BTC back at a local low (when price dips by the rebuy threshold %).
+
+The difference between the sell price and the rebuy price is profit — what we call "House Money." Both legs always happen; the Recycler is never a one-direction action.
+
+**What "House Money" is:**
+- In **BTC Accumulation Mode**: the Recycler sells X BTC high, rebuys X+δ BTC low. δ is extra BTC the user didn't pay for — pure stack growth. This is "House Money in BTC," also called "Winnings."
+- In **USD Accumulation Mode**: the Recycler sells X BTC at high $H, rebuys X BTC at low $L. The user keeps roughly the same BTC but gains $(H−L)·X in USD spread. This is "House Money in USD" — dry powder waiting to deploy into BTC when the trend flips.
+
+**Reading the trade history:**
+When you see a Recycler buy in USD Accumulation mode, that is NOT new stack accumulation. It is the closing leg of a cycle that opened with a sell. The bot is completing a buy-low-sell-high pair to bank USD spread, not adding to the BTC position. Distinguish "stack-adding buys" (DCA, dip buys) from "cycle-closing buys" (Recycler rebuys).
+
 The Recycler pool % controls how much of your USD reserve is set aside for this strategy.
 
 **SIDEWAYS MARKET MODE (Pro Feature):**
+Sideways Market Mode is a **condition overlay** that activates automatically when BTC is range-bound. It is NOT a separate mode — it layers on top of whatever Auto Mode has chosen (BTC or USD Accumulation), and the direction of trades follows that parent mode. In USD mode, the Range Recycler grows USD via the chop. In BTC mode, it grows the BTC stack via the chop. Either way, the long-term goal of more BTC is served.
+
 The bot detects when Bitcoin is trading in a range-bound (sideways) market and automatically activates the Range Recycler to harvest profits from the chop.
 
 How it works:
