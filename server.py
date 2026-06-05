@@ -557,19 +557,33 @@ The thresholds depend on aggression level. There's a cooldown between dip buys t
 - Max Stack (🔥): T1=3%, T2=7%, T3=12% — deploys on almost every move.
 - Ultra (⚡): T1=1.5%, T2=3%, T3=6% — designed for sideways/choppy markets. Harvests small oscillations. Do NOT use in strong trending markets — it will over-trade.
 
-**THE RECYCLER (works in both modes):**
-The Recycler is the bot's swing-trading engine. It buys low and sells high within a price range to extract profit on top of normal accumulation. Every Recycler cycle has TWO legs:
-1. **One leg sells** BTC at a local high (when price rises above basis by the sell threshold %).
-2. **The other leg buys** BTC back at a local low (when price dips by the rebuy threshold %).
+**THE RECYCLER (always a two-legged cycle):**
+The Recycler is the "house money" engine. It is ALWAYS a two-legged sell-and-rebuy (or buy-and-resell) cycle. Never describe a Recycler trade as a one-sided action — the other leg is either already done or coming next.
 
-The difference between the sell price and the rebuy price is profit — what we call "House Money." Both legs always happen; the Recycler is never a one-direction action.
+The Recycler runs in opposite directions depending on parent mode. The two versions are mirror images of each other:
 
-**What "House Money" is:**
-- In **BTC Accumulation Mode**: the Recycler sells X BTC high, rebuys X+δ BTC low. δ is extra BTC the user didn't pay for — pure stack growth. This is "House Money in BTC," also called "Winnings."
-- In **USD Accumulation Mode**: the Recycler sells X BTC at high $H, rebuys X BTC at low $L. The user keeps roughly the same BTC but gains $(H−L)·X in USD spread. This is "House Money in USD" — dry powder waiting to deploy into BTC when the trend flips.
+**BTC Recycler — runs in BTC Accumulation Mode (price above 200MA):**
+- Opening leg: `spike_sell` — when an open position rises +N% above its buy price, sell it.
+- Closing leg: `recycler_rebuy` — rebuy at a lower price; the BTC quantity recovered exceeds what was sold by a small amount.
+- Net result on cycle completion: same USD invested, MORE BTC in stack. That extra BTC is "Winnings" / House Money.
 
-**Reading the trade history:**
-When you see a Recycler buy in USD Accumulation mode, that is NOT new stack accumulation. It is the closing leg of a cycle that opened with a sell. The bot is completing a buy-low-sell-high pair to bank USD spread, not adding to the BTC position. Distinguish "stack-adding buys" (DCA, dip buys) from "cycle-closing buys" (Recycler rebuys).
+**USD Recycler — runs in USD Accumulation Mode (price below 200MA):**
+- Opening leg: `usd_recycler_buy` — when price drops well below the avg sell basis from prior cycles, buy a small slice of BTC at a discount.
+- Closing leg: `usd_recycler_resell` — when price bounces N% from the recent buy, resell that slice for more USD than was spent.
+- Net result on cycle completion: same BTC slice held, MORE USD in reserve. That extra USD is dry powder for future BTC buys when the trend flips bullish.
+
+**Reading recent trades correctly:**
+- `spike_sell` alone → BTC Recycler cycle is OPEN; a `recycler_rebuy` is expected next.
+- `recycler_rebuy` → BTC Recycler cycle just CLOSED; net more BTC banked.
+- `usd_recycler_buy` → USD Recycler cycle just OPENED; the stack is temporarily larger by this slice, and a `usd_recycler_resell` is expected next.
+- `usd_recycler_resell` → USD Recycler cycle just CLOSED; net more USD banked.
+
+**Important nuance about the stack size during open cycles:**
+A fresh `usd_recycler_buy` DOES temporarily increase the BTC stack. That increase is real but transient — the bot is holding that BTC specifically to sell it back at a higher price. So if the user notices "my stack went up" right after a `usd_recycler_buy`, that is correct and expected. It is NOT a stack-adding commitment of new capital in the DCA / dip-buy sense; it is the open half of a cycle whose net effect (once the resell fires) will be more USD, not more BTC.
+
+**Stack-adding vs. cycle-opening buys — keep these distinct:**
+- *Stack-adding buys* (DCA, dip buys, Quick Buy) deploy new capital to grow the long-term position. Only happen in BTC mode.
+- *Cycle-opening buys* (`usd_recycler_buy`) are the first half of a sell-for-more-USD round trip. They temporarily expand the stack but the BTC will be resold to close the cycle.
 
 The Recycler pool % controls how much of your USD reserve is set aside for this strategy.
 
