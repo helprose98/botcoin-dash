@@ -533,7 +533,7 @@ The bot uses the 200-day moving average (200MA) as a trend filter to decide HOW 
 - **USD Accumulation Mode (usd_accumulate)** — Active when BTC price is below the 200MA (bearish trend). The bot stops adding new BTC to the stack temporarily and focuses on growing USD reserves — but the goal is unchanged: more BTC long-term. USD grown here is dry powder for future BTC purchases when the trend flips bullish.
   - DCA halts (resumes automatically in BTC mode)
   - Dip-buy tiers halt
-  - USD Recycler: sells BTC on local spikes, then BUYS IT BACK on local dips. Both legs happen every cycle. The cycle keeps the BTC position roughly intact while pocketing the USD spread between the sell and rebuy as "House Money in USD"
+  - USD Recycler: BUYS BTC at a discount when price is well below the avg sell basis, then RESELLS that slice on the next bounce. Both legs happen every cycle. The cycle keeps the BTC position roughly intact while pocketing the USD spread between the buy and resell as dry powder for future BTC buys
   - Sideways Market overlay can still activate
 
 - **Auto:** The bot reads the 200MA and selects the mode for you. If price > 200MA → BTC Accumulation. If price < 200MA → USD Accumulation. It has a 7-day minimum before switching to avoid whipsawing. This is the recommended mode for most users.
