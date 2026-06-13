@@ -2134,12 +2134,13 @@ function setGrowthRow(id, value) {
 function renderGrowthApy(deposits, portfolioToday) {
   const apyEl = document.getElementById('growth-apy');
   const compEl = document.getElementById('growth-comparator');
-  // v1.12.10 — APY display suppressed. /api/deposits returns full Kraken
+  // v1.12.11 — APY display pending. /api/deposits returns full Kraken
   // history (not bot-managed history), so the XIRR series is dominated by
   // stale CoinGecko-backfilled values and produces meaningless rates. Until
-  // we have a "first bot-managed trade" timestamp to anchor on, hide the
-  // block entirely. The Growth dollar/percent and 2-bucket breakdown remain.
-  hideApyBlock(apyEl, compEl);
+  // we have a "first bot-managed trade" timestamp to anchor on, show a muted
+  // waiting-for-data status. The Growth dollar/percent and 2-bucket breakdown remain.
+  showApyStatus(apyEl, compEl, 'APY: waiting for data',
+                'needs more bot-managed history to compute');
   return;
 
   // State A: fetch failed entirely (deposits === null from the .catch(() => null))
