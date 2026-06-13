@@ -148,7 +148,7 @@
     font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
     text-transform: uppercase; color: var(--text-muted);
   }
-  .knob-wrap { position: relative; width: 300px; height: 300px; }
+  .knob-wrap { position: relative; width: clamp(320px, 60vw, 560px); aspect-ratio: 1 / 1; height: auto; }
   .knob-svg { width: 100%; height: 100%; cursor: default; }
   .knob-arc-bg { fill: none; stroke: var(--surface-3); stroke-width: 14; stroke-linecap: round; }
   .knob-arc-fg { fill: none; stroke: var(--accent); stroke-width: 14; stroke-linecap: round;
@@ -176,15 +176,25 @@
      labels in detent order. Replaces the per-detent SVG <text> ticks — five arc
      labels would overlap and risk glyph cutoff. Full width so the labels spread
      under their detents; wraps gracefully on very narrow screens. */
+  /* Label scale anchored to actual detent x-positions on the 270° arc.
+     Each label sits directly under its detent (no uniform-grid drift).
+     The wrap is the same width as the dial so percentages map to SVG x. */
   .knob-scale {
-    display: grid; grid-template-columns: repeat(5, 1fr);
-    width: 100%; max-width: 320px; gap: 4px; margin-top: -6px;
+    position: relative;
+    width: 100%;
+    max-width: clamp(320px, 60vw, 560px);
+    height: 28px;          /* room for a single line of label text */
+    margin-top: 4px;
   }
   .knob-tick {
-    font-size: 11px; font-weight: 600; font-family: var(--font-body);
-    letter-spacing: 0.03em; text-transform: uppercase; text-align: center;
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    font-size: 10px; font-weight: 600; font-family: var(--font-body);
+    letter-spacing: 0.02em; text-transform: uppercase;
     color: var(--text-faint); cursor: pointer; line-height: 1.2;
     background: none; border: none; padding: 4px 2px;
+    white-space: nowrap;
     transition: color var(--transition);
   }
   .knob-tick:hover { color: var(--accent-hover); }
@@ -1103,6 +1113,11 @@ const TREND_ESTABLISHED_DAYS = 60;
 //   tag     — short caption shown beside the dial when this level is selected
 //   summary — one-sentence plain-English description of what this level does to
 //             Andy's stack (grounded in trading-logic.md, not invented)
+// Detent x-positions as a percentage of the 300-unit SVG width, in detent
+// (index) order. These are the true geometric x-fractions of the five detents
+// on the 270° arc (cx = 65.1, 39.1, 150, 260.9, 234.9), NOT a uniform spread —
+// used to absolutely position each .knob-tick label directly under its detent.
+const DETENT_X_PERCENT = [21.7, 13.0, 50.0, 87.0, 78.3];
 const AGGRESSION_LEVELS = [
   {
     key: 'conservative', label: 'Conservative',
@@ -1845,7 +1860,7 @@ function buildKnobScale() {
   const scale = document.getElementById('knob-scale');
   if (scale.childElementCount === AGGRESSION_LEVELS.length) return;  // already built
   scale.innerHTML = AGGRESSION_LEVELS.map((lvl, idx) =>
-    `<button type="button" class="knob-tick" data-pos="${idx}">${esc(lvl.label)}</button>`
+    `<button type="button" class="knob-tick" data-pos="${idx}" style="left: ${DETENT_X_PERCENT[idx]}%">${esc(lvl.label)}</button>`
   ).join('');
 }
 
