@@ -1192,6 +1192,9 @@ const XIRR_GUESS = 0.10;        // 10% — neutral starting rate for the solver
 const XIRR_TOLERANCE = 1e-7;    // stop when |NPV| or the rate step is below this
 const XIRR_MAX_ITERATIONS = 100;// cap iterations so a bad input can't spin forever
 const DAYS_PER_YEAR = 365;      // day-count basis for annualizing each cash flow
+/** Minimum days of deposit history before the APY line is shown. Annualized
+ *  return is unstable on short series; suppress until the user has real signal. */
+const APY_MIN_HISTORY_DAYS = 90;
 // Multiple Newton starting points: a single fixed guess can diverge or step
 // past the rate guards on deeply-negative series, so we try several in order.
 const XIRR_NEWTON_GUESSES = [0.1, -0.3, 0.5, -0.7, 0.0];
@@ -2141,6 +2144,26 @@ function renderGrowthApy(deposits, portfolioToday) {
 
   const list = Array.isArray(deposits.deposits) ? deposits.deposits : [];
 
+  // Minimum-history gate: annualized return is statistically meaningless on a
+  // short cashflow series. Suppress the entire APY block until the user has at
+  // least APY_MIN_HISTORY_DAYS of bot history since their first deposit. The
+  // growth dollar/percent and the breakdown rows remain visible — only the
+  // APY line + comparator hide. Once the threshold is crossed it reappears
+  // automatically with no further work from the user.
+  if (list.length > 0) {
+    const earliest = list.reduce((min, d) => {
+      const t = new Date((d.timestamp || '') + 'Z').getTime();
+      return (t && (min === null || t < min)) ? t : min;
+    }, null);
+    if (earliest !== null) {
+      const daysHeld = (Date.now() - earliest) / 86400000;
+      if (daysHeld < APY_MIN_HISTORY_DAYS) {
+        hideApyBlock(apyEl, compEl);
+        return;
+      }
+    }
+  }
+
   // State B: deposits synced but ledger is empty (Kraken returned nothing
   // or sync silently failed). Distinct from State A — bot DID respond.
   if (list.length === 0) {
@@ -2186,6 +2209,21 @@ function renderGrowthApy(deposits, portfolioToday) {
   compEl.textContent = '≈ ' + caption;
   compEl.classList.remove('status');
   compEl.style.display = caption ? '' : 'none';
+}
+
+/**
+ * Cleanly hide the APY line and its comparator caption. Used when the user has
+ * insufficient deposit history for a meaningful annualized rate (v1.12.9 90-day
+ * gate). Both elements get `display:none` and lose any status/neg classes so
+ * they paint cleanly when re-shown later.
+ */
+function hideApyBlock(apyEl, compEl) {
+  apyEl.style.display = 'none';
+  apyEl.classList.remove('status', 'neg');
+  apyEl.innerHTML = '';
+  compEl.style.display = 'none';
+  compEl.classList.remove('status');
+  compEl.textContent = '';
 }
 
 /**
