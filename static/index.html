@@ -66,13 +66,14 @@
   .pill .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--green); box-shadow: 0 0 8px var(--green); }
 
   /* === TOP STATUS ROW === */
-  /* Four cards at desktop: BTC STACK | USD RESERVE | BTC PRICE | MARKET (gauge).
-     The three numeric cards share an equal 1fr each; the gauge column is given
-     1.3fr so the 220px gauge SVG keeps breathing room and centres comfortably in
-     the narrower 4-up layout (v1.12.5 — BTC PRICE promoted from the hero bar). */
+  /* Three cards at desktop: BTC STACK | USD RESERVE | MARKET (gauge). The two
+     numeric cards share an equal 1fr each; the gauge column is given 1.1fr so the
+     220px gauge SVG keeps breathing room and centres comfortably. BTC PRICE lives
+     as a sub-line inside the BTC STACK card (v1.12.7 — reverted v1.12.5's split
+     into a standalone fourth card). */
   .top-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1.3fr;
+    grid-template-columns: 1fr 1fr 1.1fr;
     gap: var(--space-3);
     margin-bottom: var(--space-5);
   }
@@ -107,6 +108,14 @@
   /* Hero numbers get vertical breathing room so the value leads the card. */
   .stat-hero { padding-top: var(--space-5); padding-bottom: var(--space-4); justify-content: center; }
   .stat-sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  /* BTC PRICE continuation appended to the BTC STACK card's "≈ $X today" line
+     (v1.12.7). Wraps gracefully on narrow widths — no white-space:nowrap. The
+     middle-dot separator and the "BTC"/"live" affixes are faint; the dollar value
+     pops to --text so the live number reads brighter than its label. */
+  .stat-sub-sep   { color: var(--text-faint); }
+  .stat-sub-inline { color: var(--text-muted); }
+  .stat-sub-inline .price { color: var(--text); }
+  .stat-sub-inline .live  { color: var(--text-faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
 
   /* Market gauge tile */
   .gauge-tile { padding: var(--space-3) var(--space-4) var(--space-3); align-items: center; gap: 4px; }
@@ -728,21 +737,20 @@
     <div class="stat stat-hero">
       <div class="stat-label">BTC Stack</div>
       <div class="stat-value btc mono" id="btc-stack">—</div>
-      <div class="stat-sub" id="btc-stack-sub">—</div>
+      <!-- "≈ $X today" is set on #btc-stack-sub; the live BTC price continues on
+           the same line via #tool-price (v1.12.7 — reverted v1.12.5's standalone
+           BTC PRICE card). The live-price poll still targets #tool-price, so no
+           poll rewiring is needed; it just sets the inline span instead. -->
+      <div class="stat-sub">
+        <span id="btc-stack-sub">—</span>
+        <span class="stat-sub-sep">&nbsp;·&nbsp;</span>
+        <span class="stat-sub-inline" id="tool-price">—</span>
+      </div>
     </div>
     <div class="stat stat-hero">
       <div class="stat-label">USD Reserve</div>
       <div class="stat-value mono" id="usd-reserve">—</div>
       <div class="stat-sub">dry powder available</div>
-    </div>
-    <div class="stat stat-hero">
-      <div class="stat-label">BTC Price</div>
-      <!-- Reuses the #tool-price ID the live-price poll already targets, so the
-           promotion from hero bar to top row needs no JS rewiring. .stat-value
-           gives it the same clamp(28px,4.5vw,44px) hero sizing as BTC STACK and
-           USD RESERVE for left-to-right parity across the row (v1.12.5). -->
-      <div class="stat-value mono" id="tool-price">—</div>
-      <div class="stat-sub">live</div>
     </div>
     <div class="stat gauge-tile">
       <div class="stat-label">Market</div>
@@ -923,16 +931,12 @@
         <div class="growth-meta" id="growth-meta">—</div>
       </div>
       <div class="row">
-        <div class="label">BTC price appreciation</div>
+        <div class="label">BTC Price Appreciation</div>
         <div class="val" id="growth-appreciation" style="color:var(--green)">—</div>
       </div>
       <div class="row">
-        <div class="label">USD Recycler earnings</div>
-        <div class="val" id="growth-recycler" style="color:var(--green)">—</div>
-      </div>
-      <div class="row">
-        <div class="label">House Money (extra BTC)</div>
-        <div class="val" id="growth-house" style="color:var(--green)">—</div>
+        <div class="label">Bot Trading Earnings</div>
+        <div class="val" id="growth-bot" style="color:var(--green)">—</div>
       </div>
     </div>
   </div>
@@ -1624,9 +1628,14 @@ function render(data, trades, settings, deposits) {
   const portfolioToday = btcStack * price + usdReserve;
   renderGrowth(data, trades, totalInvested, portfolioToday, price, depTotal != null, deposits);
 
-  // BTC Price card (top stats row as of v1.12.5; the "live" caption is the
-  // card's own .stat-sub line, so the value cell holds just the price).
-  document.getElementById('tool-price').textContent = fmtUsd0(price);
+  // BTC Price — inline continuation of the BTC STACK card's "≈ $X today" sub-line
+  // (v1.12.7; reverted v1.12.5's standalone card). The live-price poll still
+  // targets #tool-price, so it stays the element whose price updates. Render the
+  // full "BTC $X live" string here: a muted "BTC" prefix, the brighter value, and
+  // a faint "live" suffix. fmtUsd0 output is numeric/$-formatted only — safe to
+  // inline without esc().
+  document.getElementById('tool-price').innerHTML =
+    'BTC <span class="price">' + fmtUsd0(price) + '</span> <span class="live">live</span>';
 
   // "Total Trades" tile: days | trades | fees. There is no stored bot start
   // time, so "days trading" is derived from the EARLIEST /api/trades timestamp
@@ -2042,19 +2051,28 @@ function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDe
     'Portfolio today: ' + fmtUsd(portfolioToday) + ' (BTC + USD reserve)' +
     (haveDeposits ? '' : ' · invested basis incomplete (deposits syncing)');
 
-  // BTC price appreciation: (price - avg_cost_basis) * stack, clamped ≥ 0
+  // Growth breakdown — exactly two signed buckets that sum to the headline
+  // `growth` figure above (v1.12.7):
+  //   1. BTC Price Appreciation — pure mark-to-market on the existing stack from
+  //      cost basis to spot. Signed (NO Math.max clamp), so it reads red when the
+  //      basis sits above spot.
+  //   2. Bot Trading Earnings — everything else the bot did that moved portfolio
+  //      value, as a signed residual: growth − appreciation.
   const stack = p.btc_balance || 0;
   const basis = p.avg_cost_basis || 0;
-  const appreciation = Math.max(0, (price - basis) * stack);
-  document.getElementById('growth-appreciation').textContent = '+' + fmtUsd(appreciation);
+  const appreciation = (price - basis) * stack;
+  const botEarnings = growth - appreciation;
+  setGrowthRow('growth-appreciation', appreciation);
+  setGrowthRow('growth-bot', botEarnings);
+}
 
-  // USD Recycler earnings: paired usd_recycler_buy → usd_recycler_resell deltas
-  const recyclerEarnings = pairedRecyclerEarnings(trades);
-  document.getElementById('growth-recycler').textContent = '+' + fmtUsd(recyclerEarnings);
-
-  // House Money (extra BTC): net BTC gained on closed recycler_rebuy pairs × price
-  const houseMoney = houseMoneyBtc(trades) * price;
-  document.getElementById('growth-house').textContent = '+' + fmtUsd(houseMoney);
+// Render one Growth breakdown row: signed USD value, green when ≥ 0, red when
+// negative. Matches the two-bucket layout introduced in v1.12.7.
+function setGrowthRow(id, value) {
+  const el = document.getElementById(id);
+  const neg = value < 0;
+  el.textContent = (neg ? '-' : '+') + fmtUsd(Math.abs(value));
+  el.style.color = neg ? 'var(--red)' : 'var(--green)';
 }
 
 // Render the "X.X% APY" line + comparator caption under the growth dollar
@@ -2136,48 +2154,6 @@ function showApyStatus(apyEl, compEl, primary, secondary) {
   compEl.textContent = secondary;
   compEl.classList.add('status');
   compEl.style.display = '';
-}
-
-// Walk USD-recycler pairs oldest→newest: each resell closes the most recent
-// open buy; earnings are the positive USD spread (resell proceeds − buy cost).
-function pairedRecyclerEarnings(trades) {
-  const chrono = [...trades].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-  const openBuys = [];
-  let earnings = 0;
-  for (const t of chrono) {
-    const r = (t.reason || '').toLowerCase();
-    if (r === 'usd_recycler_buy') {
-      openBuys.push(t);
-    } else if (r === 'usd_recycler_resell') {
-      const buy = openBuys.pop();
-      if (buy) {
-        const delta = (t.usd_amount || 0) - (buy.usd_amount || 0);
-        if (delta > 0) earnings += delta;
-      }
-    }
-  }
-  return earnings;
-}
-
-// Walk BTC-recycler pairs: each recycler_rebuy closes the most recent spike/
-// recycler sell; house money is the extra BTC recovered (rebuy − sold), summed.
-function houseMoneyBtc(trades) {
-  const chrono = [...trades].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-  const openSells = [];
-  let extraBtc = 0;
-  for (const t of chrono) {
-    const r = (t.reason || '').toLowerCase();
-    if (r === 'recycler_sell' || r.startsWith('usd_spike_sell') || r === 'spike_sell') {
-      openSells.push(t);
-    } else if (r === 'recycler_rebuy') {
-      const sell = openSells.pop();
-      if (sell) {
-        const delta = (t.btc_amount || 0) - (sell.btc_amount || 0);
-        if (delta > 0) extraBtc += delta;
-      }
-    }
-  }
-  return extraBtc;
 }
 
 // Human-friendly reason copy per spec
