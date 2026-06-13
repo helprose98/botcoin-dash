@@ -91,6 +91,11 @@
        the card without truncation. Upper bound 44px; never below 28px. */
     font-size: clamp(28px, 4.5vw, 44px);
     line-height: 1.05; letter-spacing: -0.03em; color: var(--text);
+    /* Tabular + lining numerals so BTC STACK (10-char) and USD RESERVE (9-char)
+       share one fixed glyph advance and one baseline — both hero numbers render
+       at the same computed px size from the shared clamp, giving left-to-right
+       visual parity across the hero row. */
+    font-variant-numeric: tabular-nums lining-nums;
     font-feature-settings: 'tnum' 'lnum';
     white-space: nowrap; max-width: 100%;
   }
@@ -239,16 +244,16 @@
   .preset-btn:hover { border-color: var(--text-muted); color: var(--text); }
   .preset-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
   .preset-btn:disabled { opacity: 0.5; cursor: default; }
-  .preset-btn .pct { display: block; font-family: var(--font-mono); font-size: 10px; font-weight: 500; color: var(--text-faint); margin-top: 3px; }
+  .preset-btn .pct { display: block; font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--text-muted); margin-top: 4px; }
   .preset-btn.active .pct { color: var(--accent); }
   /* Plain-English summary of each aggression level — five subtle rows beneath the
      preset tiles. Level name emphasised in the accent colour; description in muted
      body text. No icons, no decoration (matches v2 helper-text). The active level's
      row is brightened so it ties to the selected tile/detent. */
   .preset-summary { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
-  .preset-summary-row { font-size: 11px; line-height: 1.45; color: var(--text-faint); }
+  .preset-summary-row { font-size: 12px; line-height: 1.45; color: var(--text-muted); }
   .preset-summary-row .lvl { color: var(--accent); font-weight: 600; }
-  .preset-summary-row.active { color: var(--text-muted); }
+  .preset-summary-row.active { color: var(--text); }
   .field-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .field-line label { font-size: 12px; color: var(--text-muted); }
   .num-input {
