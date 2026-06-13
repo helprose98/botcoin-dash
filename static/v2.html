@@ -130,13 +130,18 @@
   .knob-detent.active { fill: var(--accent); filter: drop-shadow(0 0 6px var(--accent-glow)); }
   .knob-svg .knob-hit { fill: transparent; cursor: pointer; pointer-events: auto; }
   .knob-center { fill: var(--surface-2); stroke: var(--border); stroke-width: 1; }
+  /* The needle + dot are wrapped in #needle-group and rotated together via the
+     group's SVG transform attribute (same pattern as the working market gauge).
+     The transition lives on the group so the rotate animates smoothly; the
+     individual line/dot carry only their paint so no competing CSS transform
+     can blank them out (was the v1.11.0 disappearing-needle bug). */
+  .knob-needle-group {
+    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+    transform-box: view-box; transform-origin: 150px 150px;
+  }
   .knob-needle { stroke: var(--accent); stroke-width: 4; stroke-linecap: round;
-    filter: drop-shadow(0 0 8px var(--accent-glow));
-    transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
-    transform-origin: 150px 150px; }
-  .knob-dot { fill: var(--accent); filter: drop-shadow(0 0 8px var(--accent-glow));
-    transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
-    transform-origin: 150px 150px; }
+    filter: drop-shadow(0 0 8px var(--accent-glow)); }
+  .knob-dot { fill: var(--accent); filter: drop-shadow(0 0 8px var(--accent-glow)); }
   .knob-tick { fill: var(--text-faint); font-size: 11px; font-weight: 600;
     font-family: var(--font-body); letter-spacing: 0.05em; text-transform: uppercase; }
   .knob-tick.active { fill: var(--accent); }
@@ -340,10 +345,54 @@
   .badge.sell { background: var(--red-dim);   color: var(--red); }
   .reason { color: var(--text-muted); font-size: 13px; }
 
-  footer {
-    margin-top: var(--space-5);
+  /* === COMMUNITY STATS BAR === */
+  .community {
+    display: flex; align-items: center; justify-content: center;
+    flex-wrap: wrap; gap: var(--space-4);
+    margin-top: var(--space-6);
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .community-title {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .community-stat {
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    padding-left: var(--space-4); border-left: 1px solid var(--border);
+  }
+  .cs-value { font-size: 18px; font-weight: 700; color: var(--text); }
+  .cs-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-faint);
+  }
+
+  /* === SITE FOOTER === */
+  .site-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: var(--space-2);
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border);
     font-size: 12px; color: var(--text-faint);
-    text-align: center;
+  }
+  .site-footer .footer-left { font-weight: 600; color: var(--text-muted); }
+  .site-footer .footer-right { display: flex; align-items: center; gap: 8px; }
+  .site-footer .footer-right .mono { font-size: 11px; color: var(--text-faint); }
+  .site-footer .footer-dot { color: var(--text-faint); }
+  .site-footer a { color: var(--text-muted); text-decoration: none; }
+  .site-footer a:hover { color: var(--accent); }
+  .footer-updated {
+    margin-top: var(--space-3);
+    font-size: 12px; color: var(--text-faint); text-align: center;
+  }
+  .footer-updated a { color: var(--text-faint); }
+
+  @media (max-width: 560px) {
+    .community-stat { border-left: none; padding-left: 0; }
+    .site-footer { justify-content: center; text-align: center; }
   }
 
   /* === CONNECT SCREEN === */
@@ -482,8 +531,10 @@
           <text class="knob-tick" data-pos="2" x="260" y="265" text-anchor="middle" style="cursor:pointer">Aggressive</text>
           <circle class="knob-center" cx="150" cy="150" r="62"/>
           <circle cx="150" cy="150" r="62" fill="none" stroke="rgba(247,147,26,0.15)" stroke-width="1"/>
-          <line id="needle" class="knob-needle" x1="150" y1="150" x2="150" y2="55"/>
-          <circle id="needle-dot" class="knob-dot" cx="150" cy="55" r="4"/>
+          <g id="needle-group" class="knob-needle-group" transform="rotate(0 150 150)">
+            <line class="knob-needle" x1="150" y1="150" x2="150" y2="55"/>
+            <circle class="knob-dot" cx="150" cy="55" r="4"/>
+          </g>
           <circle cx="150" cy="150" r="14" fill="#0D0C0B" stroke="#332F2A" stroke-width="1"/>
           <circle cx="150" cy="150" r="3" fill="#F7931A"/>
         </svg>
@@ -637,9 +688,34 @@
     </div>
   </div>
 
-  <footer>
-    <span id="last-updated">—</span> · v2 preview · <a href="/" style="color:var(--text-faint)">legacy dashboard</a>
+  <!-- COMMUNITY STATS -->
+  <div class="community" id="community-bar">
+    <span class="community-title">myBotCoin Community</span>
+    <div class="community-stat">
+      <span class="cs-value mono" id="cs-active">—</span>
+      <span class="cs-label">active bots</span>
+    </div>
+    <div class="community-stat">
+      <span class="cs-value mono" id="cs-trades">—</span>
+      <span class="cs-label">trades executed</span>
+    </div>
+    <div class="community-stat">
+      <span class="cs-value mono" id="cs-installs">—</span>
+      <span class="cs-label">bots installed</span>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-left" id="footer-status">—</div>
+    <div class="footer-right">
+      <span class="mono" id="bot-version-display">bot v—</span>
+      <span class="footer-dot">·</span>
+      <span class="mono" id="dash-version-display">dash v—</span>
+      <span class="footer-dot">·</span>
+      <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
+    </div>
   </footer>
+  <div class="footer-updated"><span id="last-updated">—</span> · v2 preview · <a href="/">legacy dashboard</a></div>
 </div>
 </div>
 
@@ -673,6 +749,7 @@ const AGGRESSION_LEVELS = [
 let BOT_IP = '';
 let BOT_PW = '';
 let refreshTimer = null;
+let communityTimer = null;          // slow (5-min) poll for community stats
 let showAllTrades = false;          // Recent Trades: collapsed (last 6) vs all
 let lastTrades = [];                // cached for re-render on toggle
 let lastSettings = {};              // freshest /api/settings — twirl-down reads numbers from here
@@ -843,7 +920,55 @@ function showConnectError(msg) {
 function startDashboard() {
   wireControls();
   loadData();
-  refreshTimer = setInterval(loadData, 60000);  // poll every 60s
+  loadVersions();
+  loadCommunityStats();
+  refreshTimer = setInterval(loadData, 60000);          // bot data every 60s
+  communityTimer = setInterval(loadCommunityStats, 300000);  // community stats every 5 min
+}
+
+/**
+ * Fetch the public community-stats counters and paint the bar. This is a dash
+ * server route (not the bot), so it is a plain same-origin fetch — no proxy,
+ * no auth. Failures are swallowed: the bar simply keeps its last/"—" values.
+ */
+async function loadCommunityStats() {
+  try {
+    const resp = await fetch('/api/community-stats');
+    if (!resp.ok) return;
+    const s = await resp.json();
+    document.getElementById('cs-active').textContent   = (s.active_bots ?? 0).toLocaleString();
+    document.getElementById('cs-trades').textContent   = (s.total_trades ?? 0).toLocaleString();
+    document.getElementById('cs-installs').textContent = (s.total_installs ?? 0).toLocaleString();
+  } catch (e) { /* non-critical — leave existing values */ }
+}
+
+/**
+ * Populate the footer version chips. Dash version comes from the dash server's
+ * /dash/version (same-origin). Bot version comes from the bot's /api/version
+ * through the proxy. Both are best-effort and non-blocking.
+ */
+async function loadVersions() {
+  fetch('/dash/version')
+    .then(r => r.json())
+    .then(v => { if (v.current) document.getElementById('dash-version-display').textContent = `dash v${esc(v.current)}`; })
+    .catch(() => {});
+  botFetch('/api/version')
+    .then(v => { if (v && v.current) document.getElementById('bot-version-display').textContent = `bot v${esc(v.current)}`; })
+    .catch(() => {});
+}
+
+/**
+ * Build the footer status line from the live bot state: which side the bot is
+ * stacking, prefixed with "Sideways · " when the Sideways Market strategy is
+ * currently active. Mirrors v1's footer intent with v2's richer wording.
+ *
+ * @param {Object} bot  The `bot` block from /api/status.
+ */
+function footerStatus(bot) {
+  const mode = (bot.active_mode || 'btc_accumulate').toLowerCase();
+  const side = mode === 'usd_accumulate' ? 'Stacking USD' : 'Stacking BTC';
+  const sideways = bot.sideways && bot.sideways.active;
+  return sideways ? `Sideways Market · ${side}` : side;
 }
 
 /**
@@ -1006,6 +1131,9 @@ function render(data, trades, settings, deposits) {
     esc(String(b.trade_count ?? 0)) + `<small>${fmtUsd(fees)} in fees</small>`;
   document.getElementById('tool-avgcost').textContent = fmtUsd0(p.avg_cost_basis);
 
+  // Footer status — derived from live bot state (mode + Sideways Market).
+  document.getElementById('footer-status').textContent = footerStatus(b);
+
   renderTrades(trades, settings);
 }
 
@@ -1076,8 +1204,9 @@ function paintKnob(i) {
   const pos = KNOB_POSITIONS[i];
   document.getElementById('knob-label').textContent = pos.label;
   document.getElementById('knob-tag').textContent = pos.tag;
-  document.getElementById('needle').setAttribute('transform', `rotate(${pos.angle} 150 150)`);
-  document.getElementById('needle-dot').setAttribute('transform', `rotate(${pos.angle} 150 150)`);
+  // Rotate the whole needle group via its SVG transform attribute (the CSS
+  // transition on .knob-needle-group animates it). One element, never blanked.
+  document.getElementById('needle-group').setAttribute('transform', `rotate(${pos.angle} 150 150)`);
   document.querySelectorAll('.knob-detent').forEach((d, idx) => d.classList.toggle('active', idx === i));
   document.querySelectorAll('.knob-tick').forEach((t, idx) => t.classList.toggle('active', idx === i));
 }
@@ -1112,9 +1241,12 @@ function onDetentClick(i) {
 function renderModePills(settings) {
   const raw = (settings.mode || 'auto').toLowerCase();
   const ui = BOT_TO_MODE[raw] || (['btc', 'usd', 'auto'].includes(raw) ? raw : 'auto');
+  // Only paint active state here. Double-fire protection lives in the click
+  // handler's `_savingSettings` guard — tying `disabled` to that flag here
+  // left pills stuck disabled, because the success callback re-renders BEFORE
+  // saveSettings' finally clears the flag (the v1.11.0 write-once bug).
   document.querySelectorAll('.mode-pill').forEach(pill => {
     pill.classList.toggle('active', pill.dataset.mode === ui);
-    pill.disabled = window._savingSettings;
   });
   document.getElementById('mode-caption').textContent = ui === 'auto'
     ? 'Bot auto-switches based on 200-day MA.'
@@ -1167,7 +1299,9 @@ function renderTwirldown(settings) {
     const pct = active
       ? livePctLabel
       : `−${(parseFloat(l.dip1)*100).toFixed(1)}% / −${(parseFloat(l.dip2)*100).toFixed(1)}% / −${(parseFloat(l.dip3)*100).toFixed(1)}%`;
-    return `<button class="preset-btn${active ? ' active' : ''}" data-level="${idx}"${window._savingSettings ? ' disabled' : ''}>`
+    // No `disabled` here — double-fire is guarded in the click handler. Tying
+    // it to _savingSettings left controls stuck disabled after a save.
+    return `<button class="preset-btn${active ? ' active' : ''}" data-level="${idx}">`
          + `${esc(l.name)}<span class="pct">${esc(pct)}</span></button>`;
   }).join('');
   // When live values match no preset (manual drift), show that honestly.
@@ -1201,7 +1335,6 @@ function renderTwirldown(settings) {
   const swOn = String(settings.sideways_enabled).toLowerCase() === 'true';
   const swToggle = document.getElementById('sideways-toggle');
   swToggle.checked = swOn;
-  swToggle.disabled = window._savingSettings;
   document.getElementById('sideways-params').style.display = swOn ? 'flex' : 'none';
 
   const sizeEl = document.getElementById('range-size');
