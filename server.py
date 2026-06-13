@@ -150,7 +150,6 @@ ALLOWED_PATHS = (
     "/api/status",
     "/api/trades",
     "/api/settings",
-    "/api/buy",
     "/api/update",
     "/api/version",
     "/api/setup/",
@@ -764,7 +763,7 @@ The Recycler runs in opposite directions depending on parent mode — same machi
 
 A fresh `usd_recycler_buy` DOES temporarily grow the stack. Real but transient — that BTC is held to be resold. Not a stack-adding commitment.
 
-**Distinguish:** stack-adding buys (DCA, dip buys, Quick Buy — only in BTC mode) vs cycle-opening buys (`usd_recycler_buy` — first leg of a sell-for-more-USD round trip).
+**Distinguish:** stack-adding buys (DCA, dip buys — only in BTC mode) vs cycle-opening buys (`usd_recycler_buy` — first leg of a sell-for-more-USD round trip).
 
 **SIDEWAYS MARKET (overlay, NOT a separate mode — always use this name, never "Range Mode"):**
 A condition overlay that activates automatically when BTC is range-bound (14-day high-to-low < 12%). The Range Recycler uses fixed -4% buy / +6% sell thresholds (backtested over 720 days as optimal — 35 cycles, 87.5% win rate). Max 5 concurrent positions. Trades show as "Range Recycler" with a SIDEWAYS badge.
@@ -802,7 +801,7 @@ ANTI-THRASH GUARD (Tier 1, bot v1.5.0)
 ═══════════════════════════════════════════
 A global dampener that prevents over-trading (death-by-fees) in choppy markets. Two limits sit above the per-strategy cooldowns:
 - **Minimum gap between trades** — a global cooldown so two trades can't fire back-to-back (default 1 hour).
-- **Maximum trades per day** — a hard daily cap across all strategies and manual Quick Buys (default 8, resets at UTC midnight).
+- **Maximum trades per day** — a hard daily cap across all strategies (default 8, resets at UTC midnight).
 
 **Important reassurance:** cycle-closing trades (Recycler rebuy / resell) **bypass** the guard, so an open Recycler cycle always gets to finish — the guard never traps the bot mid-cycle. Only new, stack-opening activity is throttled.
 
@@ -831,11 +830,10 @@ The dashboard is a single full-width page organized top-to-bottom:
 5. **AVG COST / BTC card** — your average cost basis per BTC.
 6. **Aggression knob (5-detent twirldown)** — the full-width control with all 5 detents visible (Conservative / Balanced / Moderate / Aggressive / Ultra), the threshold percentages displayed, and a short layman-language summary of what each detent means under the knob.
 7. **DCA settings** — amount, frequency, time. With note that DCA can only fire if there are USD dollars in the account.
-8. **Quick Buy** — one-tap manual BTC buy.
-9. **Recent trades table** — last few trades with price, reason badge ("Spike Sell (Tier 1 — 7%+ rise)", "Range Recycler", etc.), and a "view all →" link.
-10. **Community stats** — total trades executed across all installs, number of bots installed.
-11. **Footer** — `bot v1.4.0 · dash v1.12.x`, last-updated time, "Update Bot" and "Update Dash" buttons (Update Dash hits a webhook that auto-redeploys; Update Bot SSHes to the bot server and pulls + restarts).
-12. **Grok chat (you)** — embedded chat panel; ask-chips offer common questions.
+8. **Recent trades table** — last few trades with price, reason badge ("Spike Sell (Tier 1 — 7%+ rise)", "Range Recycler", etc.), and a "view all →" link.
+9. **Community stats** — total trades executed across all installs, number of bots installed.
+10. **Footer** — `bot v1.4.0 · dash v1.12.x`, last-updated time, "Update Bot" and "Update Dash" buttons (Update Dash hits a webhook that auto-redeploys; Update Bot SSHes to the bot server and pulls + restarts).
+11. **Grok chat (you)** — embedded chat panel; ask-chips offer common questions.
 
 **Terms to USE:**
 - "BTC Stack" / "Stack" — the user's BTC balance.
