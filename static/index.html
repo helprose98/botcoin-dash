@@ -168,7 +168,7 @@
   @media (max-width: 760px) {
     .hero-inner { grid-template-columns: 1fr; }
   }
-  .knob-wrap { width: clamp(280px, 38vw, 420px); aspect-ratio: 1 / 1; height: auto; position: relative; }
+  .knob-wrap { width: clamp(360px, 46vw, 540px); aspect-ratio: 500 / 340; height: auto; position: relative; }
   .knob-svg { width: 100%; height: 100%; cursor: default; }
   .knob-arc-bg { fill: none; stroke: var(--surface-3); stroke-width: 14; stroke-linecap: round; }
   .knob-arc-fg { fill: none; stroke: var(--accent); stroke-width: 14; stroke-linecap: round;
@@ -183,9 +183,9 @@
      column (which shares the class name). */
   #knob .knob-label {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     fill: var(--text-faint);
     cursor: pointer;
     user-select: none;
@@ -827,7 +827,7 @@
              SVG <text> anchored on a concentric outer circle of radius 156 (1.3×
              the detent radius), one per detent — see the .knob-labels group below.
              The viewBox is widened to -60 -20 420 320 so they never clip. -->
-        <svg class="knob-svg" viewBox="-60 -20 420 320" id="knob">
+        <svg class="knob-svg" viewBox="-100 -30 500 340" id="knob">
           <path class="knob-arc-bg" d="M 65 235 A 120 120 0 1 1 235 235"/>
           <g id="detents">
             <circle class="knob-detent" data-pos="0" cx="65.1"  cy="234.9" r="6"/>
