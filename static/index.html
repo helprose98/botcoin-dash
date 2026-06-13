@@ -346,6 +346,19 @@
   .growth-apy .apy-label { font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
     text-transform: uppercase; color: var(--text-muted); margin-left: 4px; }
   .growth-comparator { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+  /* Muted "status" treatment for the APY pending/error states (v1.12.6) so the
+     line reads as info text, not the colored "X.X% APY" live number. */
+  .growth-apy.status {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .growth-apy.status .apy-label { display: none; }
+  .growth-comparator.status {
+    color: var(--text-faint);
+  }
 
   /* === TOOLBAR === */
   /* Hero numbers row (trades/fees | Avg Cost/BTC). Two blocks on a 1fr/1fr grid so
@@ -492,8 +505,6 @@
   .connect-btn:disabled { opacity: 0.6; cursor: default; }
   .connect-error { color: var(--red); font-size: 13px; margin-top: var(--space-3); display: none; }
   .connect-status { color: var(--text-muted); font-size: 13px; margin-top: var(--space-3); display: none; }
-  .connect-legacy { text-align: center; margin-top: var(--space-4); font-size: 12px; color: var(--text-faint); }
-  .connect-legacy a { color: var(--accent); text-decoration: none; }
 
   #app { display: none; }
   #app.visible { display: block; }
@@ -667,13 +678,6 @@
   }
   .btn-cancel:hover { border-color: var(--text-muted); color: var(--text); }
   /* Update controls inside the twirl-down (Advanced) section */
-  .advanced-link {
-    display: block; background: none; border: none; padding: 0; margin: 0;
-    color: var(--text-faint); font-family: var(--font-body); font-size: 11px;
-    text-align: left; cursor: pointer; text-decoration: none;
-    transition: color var(--transition);
-  }
-  .advanced-link:hover { color: var(--text-muted); }
   .advanced-btn {
     align-self: flex-start; padding: 8px 14px;
     background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -708,7 +712,6 @@
         New to myBotCoin? Set up your bot →
       </button>
     </div>
-    <div class="connect-legacy">Prefer the classic view? <a href="/v1">Open legacy dashboard →</a></div>
   </div>
 </div>
 
@@ -875,13 +878,12 @@
         <div class="adjust-caption">Harvests small swings while BTC trades in a range. Always live as "Sideways Market."</div>
       </div>
 
-      <!-- Advanced: software updates + legacy escape hatch -->
+      <!-- Advanced: software updates -->
       <div class="adjust-section">
         <div class="adjust-section-title">Advanced</div>
         <button class="advanced-btn" id="btn-update-bot" onclick="showUpdateModal()">Update Bot</button>
         <button class="advanced-btn" id="btn-update-dash" onclick="showDashUpdateModal()" style="display:none">Update Dashboard</button>
         <div class="adjust-caption">Updating the bot pulls the latest trading engine from GitHub and restarts it (~2 min). The dashboard update reloads this page.</div>
-        <a class="advanced-link" href="/v1">Open legacy dashboard →</a>
       </div>
     </div>
   </details>
@@ -990,11 +992,9 @@
       <span class="mono" id="bot-version-display">bot v—</span>
       <span class="footer-dot">·</span>
       <span class="mono" id="dash-version-display">dash v—</span>
-      <span class="footer-dot">·</span>
-      <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
     </div>
   </footer>
-  <div class="footer-updated"><span id="last-updated">—</span> · <a href="/v1">legacy dashboard</a></div>
+  <div class="footer-updated"><span id="last-updated">—</span></div>
 </div>
 </div>
 
@@ -1562,6 +1562,15 @@ async function loadData() {
       botFetch('/api/settings').catch(() => ({})),
       botFetch('/api/deposits').catch(() => null)   // graceful: null on failure
     ]);
+    // Diagnostic — one-time on first poll so Andy can see /api/deposits shape in DevTools.
+    if (!window._depositsLogged) {
+      window._depositsLogged = true;
+      console.info('[deposits diagnostic]',
+        deposits === null ? '/api/deposits FAILED (null)' :
+        !deposits.deposits ? '/api/deposits returned malformed response' :
+        `${deposits.deposits.length} deposit(s), totals:`, deposits?.totals || 'no totals'
+      );
+    }
     // FIX 5 — race guard: if the user kicked off a write between the poll
     // firing and its responses arriving, skip this render so we don't stomp
     // the optimistic UI with now-stale pre-save values. The next poll (or the
@@ -2051,16 +2060,37 @@ function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDe
 // Render the "X.X% APY" line + comparator caption under the growth dollar
 // figure. Builds the XIRR cash-flow series from the deposit ledger (each
 // deposit negative, at its CoinGecko-backfilled at-time USD value) plus a
-// single positive entry for today's withdrawable portfolio value. A null
-// result (too few/insufficiently-signed flows, or non-convergence) hides both
-// lines rather than showing a misleading number.
+// single positive entry for today's withdrawable portfolio value. Instead of
+// silently hiding on any failure, this surfaces four distinct states so the
+// user always sees what the feature is doing:
+//   A — fetch failed entirely (deposits === null from the .catch(() => null))
+//   B — bot responded but the deposit ledger is empty (still syncing)
+//   C — we have deposits but xirr() didn't converge / insufficient signal
+//   D — success: the real APY number + comparator caption
 function renderGrowthApy(deposits, portfolioToday) {
   const apyEl = document.getElementById('growth-apy');
   const compEl = document.getElementById('growth-comparator');
 
-  const list = (deposits && Array.isArray(deposits.deposits)) ? deposits.deposits : [];
-  // Deposits OUT of the user's wallet are negative; valued at their at-time USD.
-  // Timestamps are UTC without a zone suffix (matching /api/trades), so append 'Z'.
+  // State A: fetch failed entirely (deposits === null from the .catch(() => null))
+  if (deposits === null || deposits === undefined) {
+    showApyStatus(apyEl, compEl, 'Deposit data unavailable',
+                  'check bot connection · /api/deposits failed');
+    return;
+  }
+
+  const list = Array.isArray(deposits.deposits) ? deposits.deposits : [];
+
+  // State B: deposits synced but ledger is empty (Kraken returned nothing
+  // or sync silently failed). Distinct from State A — bot DID respond.
+  if (list.length === 0) {
+    showApyStatus(apyEl, compEl, 'Syncing deposit history…',
+                  'waiting for Kraken Ledgers · refresh in a minute');
+    return;
+  }
+
+  // Build cash flow series. Deposits OUT of the user's wallet are negative;
+  // valued at their at-time USD. Timestamps are UTC without a zone suffix
+  // (matching /api/trades), so append 'Z'.
   const cashflows = list.map(d => ({
     date: new Date((d.timestamp || '') + 'Z'),
     amount: -(d.usd_value_at_time || 0),
@@ -2069,22 +2099,43 @@ function renderGrowthApy(deposits, portfolioToday) {
   cashflows.push({ date: new Date(), amount: portfolioToday });
 
   const rate = xirr(cashflows);
+
+  // State C: xirr didn't converge or has insufficient signal — but we DO have
+  // deposit data. Surface the count so Andy can see something is being computed.
   if (rate == null) {
-    apyEl.style.display = 'none';
-    compEl.style.display = 'none';
+    showApyStatus(apyEl, compEl, 'APY: building…',
+                  `${list.length} deposit${list.length === 1 ? '' : 's'} · waiting for more signal`);
     return;
   }
 
+  // State D: success — show the real number + comparator.
   const neg = rate < 0;
   const pct = (rate * 100).toFixed(1);
   apyEl.innerHTML = esc((neg ? '' : '+') + pct + '%') +
     '<span class="apy-label">APY</span>';
   apyEl.classList.toggle('neg', neg);
+  apyEl.classList.remove('status');  // clear any prior pending state
   apyEl.style.display = '';
 
   const caption = apyComparator(rate);
   compEl.textContent = '≈ ' + caption;
+  compEl.classList.remove('status');
   compEl.style.display = caption ? '' : 'none';
+}
+
+/**
+ * Helper for the three pending/error states. Uses the existing growth-apy and
+ * growth-comparator elements but in a muted "status" treatment so they don't
+ * look like a number.
+ */
+function showApyStatus(apyEl, compEl, primary, secondary) {
+  apyEl.innerHTML = esc(primary);
+  apyEl.classList.add('status');
+  apyEl.classList.remove('neg');
+  apyEl.style.display = '';
+  compEl.textContent = secondary;
+  compEl.classList.add('status');
+  compEl.style.display = '';
 }
 
 // Walk USD-recycler pairs oldest→newest: each resell closes the most recent
