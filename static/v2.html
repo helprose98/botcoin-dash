@@ -125,8 +125,10 @@
   .knob-arc-fg { fill: none; stroke: var(--accent); stroke-width: 14; stroke-linecap: round;
     filter: drop-shadow(0 0 12px var(--accent-glow));
     transition: stroke-dasharray var(--transition); }
-  .knob-detent { fill: var(--text-faint); transition: fill var(--transition); }
+  .knob-detent { fill: var(--text-faint); transition: fill var(--transition); cursor: pointer; pointer-events: auto; }
+  .knob-detent:hover { fill: var(--accent-hover); }
   .knob-detent.active { fill: var(--accent); filter: drop-shadow(0 0 6px var(--accent-glow)); }
+  .knob-svg .knob-hit { fill: transparent; cursor: pointer; pointer-events: auto; }
   .knob-center { fill: var(--surface-2); stroke: var(--border); stroke-width: 1; }
   .knob-needle { stroke: var(--accent); stroke-width: 4; stroke-linecap: round;
     filter: drop-shadow(0 0 8px var(--accent-glow));
@@ -151,10 +153,13 @@
     color: var(--text-muted);
     border-radius: 999px;
     font-size: 13px; font-weight: 600;
-    cursor: default;
+    cursor: pointer;
     transition: all var(--transition);
     letter-spacing: 0.01em;
   }
+  .mode-pill:hover { border-color: var(--text-muted); color: var(--text); }
+  .mode-pill:disabled { opacity: 0.5; cursor: default; }
+  .mode-pill.active:hover { color: var(--accent); border-color: var(--accent); }
   .mode-pill.active {
     background: var(--accent-dim);
     border-color: var(--accent);
@@ -184,6 +189,55 @@
   .adjust-row .v { font-family: var(--font-mono); color: var(--text); font-weight: 500; }
   .adjust-hint { grid-column: 1 / -1; font-size: 11px; color: var(--text-faint); line-height: 1.5; }
   .adjust-hint a { color: var(--accent); text-decoration: none; }
+
+  /* Interactive twirl-down controls (Phase 2) */
+  .adjust-section { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+  .adjust-section + .adjust-section { border-top: 1px solid var(--divider); padding-top: 14px; }
+  .adjust-section-title { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+  .preset-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .preset-btn {
+    flex: 1 1 auto; min-width: 0; padding: 8px 6px;
+    background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-muted); font-family: var(--font-body); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all var(--transition); text-align: center; line-height: 1.3;
+  }
+  .preset-btn:hover { border-color: var(--text-muted); color: var(--text); }
+  .preset-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .preset-btn:disabled { opacity: 0.5; cursor: default; }
+  .preset-btn .pct { display: block; font-family: var(--font-mono); font-size: 10px; font-weight: 500; color: var(--text-faint); margin-top: 3px; }
+  .preset-btn.active .pct { color: var(--accent); }
+  .field-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .field-line label { font-size: 12px; color: var(--text-muted); }
+  .num-input {
+    background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 8px 10px; color: var(--text); font-family: var(--font-mono); font-size: 13px;
+    outline: none; width: 120px; transition: border-color var(--transition), background var(--transition);
+  }
+  .num-input:focus { border-color: var(--accent); }
+  .num-input.ok { border-color: var(--green); background: var(--green-dim); }
+  .num-input.err { border-color: var(--red); background: var(--red-dim); }
+  .num-input:disabled { opacity: 0.6; cursor: default; }
+  .sel-input {
+    background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 8px 10px; color: var(--text); font-family: var(--font-body); font-size: 13px;
+    outline: none; cursor: pointer; transition: border-color var(--transition);
+  }
+  .sel-input:focus { border-color: var(--accent); }
+  .sel-input:disabled { opacity: 0.6; cursor: default; }
+  .toggle-switch { position: relative; width: 40px; height: 22px; flex: 0 0 auto; cursor: pointer; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; inset: 0; border-radius: 999px;
+    background: var(--surface-3); border: 1px solid var(--border); transition: all var(--transition);
+  }
+  .toggle-track::before {
+    content: ''; position: absolute; left: 2px; top: 1px; width: 18px; height: 18px;
+    border-radius: 999px; background: var(--text-muted); transition: all var(--transition);
+  }
+  .toggle-switch input:checked + .toggle-track { background: var(--accent-dim); border-color: var(--accent); }
+  .toggle-switch input:checked + .toggle-track::before { transform: translateX(18px); background: var(--accent); }
+  .toggle-switch input:disabled + .toggle-track { opacity: 0.5; cursor: default; }
+  .adjust-caption { font-size: 11px; color: var(--text-faint); line-height: 1.5; }
 
   /* === TWO-UP: INVESTED / GROWTH === */
   .duo {
@@ -419,9 +473,13 @@
             <circle class="knob-detent" data-pos="1" cx="150" cy="30" r="6"/>
             <circle class="knob-detent" data-pos="2" cx="235" cy="235" r="6"/>
           </g>
-          <text class="knob-tick" x="40" y="265" text-anchor="middle">Conservative</text>
-          <text class="knob-tick" x="150" y="18" text-anchor="middle">Moderate</text>
-          <text class="knob-tick" x="260" y="265" text-anchor="middle">Aggressive</text>
+          <!-- larger transparent click targets over each detent (the 6px dots alone are hard to hit) -->
+          <circle class="knob-hit" data-pos="0" cx="65" cy="235" r="22"/>
+          <circle class="knob-hit" data-pos="1" cx="150" cy="30" r="22"/>
+          <circle class="knob-hit" data-pos="2" cx="235" cy="235" r="22"/>
+          <text class="knob-tick" data-pos="0" x="40" y="265" text-anchor="middle" style="cursor:pointer">Conservative</text>
+          <text class="knob-tick" data-pos="1" x="150" y="18" text-anchor="middle" style="cursor:pointer">Moderate</text>
+          <text class="knob-tick" data-pos="2" x="260" y="265" text-anchor="middle" style="cursor:pointer">Aggressive</text>
           <circle class="knob-center" cx="150" cy="150" r="62"/>
           <circle cx="150" cy="150" r="62" fill="none" stroke="rgba(247,147,26,0.15)" stroke-width="1"/>
           <line id="needle" class="knob-needle" x1="150" y1="150" x2="150" y2="55"/>
@@ -446,15 +504,50 @@
       <details class="adjust">
         <summary>Adjust thresholds &amp; DCA cadence</summary>
         <div class="adjust-body">
-          <div class="adjust-row"><span class="k">Spike sell trigger</span><span class="v" id="adj-sell">—</span></div>
-          <div class="adjust-row"><span class="k">Dip rebuy trigger</span><span class="v" id="adj-dip">—</span></div>
-          <div class="adjust-row"><span class="k">DCA cadence</span><span class="v" id="adj-dca">—</span></div>
-          <div class="adjust-row"><span class="k">Dip-buy ladder</span><span class="v" id="adj-ladder">—</span></div>
-          <div class="adjust-row"><span class="k">Sideways band</span><span class="v" id="adj-sideways">—</span></div>
-          <div class="adjust-row"><span class="k">Max open positions</span><span class="v" id="adj-maxpos">—</span></div>
-          <div class="adjust-hint">
-            Adjustments coming soon — this view is read-only for now.
-            <a href="/">Edit in legacy dashboard →</a>
+          <!-- Aggression presets (full 5 levels). Labels show LIVE dip % from /api/settings. -->
+          <div class="adjust-section">
+            <div class="adjust-section-title">Aggression preset</div>
+            <div class="preset-row" id="preset-row"></div>
+            <div class="adjust-caption">These five presets feed the 3-knob above. Pick a preset for finer control.</div>
+          </div>
+
+          <!-- DCA amount + cadence -->
+          <div class="adjust-section">
+            <div class="adjust-section-title">Recurring buy (DCA)</div>
+            <div class="field-line">
+              <label for="dca-amount">Amount per buy</label>
+              <input class="num-input" id="dca-amount" type="number" min="5" step="1" inputmode="decimal" placeholder="—">
+            </div>
+            <div class="field-line">
+              <label for="dca-cadence">Cadence</label>
+              <select class="sel-input" id="dca-cadence">
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Sideways Market -->
+          <div class="adjust-section">
+            <div class="field-line">
+              <div class="adjust-section-title">Sideways Market</div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="sideways-toggle">
+                <span class="toggle-track"></span>
+              </label>
+            </div>
+            <div id="sideways-params" style="display:none;flex-direction:column;gap:8px;">
+              <div class="field-line">
+                <label for="range-size">Trade size</label>
+                <input class="num-input" id="range-size" type="number" min="5" step="1" inputmode="decimal" placeholder="—">
+              </div>
+              <div class="field-line">
+                <label for="range-maxpos">Max open positions</label>
+                <input class="num-input" id="range-maxpos" type="number" min="1" step="1" inputmode="numeric" placeholder="—">
+              </div>
+            </div>
+            <div class="adjust-caption">Harvests small swings while BTC trades in a range. Always live as "Sideways Market."</div>
           </div>
         </div>
       </details>
@@ -550,6 +643,9 @@
 </div>
 </div>
 
+<!-- Shared save toast (bottom-center) -->
+<div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transition:opacity 200ms;pointer-events:none;z-index:1000;"></div>
+
 <script>
 // ── Conviction thresholds (days) ──────────────────────────────────────
 const TREND_FRESH_DAYS = 14;
@@ -579,7 +675,25 @@ let BOT_PW = '';
 let refreshTimer = null;
 let showAllTrades = false;          // Recent Trades: collapsed (last 6) vs all
 let lastTrades = [];                // cached for re-render on toggle
-let lastSettings = {};
+let lastSettings = {};              // freshest /api/settings — twirl-down reads numbers from here
+let lastDetent = 1;                 // last detent shown on the knob (for optimistic revert)
+window._savingSettings = false;     // FIX 5: true while a write is in flight (pauses poll clobber)
+
+// Each knob detent writes a full 3-tier dip preset. Indices line up with
+// KNOB_POSITIONS. Per the approved Phase-2 mapping the knob exposes the three
+// "everyday" presets (Balanced / Aggressive / Max Stack); the extreme
+// Conservative and Ultra presets remain reachable from the twirl-down radios.
+const KNOB_PRESET = [
+  { name: 'Balanced',   dip1: '0.07', dip2: '0.15', dip3: '0.22' },  // detent 0 · Conservative knob face
+  { name: 'Aggressive', dip1: '0.05', dip2: '0.10', dip3: '0.16' },  // detent 1 · Moderate
+  { name: 'Max Stack',  dip1: '0.03', dip2: '0.07', dip3: '0.12' },  // detent 2 · Aggressive
+];
+
+// Mode pill UI value ("btc"/"usd"/"auto") → the MODE value the bot actually
+// stores. The bot/legacy dashboard use the *_accumulate spellings; we keep
+// writing those so a v2 change is indistinguishable from a legacy change.
+const MODE_TO_BOT = { btc: 'btc_accumulate', usd: 'usd_accumulate', auto: 'auto' };
+const BOT_TO_MODE = { btc_accumulate: 'btc', usd_accumulate: 'usd', auto: 'auto' };
 
 // ── Helpers ───────────────────────────────────────────────────────────
 function esc(s) {
@@ -617,6 +731,64 @@ async function botFetch(path, options = {}) {
   if (resp.status === 429) throw new Error('Too many attempts — wait 60 seconds');
   if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
   return resp.json();
+}
+
+/**
+ * Brief bottom-center confirmation toast for setting writes.
+ *
+ * @param {string} msg   Message to display (already plain text — not escaped here
+ *                       because it is only ever called with literal strings).
+ * @param {'ok'|'err'} [type='ok']  'ok' → green, 'err' → red.
+ */
+function toast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type === 'ok' ? 'var(--green, #4FCB72)' : 'var(--red, #E45B5B)';
+  t.style.color = '#0B0B0B';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 1800);
+}
+
+/**
+ * POST a partial settings update to the bot via the dash proxy.
+ *
+ * Auth rides on the X-Bot-Password header that botFetch already attaches, so
+ * the body carries only the fields being changed — matching the bot's
+ * /api/settings contract, which merges any subset of keys it recognises.
+ *
+ * Sets the global `_savingSettings` race guard for the duration so the 60s
+ * poll cannot overwrite the optimistic UI mid-flight (see FIX 5 / render()).
+ *
+ * @param {Object} partial  Settings keys to write (e.g. { mode, dip_tier1, … }).
+ * @param {function():void} [onOk]   Called after the bot confirms the write.
+ * @param {function(Error):void} [onErr]  Called on network error or a non-ok
+ *                                         response so the caller can revert
+ *                                         its optimistic UI.
+ * @returns {Promise<void>}
+ */
+async function saveSettings(partial, onOk, onErr) {
+  window._savingSettings = true;
+  try {
+    const result = await botFetch('/api/settings', {
+      method: 'POST',
+      body: JSON.stringify(partial),
+    });
+    if (!result || result.ok === false) {
+      throw new Error((result && result.error) || 'Save rejected by bot');
+    }
+    // Keep our cached settings in sync so an immediate re-render and the next
+    // poll agree on what the bot now holds.
+    lastSettings = { ...lastSettings, ...partial };
+    toast('Saved');
+    if (onOk) onOk();
+  } catch (e) {
+    console.error('saveSettings failed:', e);
+    toast('Save failed — reverted', 'err');
+    if (onErr) onErr(e);
+  } finally {
+    window._savingSettings = false;
+  }
 }
 
 // ── Connect flow ──────────────────────────────────────────────────────
@@ -669,8 +841,101 @@ function showConnectError(msg) {
 
 // ── Dashboard lifecycle ───────────────────────────────────────────────
 function startDashboard() {
+  wireControls();
   loadData();
   refreshTimer = setInterval(loadData, 60000);  // poll every 60s
+}
+
+/**
+ * Attach all write-control listeners once, after a successful connect. Uses
+ * event delegation for the preset buttons (they are re-rendered every poll)
+ * and direct listeners for the static knob/pill/input elements.
+ *
+ * Numeric inputs save on blur and on Enter; on blur the value is re-validated
+ * and flashed green/red. The race guard in saveSettings prevents the poll from
+ * clobbering an in-progress edit.
+ */
+function wireControls() {
+  // Knob detents, their text labels, and the transparent hit-targets.
+  document.querySelectorAll('#knob .knob-detent, #knob .knob-hit, #knob .knob-tick').forEach(el => {
+    el.addEventListener('click', () => onDetentClick(parseInt(el.dataset.pos, 10)));
+  });
+
+  // Mode pills.
+  document.querySelectorAll('.mode-pill').forEach(pill => {
+    pill.addEventListener('click', () => onModeClick(pill.dataset.mode));
+  });
+
+  // Aggression presets (delegated — buttons are rebuilt on every render).
+  document.getElementById('preset-row').addEventListener('click', e => {
+    const btn = e.target.closest('.preset-btn');
+    if (btn && !btn.disabled) onPresetClick(parseInt(btn.dataset.level, 10));
+  });
+
+  // DCA amount.
+  const amtEl = document.getElementById('dca-amount');
+  const commitAmt = () => {
+    const v = parseFloat(amtEl.value);
+    if (isNaN(v) || v < 5) { flashInput(amtEl, false); renderTwirldown(lastSettings); return; }
+    const prev = lastSettings;
+    saveSettings({ dca_amount: String(v) },
+      () => flashInput(amtEl, true),
+      () => { flashInput(amtEl, false); renderTwirldown(prev); });
+  };
+  amtEl.addEventListener('blur', commitAmt);
+  amtEl.addEventListener('keydown', e => { if (e.key === 'Enter') amtEl.blur(); });
+
+  // DCA cadence.
+  const cadEl = document.getElementById('dca-cadence');
+  cadEl.addEventListener('change', () => {
+    const prev = lastSettings;
+    saveSettings({ dca_frequency: cadEl.value },
+      () => toast('Saved'),
+      () => renderTwirldown(prev));
+  });
+
+  // Sideways Market toggle.
+  const swToggle = document.getElementById('sideways-toggle');
+  swToggle.addEventListener('change', () => {
+    const prev = lastSettings;
+    const on = swToggle.checked;
+    document.getElementById('sideways-params').style.display = on ? 'flex' : 'none';  // optimistic
+    saveSettings({ sideways_enabled: on ? 'true' : 'false' },
+      () => renderTwirldown(lastSettings),
+      () => renderTwirldown(prev));
+  });
+
+  // Sideways params (trade size + max positions).
+  const sizeEl = document.getElementById('range-size');
+  const commitSize = () => {
+    const v = parseFloat(sizeEl.value);
+    if (isNaN(v) || v < 5) { flashInput(sizeEl, false); renderTwirldown(lastSettings); return; }
+    const prev = lastSettings;
+    saveSettings({ range_trade_size_usd: String(v) },
+      () => flashInput(sizeEl, true),
+      () => { flashInput(sizeEl, false); renderTwirldown(prev); });
+  };
+  sizeEl.addEventListener('blur', commitSize);
+  sizeEl.addEventListener('keydown', e => { if (e.key === 'Enter') sizeEl.blur(); });
+
+  const maxEl = document.getElementById('range-maxpos');
+  const commitMax = () => {
+    const v = parseInt(maxEl.value, 10);
+    if (isNaN(v) || v < 1) { flashInput(maxEl, false); renderTwirldown(lastSettings); return; }
+    const prev = lastSettings;
+    saveSettings({ range_max_positions: String(v) },
+      () => flashInput(maxEl, true),
+      () => { flashInput(maxEl, false); renderTwirldown(prev); });
+  };
+  maxEl.addEventListener('blur', commitMax);
+  maxEl.addEventListener('keydown', e => { if (e.key === 'Enter') maxEl.blur(); });
+}
+
+/** Flash a number input green (ok) or red (fail), clearing after 900ms. */
+function flashInput(el, ok) {
+  el.classList.remove('ok', 'err');
+  el.classList.add(ok ? 'ok' : 'err');
+  setTimeout(() => el.classList.remove('ok', 'err'), 900);
 }
 
 async function loadData() {
@@ -681,6 +946,11 @@ async function loadData() {
       botFetch('/api/settings').catch(() => ({})),
       botFetch('/api/deposits').catch(() => null)   // graceful: null on failure
     ]);
+    // FIX 5 — race guard: if the user kicked off a write between the poll
+    // firing and its responses arriving, skip this render so we don't stomp
+    // the optimistic UI with now-stale pre-save values. The next poll (or the
+    // post-save render) reflects the new state.
+    if (window._savingSettings) return;
     render(data || {}, trades || [], settings || {}, deposits);
     document.getElementById('last-updated').textContent =
       'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
@@ -712,7 +982,7 @@ function render(data, trades, settings, deposits) {
   renderGauge(price, b.ma200, mood, b.trend);
   renderKnob(settings);
   renderModePills(settings);
-  renderAdjust(settings, b);
+  renderTwirldown(settings);
 
   // Bot purchases = DCA + quick_buy usd_amount only (recycler legs net to zero)
   const botPurchases = trades
@@ -788,8 +1058,21 @@ function detectKnobDetent(settings) {
   return 2;                          // Max Stack / Ultra → Aggressive
 }
 
+/**
+ * Paint the knob to the detent derived from the bot's live dip thresholds.
+ * Records the rendered detent in `lastDetent` so a failed detent write can
+ * revert the needle to where it actually was.
+ *
+ * @param {Object} settings  Live /api/settings object.
+ */
 function renderKnob(settings) {
   const i = detectKnobDetent(settings);
+  paintKnob(i);
+  lastDetent = i;
+}
+
+/** Move the needle/highlight to a detent index without touching the bot. */
+function paintKnob(i) {
   const pos = KNOB_POSITIONS[i];
   document.getElementById('knob-label').textContent = pos.label;
   document.getElementById('knob-tag').textContent = pos.tag;
@@ -799,33 +1082,170 @@ function renderKnob(settings) {
   document.querySelectorAll('.knob-tick').forEach((t, idx) => t.classList.toggle('active', idx === i));
 }
 
-function renderModePills(settings) {
-  const mode = (settings.mode || 'auto').toLowerCase();
-  document.querySelectorAll('.mode-pill').forEach(pill => {
-    pill.classList.toggle('active', pill.dataset.mode === mode);
-  });
-  document.getElementById('mode-caption').textContent =
-    mode === 'auto' ? 'Currently auto-switching' : '';
+/**
+ * Handle a click on a knob detent (or its label/hit-target): optimistically
+ * snap the knob, then write the matching 3-tier dip preset. Reverts to the
+ * previous detent on failure. No-ops while another save is mid-flight.
+ *
+ * @param {number} i  Target detent index (0..2).
+ */
+function onDetentClick(i) {
+  if (window._savingSettings) return;          // FIX 1: no double-fire mid-save
+  if (i === lastDetent) return;                 // already there — nothing to write
+  const prev = lastDetent;
+  const preset = KNOB_PRESET[i];
+  paintKnob(i);                                 // optimistic
+  lastDetent = i;
+  saveSettings(
+    { dip_tier1: preset.dip1, dip_tier2: preset.dip2, dip_tier3: preset.dip3 },
+    () => { renderTwirldown(lastSettings); },   // refresh live % under the radios
+    () => { paintKnob(prev); lastDetent = prev; }
+  );
 }
 
-function renderAdjust(settings, bot) {
-  const sell = parseFloat(settings.recycler_sell_threshold);
-  const dip1 = parseFloat(settings.dip_tier1);
-  document.getElementById('adj-sell').textContent = isNaN(sell) ? '—' : '+' + (sell*100).toFixed(1) + '%';
-  document.getElementById('adj-dip').textContent = isNaN(dip1) ? '—' : '−' + (dip1*100).toFixed(1) + '%';
+/**
+ * Paint the BTC/USD/Auto pills from the bot's live mode and update the caption.
+ * Accepts both the bot's *_accumulate spellings and the short btc/usd forms.
+ *
+ * @param {Object} settings  Live /api/settings object.
+ */
+function renderModePills(settings) {
+  const raw = (settings.mode || 'auto').toLowerCase();
+  const ui = BOT_TO_MODE[raw] || (['btc', 'usd', 'auto'].includes(raw) ? raw : 'auto');
+  document.querySelectorAll('.mode-pill').forEach(pill => {
+    pill.classList.toggle('active', pill.dataset.mode === ui);
+    pill.disabled = window._savingSettings;
+  });
+  document.getElementById('mode-caption').textContent = ui === 'auto'
+    ? 'Bot auto-switches based on 200-day MA.'
+    : 'Manual override active — auto-switching paused.';
+}
 
-  const amt = parseFloat(settings.dca_amount);
-  const freq = settings.dca_frequency || 'weekly';
-  document.getElementById('adj-dca').textContent =
-    isNaN(amt) ? (settings.dca_amount ? 'DCA active' : '—') : `$${amt.toFixed(0)} / ${esc(freq)}`;
-  document.getElementById('adj-ladder').textContent = '3 tiers';
+/**
+ * Handle a mode-pill click: optimistic highlight + caption, write settings.mode
+ * (in the bot's native *_accumulate spelling), then trigger an immediate
+ * render() for snappiness. Reverts on failure.
+ *
+ * @param {string} ui  UI mode value: 'btc' | 'usd' | 'auto'.
+ */
+function onModeClick(ui) {
+  if (window._savingSettings) return;
+  const prevSettings = lastSettings;
+  const optimistic = { ...lastSettings, mode: MODE_TO_BOT[ui] };
+  renderModePills(optimistic);                  // optimistic flip
+  saveSettings(
+    { mode: MODE_TO_BOT[ui] },
+    () => { renderModePills(lastSettings); },    // confirmed; state pill refreshes on next poll
+    () => { renderModePills(prevSettings); }     // revert
+  );
+}
 
-  const sw = bot.sideways || {};
-  const band = sw.buy_threshold_pct != null && sw.sell_threshold_pct != null
-    ? `${sw.buy_threshold_pct}% / +${sw.sell_threshold_pct}%` : '—';
-  document.getElementById('adj-sideways').textContent = band;
-  document.getElementById('adj-maxpos').textContent =
-    sw.max_positions != null ? String(sw.max_positions) : (settings.range_max_positions || '—');
+/**
+ * Render the interactive twirl-down. CRITICAL (FIX 3.5): every number shown
+ * here — dip percentages, DCA amount, range trade size, max positions — is
+ * read straight from the live `settings` object, never from the preset table.
+ * The AGGRESSION_LEVELS table is used only to *match* a label and to *write*
+ * when a preset is picked. Missing fields render as "—".
+ *
+ * @param {Object} settings  Live /api/settings object.
+ */
+function renderTwirldown(settings) {
+  const detected = detectAggressionLevel(settings);   // index into AGGRESSION_LEVELS, or -1
+
+  // Live dip % for the active preset's sub-label (true bot values, not presets).
+  const liveDip = n => {
+    const v = parseFloat(settings['dip_tier' + n]);
+    return isNaN(v) ? '—' : '−' + (v * 100).toFixed(1) + '%';
+  };
+  const livePctLabel = `${liveDip(1)} / ${liveDip(2)} / ${liveDip(3)}`;
+
+  const row = document.getElementById('preset-row');
+  row.innerHTML = AGGRESSION_LEVELS.map((l, idx) => {
+    const active = idx === detected;
+    // The active button surfaces the LIVE values; others show their own preset
+    // targets so the user can see what picking them would write.
+    const pct = active
+      ? livePctLabel
+      : `−${(parseFloat(l.dip1)*100).toFixed(1)}% / −${(parseFloat(l.dip2)*100).toFixed(1)}% / −${(parseFloat(l.dip3)*100).toFixed(1)}%`;
+    return `<button class="preset-btn${active ? ' active' : ''}" data-level="${idx}"${window._savingSettings ? ' disabled' : ''}>`
+         + `${esc(l.name)}<span class="pct">${esc(pct)}</span></button>`;
+  }).join('');
+  // When live values match no preset (manual drift), show that honestly.
+  if (detected < 0) {
+    const note = document.createElement('div');
+    note.className = 'adjust-caption';
+    note.style.color = 'var(--gold)';
+    note.textContent = `Custom thresholds active (${livePctLabel}) — no preset matches.`;
+    row.appendChild(note);
+  }
+
+  // DCA amount — live value only, "—" if absent.
+  const amtEl = document.getElementById('dca-amount');
+  if (document.activeElement !== amtEl) {
+    const amt = parseFloat(settings.dca_amount);
+    amtEl.value = isNaN(amt) ? '' : amt;
+    amtEl.placeholder = isNaN(amt) ? '—' : '';
+  }
+
+  // Cadence — reflect the bot's actual dca_frequency. Disable (don't lie) if absent.
+  const cadEl = document.getElementById('dca-cadence');
+  const freq = settings.dca_frequency;
+  if (freq && ['daily', 'weekly', 'monthly'].includes(freq.toLowerCase())) {
+    cadEl.value = freq.toLowerCase();
+    cadEl.disabled = false;
+  } else {
+    cadEl.disabled = true;   // unknown shape — surface it rather than guess
+  }
+
+  // Sideways Market — live boolean + live params; fall back only if missing.
+  const swOn = String(settings.sideways_enabled).toLowerCase() === 'true';
+  const swToggle = document.getElementById('sideways-toggle');
+  swToggle.checked = swOn;
+  swToggle.disabled = window._savingSettings;
+  document.getElementById('sideways-params').style.display = swOn ? 'flex' : 'none';
+
+  const sizeEl = document.getElementById('range-size');
+  if (document.activeElement !== sizeEl) {
+    const size = settings.range_trade_size_usd;
+    sizeEl.value = (size == null || size === '') ? '' : parseFloat(size);
+    sizeEl.placeholder = (size == null || size === '') ? '500' : '';
+  }
+  const maxEl = document.getElementById('range-maxpos');
+  if (document.activeElement !== maxEl) {
+    const mp = settings.range_max_positions;
+    maxEl.value = (mp == null || mp === '') ? '' : parseInt(mp, 10);
+    maxEl.placeholder = (mp == null || mp === '') ? '5' : '';
+  }
+}
+
+/**
+ * Find which AGGRESSION_LEVELS preset the live dip thresholds match exactly.
+ * @param {Object} settings  Live /api/settings object.
+ * @returns {number} index into AGGRESSION_LEVELS, or -1 for custom/drift.
+ */
+function detectAggressionLevel(settings) {
+  const d1 = (parseFloat(settings.dip_tier1) * 100).toFixed(1);
+  const d2 = (parseFloat(settings.dip_tier2) * 100).toFixed(1);
+  const d3 = (parseFloat(settings.dip_tier3) * 100).toFixed(1);
+  for (let i = 0; i < AGGRESSION_LEVELS.length; i++) {
+    const l = AGGRESSION_LEVELS[i];
+    if ((parseFloat(l.dip1)*100).toFixed(1) === d1 &&
+        (parseFloat(l.dip2)*100).toFixed(1) === d2 &&
+        (parseFloat(l.dip3)*100).toFixed(1) === d3) return i;
+  }
+  return -1;
+}
+
+/** Write a full 5-level aggression preset; the knob re-derives on next render. */
+function onPresetClick(idx) {
+  if (window._savingSettings) return;
+  const l = AGGRESSION_LEVELS[idx];
+  const prev = lastSettings;
+  saveSettings(
+    { dip_tier1: l.dip1, dip_tier2: l.dip2, dip_tier3: l.dip3 },
+    () => { renderKnob(lastSettings); renderTwirldown(lastSettings); },
+    () => { renderTwirldown(prev); }
+  );
 }
 
 function renderInvested(deposits, botPurchases) {
