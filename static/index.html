@@ -150,7 +150,7 @@
     position: relative;
     display: grid;
     grid-template-columns: minmax(320px, 1fr) minmax(260px, 1fr);
-    align-items: center;
+    align-items: start;
     justify-items: center;
     gap: var(--space-5);
     width: 100%;
@@ -162,13 +162,11 @@
     text-transform: uppercase; color: var(--text-muted);
   }
   .hero-knob-col   { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
-  .hero-info-col   { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; width: 100%; max-width: 380px; }
-  .hero-footer     { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); width: 100%; }
+  .hero-info-col   { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; width: 100%; max-width: 420px; }
 
   /* Collapse to single column on narrow screens. */
   @media (max-width: 760px) {
     .hero-inner { grid-template-columns: 1fr; }
-    .hero-info-col { align-items: center; text-align: center; }
   }
   .knob-wrap { width: clamp(280px, 38vw, 420px); aspect-ratio: 1 / 1; height: auto; position: relative; }
   .knob-svg { width: 100%; height: 100%; cursor: default; }
@@ -203,14 +201,15 @@
      The wrap is the same width as the dial so percentages map to SVG x. */
   .knob-scale {
     display: flex;
-    justify-content: space-between;
+    flex-wrap: wrap;
+    justify-content: center;
     align-items: center;
     width: 100%;
-    margin-top: 8px;
-    gap: 4px;
+    margin-top: 0;
+    gap: 6px 10px;
   }
   .knob-tick {
-    flex: 1 1 0;
+    flex: 0 0 auto;
     text-align: center;
     font-size: 10px;
     font-weight: 600;
@@ -222,7 +221,7 @@
     line-height: 1.2;
     background: none;
     border: none;
-    padding: 4px 2px;
+    padding: 4px 6px;
     white-space: nowrap;
     transition: color var(--transition);
   }
@@ -868,10 +867,6 @@
           <circle cx="150" cy="150" r="14" fill="#0D0C0B" stroke="#332F2A" stroke-width="1"/>
           <circle cx="150" cy="150" r="3" fill="#F7931A"/>
         </svg>
-        <!-- Slider-style label scale: one clickable label per detent, left→right in
-             detent order. Populated by renderKnob() from AGGRESSION_LEVELS. Sits
-             directly below the SVG inside the dial column. -->
-        <div class="knob-scale" id="knob-scale"></div>
       </div>
       </div>
 
@@ -884,9 +879,9 @@
           <span class="knob-thresh-label">Thresholds</span>
           <span class="knob-thresh-values" id="knob-thresholds">T1 — · T2 — · T3 —</span>
         </div>
-      </div>
-
-      <div class="hero-footer">
+        <!-- Slider-style label scale: one clickable label per detent, left→right in
+             detent order. Populated by renderKnob() from AGGRESSION_LEVELS. -->
+        <div class="knob-scale" id="knob-scale"></div>
         <!-- mode pills -->
         <div class="mode-row">
           <button class="mode-pill" data-mode="btc">BTC</button>
