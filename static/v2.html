@@ -320,6 +320,14 @@
   .tool .v small { font-size: 11px; color: var(--text-muted); font-weight: 500; margin-left: 4px; font-family: var(--font-body); letter-spacing: 0; }
   .tool .v.bear { color: var(--red); }
   .tool .v.bull { color: var(--green); }
+  /* Total Trades: 3 self-labeling items on one line. Headerless, so it grows to
+     fill the cell height and stays vertically centred against its labelled siblings. */
+  .trades-row { flex: 1; display: flex; align-items: center; flex-wrap: wrap;
+    font-size: 15px; font-weight: 600; }
+  .trades-row .ti { color: var(--text); white-space: nowrap; }
+  .trades-row .ti .u { font-family: var(--font-body); font-weight: 500; font-size: 13px;
+    color: var(--text-muted); letter-spacing: 0; margin-left: 3px; }
+  .trades-row .sep { color: var(--text-faint); padding: 0 10px; font-family: var(--font-body); }
 
   /* === TRADE HISTORY === */
   .trades {
@@ -672,8 +680,8 @@
       <div class="v" id="tool-price">—<small>live</small></div>
     </div>
     <div class="tool">
-      <div class="k">Total Trades</div>
-      <div class="v" id="tool-trades">—</div>
+      <!-- Self-labeling inline row: "X days | N trades | $X.XX fees" — no header needed. -->
+      <div class="v trades-row" id="tool-trades">—</div>
     </div>
     <div class="tool">
       <div class="k">Avg Cost / BTC</div>
@@ -1140,9 +1148,32 @@ function render(data, trades, settings, deposits) {
 
   // Toolbar
   document.getElementById('tool-price').innerHTML = fmtUsd0(price) + '<small>live</small>';
-  const fees = b.total_fees_paid || 0;
+
+  // "Total Trades" tile: days | trades | fees. There is no stored bot start
+  // time, so "days trading" is derived from the EARLIEST /api/trades timestamp
+  // (UTC, matching timeAgo's convention). Empty trades → em-dash.
+  let daysLabel = '—';
+  if (trades && trades.length) {
+    const earliest = trades.reduce((min, t) => {
+      const ms = new Date(t.timestamp + 'Z').getTime();
+      return ms < min ? ms : min;
+    }, Infinity);
+    if (isFinite(earliest)) {
+      const days = Math.floor((Date.now() - earliest) / 86400000);
+      daysLabel = days <= 0 ? 'today' : days === 1 ? '1 day' : `${days} days`;
+    }
+  }
+  // "today"/"—" have no separate unit word; the others split number + unit.
+  const daysItem = (daysLabel === '—' || daysLabel === 'today')
+    ? `<span class="ti">${esc(daysLabel)}</span>`
+    : `<span class="ti">${esc(daysLabel.split(' ')[0])}<span class="u">${esc(daysLabel.split(' ')[1])}</span></span>`;
+  const tradesItem = `<span class="ti">${esc(String(b.trade_count ?? 0))}<span class="u">trades</span></span>`;
+  const feesRaw = Number(b.total_fees_paid) || 0;
+  const feesStr = feesRaw > 0 ? fmtUsd(feesRaw) : '$0';   // spec: 0/missing → "$0 fees"
+  const feesItem = `<span class="ti">${esc(feesStr)}<span class="u">fees</span></span>`;
   document.getElementById('tool-trades').innerHTML =
-    esc(String(b.trade_count ?? 0)) + `<small>${fmtUsd(fees)} in fees</small>`;
+    `${daysItem}<span class="sep">|</span>${tradesItem}<span class="sep">|</span>${feesItem}`;
+
   document.getElementById('tool-avgcost').textContent = fmtUsd0(p.avg_cost_basis);
 
   // Footer status — derived from live bot state (mode + Sideways Market).
