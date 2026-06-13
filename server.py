@@ -136,6 +136,7 @@ ALLOWED_PATHS = (
     "/api/setup/",
     "/api/open_orders",
     "/api/dca_baseline",
+    "/api/deposits",
 )
 
 
@@ -705,6 +706,10 @@ LIVE USER DATA
 @app.route("/")
 def index():
     return send_from_directory("static", "index.html")
+
+@app.route("/v2")
+def index_v2():
+    return send_from_directory("static", "v2.html")
 
 @app.route("/about")
 def about_page():

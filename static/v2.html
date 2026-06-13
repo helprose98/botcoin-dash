@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>myBotCoin — v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:          #121110;
+    --bg-deep:     #0D0C0B;
+    --surface:     #1A1917;
+    --surface-2:   #201F1C;
+    --surface-3:   #272522;
+    --border:      #332F2A;
+    --divider:     #2A2724;
+    --text:        #EAE7E2;
+    --text-muted:  #7A7570;
+    --text-faint:  #4D4A45;
+    --accent:      #F7931A;
+    --accent-hover:#E8841A;
+    --accent-dim:  rgba(247,147,26,0.12);
+    --accent-glow: rgba(247,147,26,0.30);
+    --accent-soft: rgba(247,147,26,0.08);
+    --green:       #4ADE80;
+    --green-dim:   rgba(74,222,128,0.10);
+    --red:         #F87171;
+    --red-dim:     rgba(248,113,113,0.10);
+    --gold:        #FBBF24;
+    --font-body:   'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-mono:   'JetBrains Mono', monospace;
+    --space-1: 6px; --space-2: 10px; --space-3: 14px; --space-4: 20px;
+    --space-5: 28px; --space-6: 40px; --space-7: 56px;
+    --radius-sm: 8px; --radius-md: 12px; --radius-lg: 18px; --radius-xl: 24px;
+    --transition: 200ms cubic-bezier(0.16,1,0.3,1);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(ellipse at top, #1A1917 0%, #0D0C0B 70%);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+  }
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .container { max-width: 1080px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-7); }
+  header.brand {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: var(--space-6);
+  }
+  .logo { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
+  .logo span { color: var(--accent); }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 12px; color: var(--text-muted);
+  }
+  .pill .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+  /* === TOP STATUS ROW === */
+  .top-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.1fr;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) var(--space-4) var(--space-3);
+    display: flex; flex-direction: column; gap: 4px;
+    position: relative; overflow: hidden;
+  }
+  .stat-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .stat-value {
+    font-family: var(--font-mono); font-weight: 700;
+    font-size: 30px; letter-spacing: -0.02em; color: var(--text);
+  }
+  .stat-value.btc { color: var(--accent); }
+  .stat-sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Market gauge tile */
+  .gauge-tile { padding: var(--space-3) var(--space-4) var(--space-3); align-items: center; gap: 4px; }
+  .gauge-tile .stat-label { align-self: flex-start; }
+  .gauge-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: -2px; }
+  .gauge-svg { width: 220px; max-width: 100%; }
+  .gauge-label { font-size: 15px; font-weight: 700; color: var(--text); }
+  .gauge-sub { font-size: 12px; color: var(--text-muted); }
+
+  /* === HERO: ONE KNOB === */
+  .hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6) var(--space-5) var(--space-5);
+    margin-bottom: var(--space-5);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; inset: -1px;
+    background: radial-gradient(ellipse at center top, var(--accent-soft), transparent 60%);
+    pointer-events: none;
+  }
+  .hero-inner { position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .hero-title {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .knob-wrap { position: relative; width: 300px; height: 300px; }
+  .knob-svg { width: 100%; height: 100%; cursor: default; }
+  .knob-arc-bg { fill: none; stroke: var(--surface-3); stroke-width: 14; stroke-linecap: round; }
+  .knob-arc-fg { fill: none; stroke: var(--accent); stroke-width: 14; stroke-linecap: round;
+    filter: drop-shadow(0 0 12px var(--accent-glow));
+    transition: stroke-dasharray var(--transition); }
+  .knob-detent { fill: var(--text-faint); transition: fill var(--transition); }
+  .knob-detent.active { fill: var(--accent); filter: drop-shadow(0 0 6px var(--accent-glow)); }
+  .knob-center { fill: var(--surface-2); stroke: var(--border); stroke-width: 1; }
+  .knob-needle { stroke: var(--accent); stroke-width: 4; stroke-linecap: round;
+    filter: drop-shadow(0 0 8px var(--accent-glow));
+    transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: 150px 150px; }
+  .knob-dot { fill: var(--accent); filter: drop-shadow(0 0 8px var(--accent-glow));
+    transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: 150px 150px; }
+  .knob-tick { fill: var(--text-faint); font-size: 11px; font-weight: 600;
+    font-family: var(--font-body); letter-spacing: 0.05em; text-transform: uppercase; }
+  .knob-tick.active { fill: var(--accent); }
+  .knob-label-wrap { text-align: center; margin-top: -8px; }
+  .knob-label { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+  .knob-tag { font-size: 13px; color: var(--text-muted); margin-top: 2px; max-width: 360px; }
+
+  /* Mode pills */
+  .mode-row { display: flex; gap: 8px; margin-top: var(--space-3); }
+  .mode-pill {
+    padding: 10px 18px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 999px;
+    font-size: 13px; font-weight: 600;
+    cursor: default;
+    transition: all var(--transition);
+    letter-spacing: 0.01em;
+  }
+  .mode-pill.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .mode-caption { font-size: 12px; color: var(--text-faint); margin-top: 6px; }
+
+  /* Disclosure */
+  details.adjust {
+    margin-top: var(--space-4);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    width: 100%; max-width: 560px;
+  }
+  details.adjust summary {
+    list-style: none; cursor: pointer; padding: 12px 16px;
+    font-size: 13px; color: var(--text-muted);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  details.adjust summary::-webkit-details-marker { display: none; }
+  details.adjust summary::after { content: '▾'; transition: transform var(--transition); color: var(--text-faint); }
+  details.adjust[open] summary::after { transform: rotate(180deg); }
+  .adjust-body { padding: 0 16px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 13px; }
+  .adjust-row { display: flex; flex-direction: column; gap: 2px; }
+  .adjust-row .k { color: var(--text-faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .adjust-row .v { font-family: var(--font-mono); color: var(--text); font-weight: 500; }
+  .adjust-hint { grid-column: 1 / -1; font-size: 11px; color: var(--text-faint); line-height: 1.5; }
+  .adjust-hint a { color: var(--accent); text-decoration: none; }
+
+  /* === TWO-UP: INVESTED / GROWTH === */
+  .duo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) var(--space-5) var(--space-4);
+  }
+  .card-title {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-muted);
+    margin-bottom: var(--space-3);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .syncing-badge {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.02em;
+    color: var(--text-faint); text-transform: none;
+    padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px;
+  }
+  .row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 6px 0;
+    font-size: 14px;
+  }
+  .row.divider { border-top: 1px solid var(--divider); margin-top: 6px; padding-top: 12px; }
+  .row .label { color: var(--text-muted); }
+  .row .val { font-family: var(--font-mono); color: var(--text); font-weight: 500; }
+  .row .sub { color: var(--text-faint); font-size: 12px; margin-left: 8px; font-family: var(--font-mono); }
+  .row.total .label { color: var(--text); font-weight: 600; font-size: 15px; }
+  .row.total .val { color: var(--text); font-weight: 700; font-size: 18px; }
+
+  /* Growth card */
+  .growth-hero {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: var(--space-3) 0 var(--space-2);
+    border-bottom: 1px solid var(--divider);
+    margin-bottom: var(--space-3);
+  }
+  .growth-value { font-family: var(--font-mono); font-size: 36px; font-weight: 700;
+    color: var(--green); letter-spacing: -0.02em; }
+  .growth-value.neg { color: var(--red); }
+  .growth-pct { font-size: 14px; color: var(--green); font-weight: 600; }
+  .growth-pct.neg { color: var(--red); }
+  .growth-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* === TOOLBAR === */
+  .toolbar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+  .tool { display: flex; flex-direction: column; gap: 2px; }
+  .tool .k { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+  .tool .v { font-family: var(--font-mono); font-size: 17px; color: var(--text); font-weight: 600; }
+  .tool .v small { font-size: 11px; color: var(--text-muted); font-weight: 500; margin-left: 4px; font-family: var(--font-body); letter-spacing: 0; }
+  .tool .v.bear { color: var(--red); }
+  .tool .v.bull { color: var(--green); }
+
+  /* === TRADE HISTORY === */
+  .trades {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .trades-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: var(--space-4) var(--space-5) var(--space-2);
+  }
+  .trades-title { font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-muted); }
+  .trades-table { width: 100%; border-collapse: collapse; }
+  .trades-table th {
+    text-align: left; font-size: 11px; color: var(--text-faint);
+    font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 8px 20px; border-bottom: 1px solid var(--divider);
+  }
+  .trades-table td {
+    padding: 12px 20px; font-size: 14px; border-bottom: 1px solid var(--divider);
+    color: var(--text);
+  }
+  .trades-table tr:last-child td { border-bottom: none; }
+  .trades-table td.mono { font-family: var(--font-mono); }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  }
+  .badge.buy  { background: var(--green-dim); color: var(--green); }
+  .badge.sell { background: var(--red-dim);   color: var(--red); }
+  .reason { color: var(--text-muted); font-size: 13px; }
+
+  footer {
+    margin-top: var(--space-5);
+    font-size: 12px; color: var(--text-faint);
+    text-align: center;
+  }
+
+  /* === CONNECT SCREEN === */
+  .connect-screen {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: var(--space-4);
+  }
+  .connect-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-xl); padding: var(--space-6) var(--space-5);
+    width: 100%; max-width: 420px;
+  }
+  .connect-card h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; letter-spacing: -0.02em; }
+  .connect-card h1 span { color: var(--accent); }
+  .connect-card p.sub { color: var(--text-muted); font-size: 13px; margin: 0 0 var(--space-5); }
+  .connect-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-3); }
+  .connect-field label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+  .connect-field input {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 11px 14px; color: var(--text); font-family: var(--font-mono); font-size: 14px; outline: none;
+  }
+  .connect-field input:focus { border-color: var(--accent); }
+  .connect-btn {
+    width: 100%; margin-top: var(--space-2);
+    background: var(--accent); color: #1A1208; border: none; border-radius: var(--radius-md);
+    padding: 12px; font-family: var(--font-body); font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: background var(--transition);
+  }
+  .connect-btn:hover { background: var(--accent-hover); }
+  .connect-btn:disabled { opacity: 0.6; cursor: default; }
+  .connect-error { color: var(--red); font-size: 13px; margin-top: var(--space-3); display: none; }
+  .connect-status { color: var(--text-muted); font-size: 13px; margin-top: var(--space-3); display: none; }
+  .connect-legacy { text-align: center; margin-top: var(--space-4); font-size: 12px; color: var(--text-faint); }
+  .connect-legacy a { color: var(--accent); text-decoration: none; }
+
+  #app { display: none; }
+  #app.visible { display: block; }
+
+  @media (max-width: 760px) {
+    .top-grid, .duo, .toolbar { grid-template-columns: 1fr; }
+    .adjust-body { grid-template-columns: 1fr; }
+    .knob-wrap { width: 260px; height: 260px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- CONNECT SCREEN -->
+<div class="connect-screen" id="connect-screen">
+  <div class="connect-card">
+    <h1>my<span>Bot</span>Coin <small style="font-size:11px;color:var(--text-faint);font-weight:500;">v2</small></h1>
+    <p class="sub">Connect to your bot server to view your live dashboard.</p>
+    <div class="connect-field">
+      <label for="bot-ip">Bot server IP</label>
+      <input id="bot-ip" type="text" inputmode="decimal" placeholder="123.45.67.89" autocomplete="off">
+    </div>
+    <div class="connect-field">
+      <label for="bot-pw">Dashboard password</label>
+      <input id="bot-pw" type="password" placeholder="••••••••" autocomplete="off">
+    </div>
+    <button class="connect-btn" id="btn-connect" onclick="connectToBot()">Connect to My Bot</button>
+    <div class="connect-status" id="connect-status"></div>
+    <div class="connect-error" id="connect-error"></div>
+    <div class="connect-legacy">Prefer the classic view? <a href="/">Open legacy dashboard →</a></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+<div class="container">
+  <header class="brand">
+    <div class="logo">my<span>Bot</span>Coin <small style="font-size:11px;color:var(--text-faint);font-weight:500;margin-left:6px;">v2</small></div>
+    <div class="pill"><span class="dot"></span> <span id="state-pill">Connecting…</span></div>
+  </header>
+
+  <!-- TOP: STACK / RESERVE / GAUGE -->
+  <div class="top-grid">
+    <div class="stat">
+      <div class="stat-label">BTC Stack</div>
+      <div class="stat-value btc mono" id="btc-stack">—</div>
+      <div class="stat-sub" id="btc-stack-sub">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">USD Reserve</div>
+      <div class="stat-value mono" id="usd-reserve">—</div>
+      <div class="stat-sub">dry powder available</div>
+    </div>
+    <div class="stat gauge-tile">
+      <div class="stat-label">Market</div>
+      <div class="gauge-wrap">
+        <svg class="gauge-svg" viewBox="0 0 200 120">
+          <defs>
+            <linearGradient id="gaugeArc" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"  stop-color="#F87171"/>
+              <stop offset="50%" stop-color="#FBBF24"/>
+              <stop offset="100%" stop-color="#4ADE80"/>
+            </linearGradient>
+          </defs>
+          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="url(#gaugeArc)" stroke-width="14" stroke-linecap="round" opacity="0.85"/>
+          <g id="gauge-needle" transform="rotate(0 100 100)">
+            <line x1="100" y1="100" x2="100" y2="30" stroke="#EAE7E2" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="100" cy="100" r="6" fill="#EAE7E2"/>
+          </g>
+          <text x="22" y="118" fill="#7A7570" font-size="10" font-weight="700">BEAR</text>
+          <text x="178" y="118" fill="#7A7570" font-size="10" font-weight="700" text-anchor="end">BULL</text>
+        </svg>
+        <div class="gauge-label" id="gauge-label">—</div>
+        <div class="gauge-sub" id="gauge-sub">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO: ONE KNOB -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-title">Aggressiveness</div>
+      <div class="knob-wrap">
+        <svg class="knob-svg" viewBox="0 0 300 300" id="knob">
+          <path class="knob-arc-bg" d="M 65 235 A 120 120 0 1 1 235 235"/>
+          <g id="detents">
+            <circle class="knob-detent" data-pos="0" cx="65" cy="235" r="6"/>
+            <circle class="knob-detent" data-pos="1" cx="150" cy="30" r="6"/>
+            <circle class="knob-detent" data-pos="2" cx="235" cy="235" r="6"/>
+          </g>
+          <text class="knob-tick" x="40" y="265" text-anchor="middle">Conservative</text>
+          <text class="knob-tick" x="150" y="18" text-anchor="middle">Moderate</text>
+          <text class="knob-tick" x="260" y="265" text-anchor="middle">Aggressive</text>
+          <circle class="knob-center" cx="150" cy="150" r="62"/>
+          <circle cx="150" cy="150" r="62" fill="none" stroke="rgba(247,147,26,0.15)" stroke-width="1"/>
+          <line id="needle" class="knob-needle" x1="150" y1="150" x2="150" y2="55"/>
+          <circle id="needle-dot" class="knob-dot" cx="150" cy="55" r="4"/>
+          <circle cx="150" cy="150" r="14" fill="#0D0C0B" stroke="#332F2A" stroke-width="1"/>
+          <circle cx="150" cy="150" r="3" fill="#F7931A"/>
+        </svg>
+      </div>
+      <div class="knob-label-wrap">
+        <div class="knob-label" id="knob-label">—</div>
+        <div class="knob-tag" id="knob-tag">—</div>
+      </div>
+
+      <!-- mode pills -->
+      <div class="mode-row">
+        <button class="mode-pill" data-mode="btc">BTC</button>
+        <button class="mode-pill" data-mode="usd">USD</button>
+        <button class="mode-pill" data-mode="auto">Auto</button>
+      </div>
+      <div class="mode-caption" id="mode-caption"></div>
+
+      <details class="adjust">
+        <summary>Adjust thresholds &amp; DCA cadence</summary>
+        <div class="adjust-body">
+          <div class="adjust-row"><span class="k">Spike sell trigger</span><span class="v" id="adj-sell">—</span></div>
+          <div class="adjust-row"><span class="k">Dip rebuy trigger</span><span class="v" id="adj-dip">—</span></div>
+          <div class="adjust-row"><span class="k">DCA cadence</span><span class="v" id="adj-dca">—</span></div>
+          <div class="adjust-row"><span class="k">Dip-buy ladder</span><span class="v" id="adj-ladder">—</span></div>
+          <div class="adjust-row"><span class="k">Sideways band</span><span class="v" id="adj-sideways">—</span></div>
+          <div class="adjust-row"><span class="k">Max open positions</span><span class="v" id="adj-maxpos">—</span></div>
+          <div class="adjust-hint">
+            Adjustments coming soon — this view is read-only for now.
+            <a href="/">Edit in legacy dashboard →</a>
+          </div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- TWO-UP: INVESTED / GROWTH -->
+  <div class="duo">
+    <div class="card">
+      <div class="card-title">What You Put In <span class="syncing-badge" id="deposits-badge" style="display:none">Deposit history syncing…</span></div>
+      <div class="row">
+        <div class="label">BTC deposits<span class="sub" id="put-btc-sub"></span></div>
+        <div class="val" id="put-btc">—</div>
+      </div>
+      <div class="row">
+        <div class="label">USD deposits</div>
+        <div class="val" id="put-usd">—</div>
+      </div>
+      <div class="row">
+        <div class="label">Bot purchases<span class="sub">DCA + Quick Buys</span></div>
+        <div class="val" id="put-bot">—</div>
+      </div>
+      <div class="row total divider">
+        <div class="label">Total invested</div>
+        <div class="val" id="put-total">—</div>
+      </div>
+      <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5;">
+        BTC deposits valued at BTC price at the time each transfer hit Kraken.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Growth</div>
+      <div class="growth-hero">
+        <div class="growth-value mono" id="growth-value">—</div>
+        <div class="growth-pct" id="growth-pct">—</div>
+        <div class="growth-meta" id="growth-meta">—</div>
+      </div>
+      <div class="row">
+        <div class="label">BTC price appreciation</div>
+        <div class="val" id="growth-appreciation" style="color:var(--green)">—</div>
+      </div>
+      <div class="row">
+        <div class="label">USD Recycler earnings</div>
+        <div class="val" id="growth-recycler" style="color:var(--green)">—</div>
+      </div>
+      <div class="row">
+        <div class="label">House Money (extra BTC)</div>
+        <div class="val" id="growth-house" style="color:var(--green)">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="tool">
+      <div class="k">BTC Price</div>
+      <div class="v" id="tool-price">—<small>live</small></div>
+    </div>
+    <div class="tool">
+      <div class="k">Total Trades</div>
+      <div class="v" id="tool-trades">—</div>
+    </div>
+    <div class="tool">
+      <div class="k">Avg Cost / BTC</div>
+      <div class="v" id="tool-avgcost">—</div>
+    </div>
+  </div>
+
+  <!-- TRADE HISTORY -->
+  <div class="trades">
+    <div class="trades-head">
+      <div class="trades-title">Recent Trades</div>
+      <div style="font-size:12px;color:var(--text-muted)">last 6 shown · <a href="/" style="color:var(--accent);text-decoration:none">view all →</a></div>
+    </div>
+    <table class="trades-table">
+      <thead>
+        <tr>
+          <th>When</th><th>Type</th><th>Amount</th><th>Price</th><th>Reason</th>
+        </tr>
+      </thead>
+      <tbody id="trades-body">
+        <tr><td class="reason" colspan="5">Loading trades…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>
+    <span id="last-updated">—</span> · v2 preview · <a href="/" style="color:var(--text-faint)">legacy dashboard</a>
+  </footer>
+</div>
+</div>
+
+<script>
+// ── Conviction thresholds (days) ──────────────────────────────────────
+const TREND_FRESH_DAYS = 14;
+const TREND_ESTABLISHED_DAYS = 60;
+
+// 3-detent knob positions (read-only in phase 1)
+const KNOB_POSITIONS = [
+  { angle: -135, label: 'Conservative', tag: 'Patient. Acts only on big moves. Lower trade frequency, larger thresholds.' },
+  { angle: 0,    label: 'Moderate',     tag: 'Balanced patience and action. Bot acts on meaningful dips and spikes; ignores small noise.' },
+  { angle: 135,  label: 'Aggressive',   tag: 'Hair-trigger. Acts on smaller moves more often. Higher trade frequency.' }
+];
+
+// 5-level presets mirror the legacy dashboard's AGGRESSION_LEVELS so we can
+// recover the active level from the bot's dip thresholds (no aggression field
+// exists on /api/settings). The 5 levels collapse onto the 3 knob detents.
+const AGGRESSION_LEVELS = [
+  { name:'Conservative', dip1:'0.12',  dip2:'0.22',  dip3:'0.35' },
+  { name:'Balanced',     dip1:'0.07',  dip2:'0.15',  dip3:'0.22' },
+  { name:'Aggressive',   dip1:'0.05',  dip2:'0.10',  dip3:'0.16' },
+  { name:'Max Stack',    dip1:'0.03',  dip2:'0.07',  dip3:'0.12' },
+  { name:'Ultra ⚡',     dip1:'0.015', dip2:'0.030', dip3:'0.060' },
+];
+
+// ── State ─────────────────────────────────────────────────────────────
+let BOT_IP = '';
+let BOT_PW = '';
+let refreshTimer = null;
+
+// ── Helpers ───────────────────────────────────────────────────────────
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+}
+function timeAgo(ts) {
+  const diff = (Date.now() - new Date(ts + 'Z')) / 1000;
+  if (diff < 60)    return 'just now';
+  if (diff < 3600)  return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+function fmtUsd(n, dp) {
+  if (n == null || isNaN(n)) return '—';
+  return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: dp ?? 2, maximumFractionDigits: dp ?? 2 });
+}
+function fmtUsd0(n) {
+  if (n == null || isNaN(n)) return '—';
+  return '$' + Math.round(Number(n)).toLocaleString('en-US');
+}
+function fmtBtc(n) {
+  if (n == null || isNaN(n)) return '—';
+  return Number(n).toFixed(8);
+}
+
+// ── API helper (via dash proxy) ───────────────────────────────────────
+async function botFetch(path, options = {}) {
+  const url = `/proxy?ip=${BOT_IP}&path=${encodeURIComponent(path)}`;
+  const headers = { 'X-Bot-Password': BOT_PW, 'Content-Type': 'application/json', ...(options.headers || {}) };
+  const resp = await fetch(url, { ...options, headers });
+  if (resp.status === 401) throw new Error('Incorrect password');
+  if (resp.status === 429) throw new Error('Too many attempts — wait 60 seconds');
+  if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
+  return resp.json();
+}
+
+// ── Connect flow ──────────────────────────────────────────────────────
+async function connectToBot() {
+  const ip = document.getElementById('bot-ip').value.trim();
+  const pw = document.getElementById('bot-pw').value.trim();
+  const btn = document.getElementById('btn-connect');
+  const errEl = document.getElementById('connect-error');
+  const statusEl = document.getElementById('connect-status');
+
+  errEl.style.display = 'none';
+  statusEl.style.display = 'none';
+
+  if (!ip) { showConnectError('Please enter your bot server IP address.'); return; }
+  if (!pw) { showConnectError('Please enter your dashboard password.'); return; }
+  if (!/^[\d.]+$/.test(ip)) { showConnectError('IP address should contain only numbers and dots.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Connecting…';
+  statusEl.textContent = 'Checking bot server…'; statusEl.style.display = 'block';
+
+  try {
+    const healthUrl = `/proxy?ip=${ip}&path=${encodeURIComponent('/api/health')}`;
+    const healthResp = await fetch(healthUrl, { signal: AbortSignal.timeout(8000) });
+    if (!healthResp.ok) throw new Error('Bot server is not responding — check the IP and port 8081');
+    const health = await healthResp.json();
+    if (!health.configured) throw new Error('Bot server is not configured yet — complete setup first.');
+
+    BOT_IP = ip; BOT_PW = pw;
+    statusEl.textContent = 'Verifying password…';
+    await botFetch('/api/status');
+
+    document.getElementById('connect-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    startDashboard();
+  } catch (e) {
+    BOT_IP = ''; BOT_PW = '';
+    let msg = e.message || 'Could not connect to bot server.';
+    if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed')) {
+      msg = `Could not reach ${ip}:8081 — check the IP and make sure port 8081 is open.`;
+    }
+    showConnectError(msg);
+    btn.disabled = false; btn.textContent = 'Connect to My Bot';
+    statusEl.style.display = 'none';
+  }
+}
+function showConnectError(msg) {
+  const el = document.getElementById('connect-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+// ── Dashboard lifecycle ───────────────────────────────────────────────
+function startDashboard() {
+  loadData();
+  refreshTimer = setInterval(loadData, 60000);  // poll every 60s
+}
+
+async function loadData() {
+  try {
+    const [data, trades, settings, deposits] = await Promise.all([
+      botFetch('/api/status'),
+      botFetch('/api/trades').catch(() => []),
+      botFetch('/api/settings').catch(() => ({})),
+      botFetch('/api/deposits').catch(() => null)   // graceful: null on failure
+    ]);
+    render(data || {}, trades || [], settings || {}, deposits);
+    document.getElementById('last-updated').textContent =
+      'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
+  } catch (e) {
+    console.error('Failed to load data:', e);
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────
+function render(data, trades, settings, deposits) {
+  const p = data.portfolio || {};
+  const b = data.bot || {};
+  const mood = data.mood || {};
+  const price = p.current_price || 0;
+  const btcStack = p.btc_balance || 0;
+  const usdReserve = p.usd_balance || 0;
+
+  // Parent mode from mood colour (bear → USD Accum, bull → BTC Accum)
+  const parentMode = (mood.color === 'bear') ? 'USD Accumulation'
+                   : (mood.color === 'bull' || mood.color === 'positive') ? 'BTC Accumulation'
+                   : 'BTC Accumulation';
+  document.getElementById('state-pill').textContent = `Running · ${parentMode}`;
+
+  // Top stats
+  document.getElementById('btc-stack').textContent = fmtBtc(btcStack);
+  document.getElementById('btc-stack-sub').textContent = '≈ ' + fmtUsd(btcStack * price) + ' today';
+  document.getElementById('usd-reserve').textContent = fmtUsd(usdReserve);
+
+  renderGauge(price, b.ma200, mood, b.trend);
+  renderKnob(settings);
+  renderModePills(settings);
+  renderAdjust(settings, b);
+
+  // Bot purchases = DCA + quick_buy usd_amount only (recycler legs net to zero)
+  const botPurchases = trades
+    .filter(t => ['dca', 'quick_buy', 'quickbuy'].includes((t.reason || '').toLowerCase()))
+    .reduce((s, t) => s + (t.usd_amount || 0), 0);
+
+  renderInvested(deposits, botPurchases);
+
+  // Growth
+  const depTotal = deposits && deposits.totals
+    ? (deposits.totals.btc_deposits_usd_value_at_time || 0) + (deposits.totals.usd_deposits_amount || 0)
+    : null;
+  const totalInvested = (depTotal != null ? depTotal : 0) + botPurchases;
+  const portfolioToday = btcStack * price + usdReserve;
+  renderGrowth(data, trades, totalInvested, portfolioToday, price, depTotal != null);
+
+  // Toolbar
+  document.getElementById('tool-price').innerHTML = fmtUsd0(price) + '<small>live</small>';
+  const fees = b.total_fees_paid || 0;
+  document.getElementById('tool-trades').innerHTML =
+    esc(String(b.trade_count ?? 0)) + `<small>${fmtUsd(fees)} in fees</small>`;
+  document.getElementById('tool-avgcost').textContent = fmtUsd0(p.avg_cost_basis);
+
+  renderTrades(trades, settings);
+}
+
+function renderGauge(price, ma200, mood, trend) {
+  const labelEl = document.getElementById('gauge-label');
+  const subEl = document.getElementById('gauge-sub');
+  const needle = document.getElementById('gauge-needle');
+
+  // Needle angle from (price - ma)/ma clamped to ±25% → -90°..+90°
+  let angle = 0;
+  if (ma200 && price) {
+    let rel = (price - ma200) / ma200;
+    rel = Math.max(-0.25, Math.min(0.25, rel));
+    angle = (rel / 0.25) * 90;
+  }
+  needle.setAttribute('transform', `rotate(${angle.toFixed(1)} 100 100)`);
+
+  const label = mood.label || (ma200 && price ? (price >= ma200 ? 'Bull Market' : 'Bear Market') : 'Market');
+  labelEl.textContent = label;
+  labelEl.style.color = (mood.color === 'bear') ? 'var(--red)'
+                      : (mood.color === 'bull') ? 'var(--green)' : 'var(--text)';
+
+  // Conviction subtitle from bot.trend; degrade gracefully if missing
+  if (trend && trend.duration_days != null && trend.side) {
+    const d = trend.duration_days;
+    const conviction = d < TREND_FRESH_DAYS ? 'fresh'
+                     : d < TREND_ESTABLISHED_DAYS ? 'established' : 'entrenched';
+    const action = trend.side === 'above' ? 'stacking BTC' : 'stacking USD';
+    subEl.innerHTML = `${esc(conviction)} · ${esc(String(d))} days · <span style="color:var(--text)">${esc(action)}</span>`;
+  } else {
+    subEl.textContent = 'vs 200-day MA';
+  }
+}
+
+function detectKnobDetent(settings) {
+  // Recover 5-level preset from dip thresholds, then collapse to 3 detents.
+  const d1 = (parseFloat(settings.dip_tier1) * 100).toFixed(1);
+  const d2 = (parseFloat(settings.dip_tier2) * 100).toFixed(1);
+  const d3 = (parseFloat(settings.dip_tier3) * 100).toFixed(1);
+  let level = -1;
+  for (let i = 0; i < AGGRESSION_LEVELS.length; i++) {
+    const l = AGGRESSION_LEVELS[i];
+    if ((parseFloat(l.dip1)*100).toFixed(1) === d1 &&
+        (parseFloat(l.dip2)*100).toFixed(1) === d2 &&
+        (parseFloat(l.dip3)*100).toFixed(1) === d3) { level = i; break; }
+  }
+  if (level < 0) return 1;          // unknown/manual → Moderate
+  if (level <= 1) return 0;          // Conservative / Balanced → Conservative
+  if (level === 2) return 1;         // Aggressive → Moderate
+  return 2;                          // Max Stack / Ultra → Aggressive
+}
+
+function renderKnob(settings) {
+  const i = detectKnobDetent(settings);
+  const pos = KNOB_POSITIONS[i];
+  document.getElementById('knob-label').textContent = pos.label;
+  document.getElementById('knob-tag').textContent = pos.tag;
+  document.getElementById('needle').setAttribute('transform', `rotate(${pos.angle} 150 150)`);
+  document.getElementById('needle-dot').setAttribute('transform', `rotate(${pos.angle} 150 150)`);
+  document.querySelectorAll('.knob-detent').forEach((d, idx) => d.classList.toggle('active', idx === i));
+  document.querySelectorAll('.knob-tick').forEach((t, idx) => t.classList.toggle('active', idx === i));
+}
+
+function renderModePills(settings) {
+  const mode = (settings.mode || 'auto').toLowerCase();
+  document.querySelectorAll('.mode-pill').forEach(pill => {
+    pill.classList.toggle('active', pill.dataset.mode === mode);
+  });
+  document.getElementById('mode-caption').textContent =
+    mode === 'auto' ? 'Currently auto-switching' : '';
+}
+
+function renderAdjust(settings, bot) {
+  const sell = parseFloat(settings.recycler_sell_threshold);
+  const dip1 = parseFloat(settings.dip_tier1);
+  document.getElementById('adj-sell').textContent = isNaN(sell) ? '—' : '+' + (sell*100).toFixed(1) + '%';
+  document.getElementById('adj-dip').textContent = isNaN(dip1) ? '—' : '−' + (dip1*100).toFixed(1) + '%';
+
+  const amt = parseFloat(settings.dca_amount);
+  const freq = settings.dca_frequency || 'weekly';
+  document.getElementById('adj-dca').textContent =
+    isNaN(amt) ? (settings.dca_amount ? 'DCA active' : '—') : `$${amt.toFixed(0)} / ${esc(freq)}`;
+  document.getElementById('adj-ladder').textContent = '3 tiers';
+
+  const sw = bot.sideways || {};
+  const band = sw.buy_threshold_pct != null && sw.sell_threshold_pct != null
+    ? `${sw.buy_threshold_pct}% / +${sw.sell_threshold_pct}%` : '—';
+  document.getElementById('adj-sideways').textContent = band;
+  document.getElementById('adj-maxpos').textContent =
+    sw.max_positions != null ? String(sw.max_positions) : (settings.range_max_positions || '—');
+}
+
+function renderInvested(deposits, botPurchases) {
+  const badge = document.getElementById('deposits-badge');
+  const btcEl = document.getElementById('put-btc');
+  const btcSub = document.getElementById('put-btc-sub');
+  const usdEl = document.getElementById('put-usd');
+  const botEl = document.getElementById('put-bot');
+  const totalEl = document.getElementById('put-total');
+
+  botEl.textContent = fmtUsd(botPurchases);
+
+  if (!deposits || !deposits.totals) {
+    // Graceful degradation: deposits endpoint failed or empty
+    badge.style.display = '';
+    btcEl.textContent = '—';
+    btcSub.textContent = '';
+    usdEl.textContent = '—';
+    totalEl.textContent = '—';
+    return;
+  }
+  badge.style.display = 'none';
+  const t = deposits.totals;
+  btcEl.textContent = fmtUsd(t.btc_deposits_usd_value_at_time);
+  btcSub.textContent = (t.btc_deposits_amount || 0).toFixed(6) + ' BTC';
+  usdEl.textContent = fmtUsd(t.usd_deposits_amount);
+  const total = (t.btc_deposits_usd_value_at_time || 0) + (t.usd_deposits_amount || 0) + botPurchases;
+  totalEl.textContent = fmtUsd(total);
+}
+
+function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDeposits) {
+  const p = data.portfolio || {};
+  const growth = portfolioToday - totalInvested;
+  const pct = totalInvested > 0 ? (growth / totalInvested * 100) : 0;
+
+  const vEl = document.getElementById('growth-value');
+  const pctEl = document.getElementById('growth-pct');
+  const neg = growth < 0;
+  vEl.textContent = (neg ? '-' : '+') + fmtUsd(Math.abs(growth));
+  vEl.classList.toggle('neg', neg);
+  pctEl.textContent = (neg ? '' : '+') + pct.toFixed(1) + '% vs total invested';
+  pctEl.classList.toggle('neg', neg);
+  document.getElementById('growth-meta').textContent =
+    'Portfolio today: ' + fmtUsd(portfolioToday) + ' (BTC + USD reserve)' +
+    (haveDeposits ? '' : ' · invested basis incomplete (deposits syncing)');
+
+  // BTC price appreciation: (price - avg_cost_basis) * stack, clamped ≥ 0
+  const stack = p.btc_balance || 0;
+  const basis = p.avg_cost_basis || 0;
+  const appreciation = Math.max(0, (price - basis) * stack);
+  document.getElementById('growth-appreciation').textContent = '+' + fmtUsd(appreciation);
+
+  // USD Recycler earnings: paired usd_recycler_buy → usd_recycler_resell deltas
+  const recyclerEarnings = pairedRecyclerEarnings(trades);
+  document.getElementById('growth-recycler').textContent = '+' + fmtUsd(recyclerEarnings);
+
+  // House Money (extra BTC): net BTC gained on closed recycler_rebuy pairs × price
+  const houseMoney = houseMoneyBtc(trades) * price;
+  document.getElementById('growth-house').textContent = '+' + fmtUsd(houseMoney);
+}
+
+// Walk USD-recycler pairs oldest→newest: each resell closes the most recent
+// open buy; earnings are the positive USD spread (resell proceeds − buy cost).
+function pairedRecyclerEarnings(trades) {
+  const chrono = [...trades].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const openBuys = [];
+  let earnings = 0;
+  for (const t of chrono) {
+    const r = (t.reason || '').toLowerCase();
+    if (r === 'usd_recycler_buy') {
+      openBuys.push(t);
+    } else if (r === 'usd_recycler_resell') {
+      const buy = openBuys.pop();
+      if (buy) {
+        const delta = (t.usd_amount || 0) - (buy.usd_amount || 0);
+        if (delta > 0) earnings += delta;
+      }
+    }
+  }
+  return earnings;
+}
+
+// Walk BTC-recycler pairs: each recycler_rebuy closes the most recent spike/
+// recycler sell; house money is the extra BTC recovered (rebuy − sold), summed.
+function houseMoneyBtc(trades) {
+  const chrono = [...trades].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const openSells = [];
+  let extraBtc = 0;
+  for (const t of chrono) {
+    const r = (t.reason || '').toLowerCase();
+    if (r === 'recycler_sell' || r.startsWith('usd_spike_sell') || r === 'spike_sell') {
+      openSells.push(t);
+    } else if (r === 'recycler_rebuy') {
+      const sell = openSells.pop();
+      if (sell) {
+        const delta = (t.btc_amount || 0) - (sell.btc_amount || 0);
+        if (delta > 0) extraBtc += delta;
+      }
+    }
+  }
+  return extraBtc;
+}
+
+// Human-friendly reason copy per spec
+function reasonCopy(t, settings, trades) {
+  const r = (t.reason || '').toLowerCase();
+  if (r === 'dca') {
+    const freq = (settings && settings.dca_frequency) ? settings.dca_frequency : 'weekly';
+    return `DCA · ${freq}`;
+  }
+  if (r === 'quick_buy' || r === 'quickbuy') return 'Quick buy';
+  if (r === 'usd_recycler_buy') return 'Recycler buy · opening cycle';
+  if (r === 'usd_recycler_resell') {
+    const d = closingDelta(t, trades, 'usd_recycler_buy', 'usd', 'usd_recycler_resell');
+    return d != null ? `Recycler resell · cycle closed +${fmtUsd(d)}` : 'Recycler resell · cycle closed';
+  }
+  if (r === 'recycler_rebuy') {
+    const d = closingDelta(t, trades, 'recycler_sell', 'usd', 'recycler_rebuy');
+    return d != null ? `Recycler rebuy · closing cycle +${fmtUsd(d)}` : 'Recycler rebuy · closing cycle';
+  }
+  if (r === 'range_recycler_buy') return 'Sideways · buy';
+  if (r === 'range_recycler_sell') return 'Sideways · sell';
+  return t.label || t.reason || '—';   // fallback to API label
+}
+
+// Delta for a closing leg vs the immediately-prior open leg of the same cycle.
+function closingDelta(closeTrade, trades, openReason, unit, closeReason) {
+  const chrono = [...trades].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const idx = chrono.findIndex(x => x.id === closeTrade.id);
+  if (idx < 0) return null;
+  for (let i = idx - 1; i >= 0; i--) {
+    if ((chrono[i].reason || '').toLowerCase() === openReason) {
+      const d = (closeTrade.usd_amount || 0) - (chrono[i].usd_amount || 0);
+      return d > 0 ? d : null;
+    }
+  }
+  return null;
+}
+
+function renderTrades(trades, settings) {
+  const body = document.getElementById('trades-body');
+  if (!trades || !trades.length) {
+    body.innerHTML = '<tr><td class="reason" colspan="5">No trades yet.</td></tr>';
+    return;
+  }
+  // /api/trades returns most-recent-first already; take 6
+  const recent = trades.slice(0, 6);
+  body.innerHTML = recent.map(t => {
+    const side = (t.side || '').toLowerCase();
+    const badge = side === 'sell'
+      ? '<span class="badge sell">SELL</span>'
+      : '<span class="badge buy">BUY</span>';
+    return `<tr>
+      <td class="mono">${esc(timeAgo(t.timestamp))}</td>
+      <td>${badge}</td>
+      <td class="mono">${esc(fmtBtc(t.btc_amount))} BTC</td>
+      <td class="mono">${esc(fmtUsd(t.price_usd))}</td>
+      <td class="reason">${esc(reasonCopy(t, settings, trades))}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Enter submits the connect form
+document.addEventListener('DOMContentLoaded', () => {
+  ['bot-ip', 'bot-pw'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') connectToBot();
+    });
+  });
+});
+</script>
+</body>
+</html>
