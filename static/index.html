@@ -66,9 +66,13 @@
   .pill .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--green); box-shadow: 0 0 8px var(--green); }
 
   /* === TOP STATUS ROW === */
+  /* Four cards at desktop: BTC STACK | USD RESERVE | BTC PRICE | MARKET (gauge).
+     The three numeric cards share an equal 1fr each; the gauge column is given
+     1.3fr so the 220px gauge SVG keeps breathing room and centres comfortably in
+     the narrower 4-up layout (v1.12.5 — BTC PRICE promoted from the hero bar). */
   .top-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1.1fr;
+    grid-template-columns: 1fr 1fr 1fr 1.3fr;
     gap: var(--space-3);
     margin-bottom: var(--space-5);
   }
@@ -344,13 +348,13 @@
   .growth-comparator { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
 
   /* === TOOLBAR === */
-  /* Hero numbers row (BTC Price | trades/fees | Avg Cost/BTC). Three blocks on a
-     1fr/1fr/1fr grid so the row spans the full container width — matching the
-     full-width Advanced twirl-down row. Previously repeat(4,1fr) with only three
-     children, which left the right quarter empty (v1.12.2 fix). */
+  /* Hero numbers row (trades/fees | Avg Cost/BTC). Two blocks on a 1fr/1fr grid so
+     each takes half the row and the pair spans the full container width — matching
+     the full-width Advanced twirl-down row. BTC PRICE was promoted to the top
+     stats row in v1.12.5 (previously this row carried a third BTC Price block). */
   .toolbar {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
@@ -728,6 +732,15 @@
       <div class="stat-value mono" id="usd-reserve">—</div>
       <div class="stat-sub">dry powder available</div>
     </div>
+    <div class="stat stat-hero">
+      <div class="stat-label">BTC Price</div>
+      <!-- Reuses the #tool-price ID the live-price poll already targets, so the
+           promotion from hero bar to top row needs no JS rewiring. .stat-value
+           gives it the same clamp(28px,4.5vw,44px) hero sizing as BTC STACK and
+           USD RESERVE for left-to-right parity across the row (v1.12.5). -->
+      <div class="stat-value mono" id="tool-price">—</div>
+      <div class="stat-sub">live</div>
+    </div>
     <div class="stat gauge-tile">
       <div class="stat-label">Market</div>
       <div class="gauge-wrap">
@@ -924,10 +937,6 @@
 
   <!-- TOOLBAR -->
   <div class="toolbar">
-    <div class="tool">
-      <div class="k">BTC Price</div>
-      <div class="v" id="tool-price">—<small>live</small></div>
-    </div>
     <div class="tool">
       <!-- Self-labeling inline row: "X days | N trades | $X.XX fees" — no header needed. -->
       <div class="v trades-row" id="tool-trades">—</div>
@@ -1606,8 +1615,9 @@ function render(data, trades, settings, deposits) {
   const portfolioToday = btcStack * price + usdReserve;
   renderGrowth(data, trades, totalInvested, portfolioToday, price, depTotal != null, deposits);
 
-  // Toolbar
-  document.getElementById('tool-price').innerHTML = fmtUsd0(price) + '<small>live</small>';
+  // BTC Price card (top stats row as of v1.12.5; the "live" caption is the
+  // card's own .stat-sub line, so the value cell holds just the price).
+  document.getElementById('tool-price').textContent = fmtUsd0(price);
 
   // "Total Trades" tile: days | trades | fees. There is no stored bot start
   // time, so "days trading" is derived from the EARLIEST /api/trades timestamp
