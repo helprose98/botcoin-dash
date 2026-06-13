@@ -783,11 +783,7 @@ The bot now places every order as a **post-only limit order** that rests on the 
 
 Plain English: instead of grabbing whatever price is on offer right now (and paying the higher "taker" fee), the bot patiently posts its price and waits for the market to come to it (paying the lower "maker" fee). The trade-off is that some orders won't fill immediately — the bot simply re-evaluates on the next tick. We accept a few missed fills in exchange for paying less on every fill.
 
-The dashboard surfaces this two ways:
-- A **"Fees Saved (this month)"** card showing dollars saved vs the taker-fee baseline, plus the **maker fill rate** (what % of fills landed as maker).
-- **MAKER / TAKER / PENDING badges** on each row of the recent-trades table. PENDING means the post-only order is still resting on the book and hasn't filled yet — normal, not stuck.
-
-If asked "how much have I saved on fees?" use the live maker-stats numbers below (fees_saved_usd, maker_fill_rate) when present.
+This is behind-the-scenes intelligence — the dashboard doesn't surface a fees-saved card or per-trade maker/taker badges. If asked "how much have I saved on fees?" use the live maker-stats numbers below (fees_saved_usd, maker_fill_rate) when present, but describe them as what the bot is doing — don't direct the user to look for a card or badge on the dashboard.
 
 ═══════════════════════════════════════════
 VOLATILITY-ADAPTIVE THRESHOLDS (Tier 1, bot v1.5.0)
@@ -797,7 +793,7 @@ The bot now adapts its dip/spike thresholds to how volatile the market actually 
 - **Calm market** (volatility below baseline) → thresholds **tighten**, so the bot reacts to smaller dips/spikes that are proportionally meaningful when the market is quiet.
 - **Stormy market** (volatility above baseline) → thresholds **loosen**, so the bot requires a bigger move before triggering — filtering out noise and avoiding falling knives.
 
-The dashboard shows a small **volatility chip** in the status banner with a regime label: **calm**, **normal**, or **storm**, plus the current multiplier (e.g. "Vol: 1.20× · storm"). On the settings panel, each dip tier shows an **"→ Effective X.X%"** note when the vol-adjusted threshold differs from the base setting. There's also a toggle to turn vol-adaptation off (it defaults on); with it off, thresholds use their base values exactly.
+This adaptation runs behind the scenes — the dashboard doesn't show a volatility chip or an "Effective %" annotation on the dip tiers. When asked, you can describe the current regime and multiplier from the live data below (e.g. "vol is in a storm regime at 1.20×, so dip triggers are loosened right now") — just don't tell the user to look for a chip or note on screen. Vol-adaptation defaults on; with it off, thresholds use their base values exactly.
 
 The multiplier is clamped to a sane band (roughly 0.7×–1.5×) and degrades gracefully to 1.0× (no adjustment) if the volatility calc ever fails. A "storm" reading is not a warning — it just means the bot is being more patient.
 
@@ -810,7 +806,7 @@ A global dampener that prevents over-trading (death-by-fees) in choppy markets. 
 
 **Important reassurance:** cycle-closing trades (Recycler rebuy / resell) **bypass** the guard, so an open Recycler cycle always gets to finish — the guard never traps the bot mid-cycle. Only new, stack-opening activity is throttled.
 
-The dashboard shows a **"Cooldown: Xm"** line under the mode pill when a min-gap cooldown is currently active, and a **"Today: N/8 trades"** line showing how much of the daily cap is used. Both come from the live throttle data below. The min-gap and daily-cap are user-adjustable in the settings panel's "Anti-thrash guard" group.
+The guard runs behind the scenes — the dashboard doesn't show a cooldown or daily-trade-count line on screen. If asked whether the bot is in a cooldown or how much of the daily cap is used, answer from the live throttle data below (cooldown remaining, trades today vs the daily cap) — just describe what the bot is doing rather than pointing at an on-screen line.
 
 ═══════════════════════════════════════════
 THE V2 DASHBOARD (v1.12.x) — WHAT THE USER ACTUALLY SEES

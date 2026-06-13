@@ -69,9 +69,6 @@
   }
   .logo { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
   .logo span { color: var(--accent); }
-  /* Status pill + volatility chip stack, right-aligned. The chip drops below the
-     pill so neither overflows the banner on a 375px viewport (v1.13.8). */
-  .brand-status { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); }
   .pill {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 4px 10px; border-radius: 999px;
@@ -119,8 +116,6 @@
     white-space: nowrap; max-width: 100%;
   }
   .stat-value.btc { color: var(--accent); }
-  /* Hero numbers get vertical breathing room so the value leads the card. */
-  .stat-hero { padding-top: var(--space-5); padding-bottom: var(--space-4); justify-content: center; }
   .stat-sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
   /* BTC PRICE continuation appended to the BTC STACK card's "≈ $X today" line
      (v1.12.7). Wraps gracefully on narrow widths — no white-space:nowrap. The
@@ -606,7 +601,6 @@
     /* On narrow phones the top-grid is full-width single-column, so pin a fixed
        size that fits an 8-decimal BTC value rather than letting the vw clamp grow. */
     .stat-value { font-size: 32px; }
-    .stat-hero { padding-top: var(--space-4); padding-bottom: var(--space-3); }
     /* Portfolio sub-stats stack vertically (BTC Stack over USD Reserve) and the
        sub-stat hero numbers stay below the top total (v1.13.11). */
     .portfolio-breakdown { grid-template-columns: 1fr; }
@@ -813,9 +807,7 @@
 <div class="container">
   <header class="brand">
     <div class="logo">my<span>Bot</span>Coin</div>
-    <div class="brand-status">
-      <div class="pill"><span class="dot"></span> <span id="state-pill">Connecting…</span></div>
-    </div>
+    <div class="pill"><span class="dot"></span> <span id="state-pill">Connecting…</span></div>
   </header>
 
   <!-- TOP: PORTFOLIO / GAUGE -->
@@ -1703,22 +1695,6 @@ function flashInput(el, ok) {
   el.classList.remove('ok', 'err');
   el.classList.add(ok ? 'ok' : 'err');
   setTimeout(() => el.classList.remove('ok', 'err'), 900);
-}
-
-// Fetch monthly maker stats via the dash's /dash/maker_stats proxy (v1.13.8). The
-// proxy returns {available:false} when the bot is older / lacks the endpoint, and
-// this helper additionally maps any network error to null. render() treats both as
-// "hide the Fees Saved card", so an older bot is pixel-identical to v1.13.7.
-async function fetchMakerStats() {
-  try {
-    const r = await fetch(`/dash/maker_stats?ip=${BOT_IP}`, {
-      headers: { 'X-Bot-Password': BOT_PW }
-    });
-    if (!r.ok) return null;
-    return await r.json();
-  } catch (e) {
-    return null;
-  }
 }
 
 async function loadData() {
