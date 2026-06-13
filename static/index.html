@@ -184,13 +184,14 @@
   }
   .mode-caption { font-size: 12px; color: var(--text-faint); margin-top: 6px; }
 
-  /* Disclosure */
+  /* Disclosure — own full-width row beneath the hero (matches other top-level
+     rows like .hero / .duo so it spans the full dashboard content width). */
   details.adjust {
-    margin-top: var(--space-4);
     background: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    width: 100%; max-width: 560px;
+    width: 100%;
+    margin-bottom: var(--space-5);
   }
   details.adjust summary {
     list-style: none; cursor: pointer; padding: 12px 16px;
@@ -211,9 +212,11 @@
   .adjust-section { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
   .adjust-section + .adjust-section { border-top: 1px solid var(--divider); padding-top: 14px; }
   .adjust-section-title { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
-  .preset-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  /* Three equal columns at desktop so all aggression tiles sit on one row.
+     Collapses to a single column at the mobile breakpoint (see @media 760px). */
+  .preset-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .preset-btn {
-    flex: 1 1 auto; min-width: 0; padding: 8px 6px;
+    min-width: 0; padding: 8px 6px;
     background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--radius-sm);
     color: var(--text-muted); font-family: var(--font-body); font-size: 12px; font-weight: 600;
     cursor: pointer; transition: all var(--transition); text-align: center; line-height: 1.3;
@@ -454,6 +457,7 @@
   @media (max-width: 760px) {
     .top-grid, .duo, .toolbar { grid-template-columns: 1fr; }
     .adjust-body { grid-template-columns: 1fr; }
+    .preset-row { grid-template-columns: 1fr; }
     .knob-wrap { width: 260px; height: 260px; }
     /* On narrow phones the top-grid is full-width single-column, so pin a fixed
        size that fits an 8-decimal BTC value rather than letting the vw clamp grow. */
@@ -751,68 +755,71 @@
         <button class="mode-pill" data-mode="auto">Auto</button>
       </div>
       <div class="mode-caption" id="mode-caption"></div>
-
-      <details class="adjust">
-        <summary>Adjust thresholds &amp; DCA cadence</summary>
-        <div class="adjust-body">
-          <!-- Aggression presets: three options mirroring the three knob detents. -->
-          <div class="adjust-section">
-            <div class="adjust-section-title">Aggression preset</div>
-            <div class="preset-row" id="preset-row"></div>
-            <div class="adjust-caption">These match the three settings on the dial above.</div>
-          </div>
-
-          <!-- DCA amount + cadence -->
-          <div class="adjust-section">
-            <div class="adjust-section-title">Recurring buy (DCA)</div>
-            <div class="field-line">
-              <label for="dca-amount">Amount per buy</label>
-              <input class="num-input" id="dca-amount" type="number" min="5" step="1" inputmode="decimal" placeholder="—">
-            </div>
-            <div class="field-line">
-              <label for="dca-cadence">Cadence</label>
-              <select class="sel-input" id="dca-cadence">
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Sideways Market -->
-          <div class="adjust-section">
-            <div class="field-line">
-              <div class="adjust-section-title">Sideways Market</div>
-              <label class="toggle-switch">
-                <input type="checkbox" id="sideways-toggle">
-                <span class="toggle-track"></span>
-              </label>
-            </div>
-            <div id="sideways-params" style="display:none;flex-direction:column;gap:8px;">
-              <div class="field-line">
-                <label for="range-size">Trade size</label>
-                <input class="num-input" id="range-size" type="number" min="5" step="1" inputmode="decimal" placeholder="—">
-              </div>
-              <div class="field-line">
-                <label for="range-maxpos">Max open positions</label>
-                <input class="num-input" id="range-maxpos" type="number" min="1" step="1" inputmode="numeric" placeholder="—">
-              </div>
-            </div>
-            <div class="adjust-caption">Harvests small swings while BTC trades in a range. Always live as "Sideways Market."</div>
-          </div>
-
-          <!-- Advanced: software updates + legacy escape hatch -->
-          <div class="adjust-section">
-            <div class="adjust-section-title">Advanced</div>
-            <button class="advanced-btn" id="btn-update-bot" onclick="showUpdateModal()">Update Bot</button>
-            <button class="advanced-btn" id="btn-update-dash" onclick="showDashUpdateModal()" style="display:none">Update Dashboard</button>
-            <div class="adjust-caption">Updating the bot pulls the latest trading engine from GitHub and restarts it (~2 min). The dashboard update reloads this page.</div>
-            <a class="advanced-link" href="/v1">Open legacy dashboard →</a>
-          </div>
-        </div>
-      </details>
     </div>
   </section>
+
+  <!-- ADVANCED (twirl-down): own full-width row so the 3 aggression presets fit
+       on a single line and the panel spans the full dashboard content width. -->
+  <details class="adjust">
+    <summary>Adjust thresholds &amp; DCA cadence</summary>
+    <div class="adjust-body">
+      <!-- Aggression presets: three options mirroring the three knob detents. -->
+      <div class="adjust-section">
+        <div class="adjust-section-title">Aggression preset</div>
+        <div class="preset-row" id="preset-row"></div>
+        <div class="adjust-caption">These match the three settings on the dial above.</div>
+      </div>
+
+      <!-- DCA amount + cadence -->
+      <div class="adjust-section">
+        <div class="adjust-section-title">Recurring buy (DCA)</div>
+        <div class="field-line">
+          <label for="dca-amount">Amount per buy</label>
+          <input class="num-input" id="dca-amount" type="number" min="5" step="1" inputmode="decimal" placeholder="—">
+        </div>
+        <div class="field-line">
+          <label for="dca-cadence">Cadence</label>
+          <select class="sel-input" id="dca-cadence">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+        <div class="adjust-caption">DCA only buys when USD is available in your Kraken account.</div>
+      </div>
+
+      <!-- Sideways Market -->
+      <div class="adjust-section">
+        <div class="field-line">
+          <div class="adjust-section-title">Sideways Market</div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="sideways-toggle">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div id="sideways-params" style="display:none;flex-direction:column;gap:8px;">
+          <div class="field-line">
+            <label for="range-size">Trade size</label>
+            <input class="num-input" id="range-size" type="number" min="5" step="1" inputmode="decimal" placeholder="—">
+          </div>
+          <div class="field-line">
+            <label for="range-maxpos">Max open positions</label>
+            <input class="num-input" id="range-maxpos" type="number" min="1" step="1" inputmode="numeric" placeholder="—">
+          </div>
+        </div>
+        <div class="adjust-caption">Harvests small swings while BTC trades in a range. Always live as "Sideways Market."</div>
+      </div>
+
+      <!-- Advanced: software updates + legacy escape hatch -->
+      <div class="adjust-section">
+        <div class="adjust-section-title">Advanced</div>
+        <button class="advanced-btn" id="btn-update-bot" onclick="showUpdateModal()">Update Bot</button>
+        <button class="advanced-btn" id="btn-update-dash" onclick="showDashUpdateModal()" style="display:none">Update Dashboard</button>
+        <div class="adjust-caption">Updating the bot pulls the latest trading engine from GitHub and restarts it (~2 min). The dashboard update reloads this page.</div>
+        <a class="advanced-link" href="/v1">Open legacy dashboard →</a>
+      </div>
+    </div>
+  </details>
 
   <!-- TWO-UP: INVESTED / GROWTH -->
   <div class="duo">
