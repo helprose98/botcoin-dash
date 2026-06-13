@@ -79,6 +79,7 @@
     padding: var(--space-4) var(--space-4) var(--space-3);
     display: flex; flex-direction: column; gap: 4px;
     position: relative; overflow: hidden;
+    min-width: 0;   /* let the grid cell shrink so the value's clamp can take effect */
   }
   .stat-label {
     font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
@@ -86,8 +87,12 @@
   }
   .stat-value {
     font-family: var(--font-mono); font-weight: 800;
-    font-size: 56px; line-height: 1.05; letter-spacing: -0.03em; color: var(--text);
+    /* Hero scale that auto-shrinks with viewport so an 8-decimal BTC value fits
+       the card without truncation. Upper bound 44px; never below 28px. */
+    font-size: clamp(28px, 4.5vw, 44px);
+    line-height: 1.05; letter-spacing: -0.03em; color: var(--text);
     font-feature-settings: 'tnum' 'lnum';
+    white-space: nowrap; max-width: 100%;
   }
   .stat-value.btc { color: var(--accent); }
   /* Hero numbers get vertical breathing room so the value leads the card. */
@@ -133,11 +138,12 @@
   .knob-detent.active { fill: var(--accent); filter: drop-shadow(0 0 6px var(--accent-glow)); }
   .knob-svg .knob-hit { fill: transparent; cursor: pointer; pointer-events: auto; }
   .knob-center { fill: var(--surface-2); stroke: var(--border); stroke-width: 1; }
-  /* The needle + dot are wrapped in #needle-group and rotated together via the
-     group's SVG transform attribute (same pattern as the working market gauge).
-     The transition lives on the group so the rotate animates smoothly; the
-     individual line/dot carry only their paint so no competing CSS transform
-     can blank them out (was the v1.11.0 disappearing-needle bug). */
+  /* The needle + dot are wrapped in #needle-group and rotated together via a CSS
+     transform set in JS (element.style.transform = 'rotate(Ndeg)'). transform-box
+     + transform-origin pin the rotation to the knob centre, and the transition
+     animates it. We deliberately do NOT use the SVG `transform="rotate(N 150 150)"`
+     attribute here: combined with the CSS transform-origin it applied the centre
+     offset twice and sent the needle offscreen (the v1.11.1 bug). */
   .knob-needle-group {
     transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
     transform-box: view-box; transform-origin: 150px 150px;
@@ -438,8 +444,9 @@
     .top-grid, .duo, .toolbar { grid-template-columns: 1fr; }
     .adjust-body { grid-template-columns: 1fr; }
     .knob-wrap { width: 260px; height: 260px; }
-    /* Hero numbers scale down gracefully on narrow viewports. */
-    .stat-value { font-size: 40px; }
+    /* On narrow phones the top-grid is full-width single-column, so pin a fixed
+       size that fits an 8-decimal BTC value rather than letting the vw clamp grow. */
+    .stat-value { font-size: 32px; }
     .stat-hero { padding-top: var(--space-4); padding-bottom: var(--space-3); }
   }
 </style>
@@ -537,7 +544,7 @@
           <text class="knob-tick" data-pos="2" x="260" y="265" text-anchor="middle" style="cursor:pointer">Aggressive</text>
           <circle class="knob-center" cx="150" cy="150" r="62"/>
           <circle cx="150" cy="150" r="62" fill="none" stroke="rgba(247,147,26,0.15)" stroke-width="1"/>
-          <g id="needle-group" class="knob-needle-group" transform="rotate(0 150 150)">
+          <g id="needle-group" class="knob-needle-group">
             <line class="knob-needle" x1="150" y1="150" x2="150" y2="55"/>
             <circle class="knob-dot" cx="150" cy="55" r="4"/>
           </g>
@@ -1234,9 +1241,13 @@ function paintKnob(i) {
   const pos = KNOB_POSITIONS[i];
   document.getElementById('knob-label').textContent = pos.label;
   document.getElementById('knob-tag').textContent = pos.tag;
-  // Rotate the whole needle group via its SVG transform attribute (the CSS
-  // transition on .knob-needle-group animates it). One element, never blanked.
-  document.getElementById('needle-group').setAttribute('transform', `rotate(${pos.angle} 150 150)`);
+  // Rotate via CSS transform (not the SVG attribute). The .knob-needle-group
+  // CSS already supplies transform-box: view-box + transform-origin: 150px 150px,
+  // so a bare rotate() spins about the knob centre and the CSS transition
+  // animates it. Mixing CSS transform-origin with an SVG `rotate(N 150 150)`
+  // attribute applied the centre twice and flung the needle offscreen (the
+  // v1.11.1 bug). CSS transforms need the `deg` suffix.
+  document.getElementById('needle-group').style.transform = `rotate(${pos.angle}deg)`;
   document.querySelectorAll('.knob-detent').forEach((d, idx) => d.classList.toggle('active', idx === i));
   document.querySelectorAll('.knob-tick').forEach((t, idx) => t.classList.toggle('active', idx === i));
 }
