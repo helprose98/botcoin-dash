@@ -353,6 +353,11 @@
     <button class="connect-btn" id="btn-connect" onclick="connectToBot()">Connect to My Bot</button>
     <div class="connect-status" id="connect-status"></div>
     <div class="connect-error" id="connect-error"></div>
+    <div style="margin-top:var(--space-5);padding-top:var(--space-4);border-top:1px solid var(--border);text-align:center;">
+      <button onclick="location.href='/?setup=1'" style="background:none;border:none;color:var(--accent);font-family:var(--font-body);font-size:13px;font-weight:700;cursor:pointer;transition:opacity var(--transition);" onmouseover="this.style.opacity='0.75'" onmouseout="this.style.opacity='1'">
+        New to myBotCoin? Set up your bot →
+      </button>
+    </div>
     <div class="connect-legacy">Prefer the classic view? <a href="/">Open legacy dashboard →</a></div>
   </div>
 </div>
@@ -523,8 +528,9 @@
   <div class="trades">
     <div class="trades-head">
       <div class="trades-title">Recent Trades</div>
-      <div style="font-size:12px;color:var(--text-muted)">last 6 shown · <a href="/" style="color:var(--accent);text-decoration:none">view all →</a></div>
+      <div style="font-size:12px;color:var(--text-muted)"><span id="trades-count">last 6 shown</span> · <button id="trades-toggle" onclick="toggleAllTrades()" style="background:none;border:none;padding:0;font:inherit;color:var(--accent);cursor:pointer">view all →</button></div>
     </div>
+    <div id="trades-scroll">
     <table class="trades-table">
       <thead>
         <tr>
@@ -535,6 +541,7 @@
         <tr><td class="reason" colspan="5">Loading trades…</td></tr>
       </tbody>
     </table>
+    </div>
   </div>
 
   <footer>
@@ -570,6 +577,9 @@ const AGGRESSION_LEVELS = [
 let BOT_IP = '';
 let BOT_PW = '';
 let refreshTimer = null;
+let showAllTrades = false;          // Recent Trades: collapsed (last 6) vs all
+let lastTrades = [];                // cached for re-render on toggle
+let lastSettings = {};
 
 // ── Helpers ───────────────────────────────────────────────────────────
 function esc(s) {
@@ -956,14 +966,25 @@ function closingDelta(closeTrade, trades, openReason, unit, closeReason) {
 }
 
 function renderTrades(trades, settings) {
+  lastTrades = trades || [];
+  lastSettings = settings || {};
   const body = document.getElementById('trades-body');
+  const countEl = document.getElementById('trades-count');
+  const toggleEl = document.getElementById('trades-toggle');
+  const scrollEl = document.getElementById('trades-scroll');
+
   if (!trades || !trades.length) {
     body.innerHTML = '<tr><td class="reason" colspan="5">No trades yet.</td></tr>';
+    countEl.textContent = 'last 6 shown';
+    toggleEl.style.display = 'none';
+    scrollEl.style.maxHeight = '';
+    scrollEl.style.overflowY = '';
     return;
   }
-  // /api/trades returns most-recent-first already; take 6
-  const recent = trades.slice(0, 6);
-  body.innerHTML = recent.map(t => {
+
+  // /api/trades returns most-recent-first already; show all or just the last 6
+  const rows = showAllTrades ? trades : trades.slice(0, 6);
+  body.innerHTML = rows.map(t => {
     const side = (t.side || '').toLowerCase();
     const badge = side === 'sell'
       ? '<span class="badge sell">SELL</span>'
@@ -976,6 +997,30 @@ function renderTrades(trades, settings) {
       <td class="reason">${esc(reasonCopy(t, settings, trades))}</td>
     </tr>`;
   }).join('');
+
+  // Subtitle + toggle label reflect current state; hide toggle when ≤6 trades
+  if (trades.length <= 6) {
+    countEl.textContent = `${trades.length} shown`;
+    toggleEl.style.display = 'none';
+  } else {
+    toggleEl.style.display = '';
+    countEl.textContent = showAllTrades ? `showing all ${trades.length}` : 'last 6 shown';
+    toggleEl.textContent = showAllTrades ? 'show less ←' : 'view all →';
+  }
+
+  // Keep a long expanded list usable without taking over the page
+  if (showAllTrades && trades.length > 100) {
+    scrollEl.style.maxHeight = '600px';
+    scrollEl.style.overflowY = 'auto';
+  } else {
+    scrollEl.style.maxHeight = '';
+    scrollEl.style.overflowY = '';
+  }
+}
+
+function toggleAllTrades() {
+  showAllTrades = !showAllTrades;
+  renderTrades(lastTrades, lastSettings);
 }
 
 // Enter submits the connect form

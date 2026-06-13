@@ -1573,6 +1573,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginEl = document.getElementById('login-dash-version');
     if (loginEl) loginEl.textContent = `dash v${v.current}`;
   }).catch(() => {});
+
+  // Deep-link from the v2 connect screen: /?setup=1 opens the setup wizard
+  if (new URLSearchParams(location.search).get('setup') === '1') showInstaller();
 });
 
 function disconnect() {
