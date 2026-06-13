@@ -143,12 +143,34 @@
     background: radial-gradient(ellipse at center top, var(--accent-soft), transparent 60%);
     pointer-events: none;
   }
-  .hero-inner { position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  /* Two-column hero: dial on the left, level-info panel on the right.
+     On narrow screens it collapses to a single column. The header (.hero-title
+     "AGGRESSIVENESS") and the footer mode-pill row each span the full grid. */
+  .hero-inner {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(320px, 1fr) minmax(260px, 1fr);
+    align-items: center;
+    justify-items: center;
+    gap: var(--space-5);
+    width: 100%;
+  }
   .hero-title {
+    grid-column: 1 / -1;
+    justify-self: center;
     font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
     text-transform: uppercase; color: var(--text-muted);
   }
-  .knob-wrap { position: relative; width: clamp(320px, 60vw, 560px); aspect-ratio: 1 / 1; height: auto; }
+  .hero-knob-col   { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .hero-info-col   { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; width: 100%; max-width: 380px; }
+  .hero-footer     { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); width: 100%; }
+
+  /* Collapse to single column on narrow screens. */
+  @media (max-width: 760px) {
+    .hero-inner { grid-template-columns: 1fr; }
+    .hero-info-col { align-items: center; text-align: center; }
+  }
+  .knob-wrap { width: clamp(280px, 38vw, 420px); aspect-ratio: 1 / 1; height: auto; position: relative; }
   .knob-svg { width: 100%; height: 100%; cursor: default; }
   .knob-arc-bg { fill: none; stroke: var(--surface-3); stroke-width: 14; stroke-linecap: round; }
   .knob-arc-fg { fill: none; stroke: var(--accent); stroke-width: 14; stroke-linecap: round;
@@ -180,28 +202,49 @@
      Each label sits directly under its detent (no uniform-grid drift).
      The wrap is the same width as the dial so percentages map to SVG x. */
   .knob-scale {
-    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     width: 100%;
-    max-width: clamp(320px, 60vw, 560px);
-    height: 28px;          /* room for a single line of label text */
-    margin-top: 4px;
+    margin-top: 8px;
+    gap: 4px;
   }
   .knob-tick {
-    position: absolute;
-    top: 0;
-    transform: translateX(-50%);
-    font-size: 10px; font-weight: 600; font-family: var(--font-body);
-    letter-spacing: 0.02em; text-transform: uppercase;
-    color: var(--text-faint); cursor: pointer; line-height: 1.2;
-    background: none; border: none; padding: 4px 2px;
+    flex: 1 1 0;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: var(--font-body);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    cursor: pointer;
+    line-height: 1.2;
+    background: none;
+    border: none;
+    padding: 4px 2px;
     white-space: nowrap;
     transition: color var(--transition);
   }
   .knob-tick:hover { color: var(--accent-hover); }
-  .knob-tick.active { color: var(--accent); }
+  .knob-tick.active { color: var(--accent); text-shadow: 0 0 8px var(--accent-glow); }
   .knob-label-wrap { text-align: center; margin-top: 2px; }
   .knob-label { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
   .knob-tag { font-size: 13px; color: var(--text-muted); margin-top: 2px; max-width: 360px; }
+  .knob-thresholds {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-family: var(--font-body);
+  }
+  .knob-thresh-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .knob-thresh-values {
+    font-family: var(--font-mono); font-size: 14px; color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
 
   /* Mode pills */
   .mode-row { display: flex; gap: 8px; margin-top: var(--space-3); }
@@ -792,6 +835,8 @@
   <section class="hero">
     <div class="hero-inner">
       <div class="hero-title">Aggressiveness</div>
+
+      <div class="hero-knob-col">
       <div class="knob-wrap">
         <!-- Five detents evenly spaced across the 270° arc (−135°…+135°, step
              67.5°). Detent dots sit on radius 120 about centre (150,150); the
@@ -823,22 +868,33 @@
           <circle cx="150" cy="150" r="14" fill="#0D0C0B" stroke="#332F2A" stroke-width="1"/>
           <circle cx="150" cy="150" r="3" fill="#F7931A"/>
         </svg>
+        <!-- Slider-style label scale: one clickable label per detent, left→right in
+             detent order. Populated by renderKnob() from AGGRESSION_LEVELS. Sits
+             directly below the SVG inside the dial column. -->
+        <div class="knob-scale" id="knob-scale"></div>
       </div>
-      <!-- Slider-style label scale: one clickable label per detent, left→right in
-           detent order. Populated by renderKnob() from AGGRESSION_LEVELS. -->
-      <div class="knob-scale" id="knob-scale"></div>
-      <div class="knob-label-wrap">
-        <div class="knob-label" id="knob-label">—</div>
-        <div class="knob-tag" id="knob-tag">—</div>
       </div>
 
-      <!-- mode pills -->
-      <div class="mode-row">
-        <button class="mode-pill" data-mode="btc">BTC</button>
-        <button class="mode-pill" data-mode="usd">USD</button>
-        <button class="mode-pill" data-mode="auto">Auto</button>
+      <div class="hero-info-col">
+        <div class="knob-label-wrap">
+          <div class="knob-label" id="knob-label">—</div>
+          <div class="knob-tag" id="knob-tag">—</div>
+        </div>
+        <div class="knob-thresholds">
+          <span class="knob-thresh-label">Thresholds</span>
+          <span class="knob-thresh-values" id="knob-thresholds">T1 — · T2 — · T3 —</span>
+        </div>
       </div>
-      <div class="mode-caption" id="mode-caption"></div>
+
+      <div class="hero-footer">
+        <!-- mode pills -->
+        <div class="mode-row">
+          <button class="mode-pill" data-mode="btc">BTC</button>
+          <button class="mode-pill" data-mode="usd">USD</button>
+          <button class="mode-pill" data-mode="auto">Auto</button>
+        </div>
+        <div class="mode-caption" id="mode-caption">Bot auto-switches based on 200-day MA.</div>
+      </div>
     </div>
   </section>
 
@@ -1113,11 +1169,6 @@ const TREND_ESTABLISHED_DAYS = 60;
 //   tag     — short caption shown beside the dial when this level is selected
 //   summary — one-sentence plain-English description of what this level does to
 //             Andy's stack (grounded in trading-logic.md, not invented)
-// Detent x-positions as a percentage of the 300-unit SVG width, in detent
-// (index) order. These are the true geometric x-fractions of the five detents
-// on the 270° arc (cx = 65.1, 39.1, 150, 260.9, 234.9), NOT a uniform spread —
-// used to absolutely position each .knob-tick label directly under its detent.
-const DETENT_X_PERCENT = [21.7, 13.0, 50.0, 87.0, 78.3];
 const AGGRESSION_LEVELS = [
   {
     key: 'conservative', label: 'Conservative',
@@ -1860,7 +1911,7 @@ function buildKnobScale() {
   const scale = document.getElementById('knob-scale');
   if (scale.childElementCount === AGGRESSION_LEVELS.length) return;  // already built
   scale.innerHTML = AGGRESSION_LEVELS.map((lvl, idx) =>
-    `<button type="button" class="knob-tick" data-pos="${idx}" style="left: ${DETENT_X_PERCENT[idx]}%">${esc(lvl.label)}</button>`
+    `<button type="button" class="knob-tick" data-pos="${idx}">${esc(lvl.label)}</button>`
   ).join('');
 }
 
@@ -1879,6 +1930,18 @@ function paintKnob(needleIdx, activeIdx) {
   document.getElementById('knob-tag').textContent = sel
     ? sel.tag
     : 'Custom thresholds — no preset matches the bot\u2019s current settings.';
+  // Threshold readout (T1/T2/T3 percentages) for the selected level. The dip
+  // tiers are stored as decimal-string fractions (e.g. '0.12' → 12%); show one
+  // decimal place for sub-2%/sub-4% values so Ultra's 1.5%/3% don't round away.
+  if (sel) {
+    const t1 = (parseFloat(sel.dip1) * 100).toFixed(parseFloat(sel.dip1) < 0.02 ? 1 : 0);
+    const t2 = (parseFloat(sel.dip2) * 100).toFixed(parseFloat(sel.dip2) < 0.04 ? 1 : 0);
+    const t3 = (parseFloat(sel.dip3) * 100).toFixed(parseFloat(sel.dip3) < 0.04 ? 1 : 0);
+    document.getElementById('knob-thresholds').textContent =
+      `T1 ${t1}% · T2 ${t2}% · T3 ${t3}%`;
+  } else {
+    document.getElementById('knob-thresholds').textContent = 'T1 — · T2 — · T3 —';
+  }
   // Rotate via CSS transform (not the SVG attribute). The .knob-needle-group
   // CSS already supplies transform-box: view-box + transform-origin: 150px 150px,
   // so a bare rotate() spins about the knob centre and the CSS transition
