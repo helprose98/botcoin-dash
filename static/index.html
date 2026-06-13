@@ -178,6 +178,25 @@
   .knob-detent:hover { fill: var(--accent-hover); }
   .knob-detent.active { fill: var(--accent); filter: drop-shadow(0 0 6px var(--accent-glow)); }
   .knob-svg .knob-hit { fill: transparent; cursor: pointer; pointer-events: auto; }
+  /* Radial level labels (SVG <text>) anchored around the dial perimeter. Scoped
+     to #knob so they don't collide with the .knob-label headline div in the info
+     column (which shares the class name). */
+  #knob .knob-label {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    fill: var(--text-faint);
+    cursor: pointer;
+    user-select: none;
+    transition: fill var(--transition);
+    paint-order: stroke;
+  }
+  #knob .knob-label:hover { fill: var(--accent-hover); }
+  #knob .knob-label.active {
+    fill: var(--accent);
+    filter: drop-shadow(0 0 6px var(--accent-glow));
+  }
   .knob-center { fill: var(--surface-2); stroke: var(--border); stroke-width: 1; }
   /* The needle + dot are wrapped in #needle-group and rotated together via a CSS
      transform set in JS (element.style.transform = 'rotate(Ndeg)'). transform-box
@@ -192,41 +211,6 @@
   .knob-needle { stroke: var(--accent); stroke-width: 4; stroke-linecap: round;
     filter: drop-shadow(0 0 8px var(--accent-glow)); }
   .knob-dot { fill: var(--accent); filter: drop-shadow(0 0 8px var(--accent-glow)); }
-  /* Slider-style label scale beneath the dial: five evenly-weighted, clickable
-     labels in detent order. Replaces the per-detent SVG <text> ticks — five arc
-     labels would overlap and risk glyph cutoff. Full width so the labels spread
-     under their detents; wraps gracefully on very narrow screens. */
-  /* Label scale anchored to actual detent x-positions on the 270° arc.
-     Each label sits directly under its detent (no uniform-grid drift).
-     The wrap is the same width as the dial so percentages map to SVG x. */
-  .knob-scale {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    margin-top: 0;
-    gap: 6px 10px;
-  }
-  .knob-tick {
-    flex: 0 0 auto;
-    text-align: center;
-    font-size: 10px;
-    font-weight: 600;
-    font-family: var(--font-body);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--text-faint);
-    cursor: pointer;
-    line-height: 1.2;
-    background: none;
-    border: none;
-    padding: 4px 6px;
-    white-space: nowrap;
-    transition: color var(--transition);
-  }
-  .knob-tick:hover { color: var(--accent-hover); }
-  .knob-tick.active { color: var(--accent); text-shadow: 0 0 8px var(--accent-glow); }
   .knob-label-wrap { text-align: center; margin-top: 2px; }
   .knob-label { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
   .knob-tag { font-size: 13px; color: var(--text-muted); margin-top: 2px; max-width: 360px; }
@@ -840,10 +824,10 @@
         <!-- Five detents evenly spaced across the 270° arc (−135°…+135°, step
              67.5°). Detent dots sit on radius 120 about centre (150,150); the
              coordinates below are 150 + 120·sin(θ) , 150 − 120·cos(θ). Labels are
-             rendered as a separate HTML scale beneath the dial (see .knob-scale)
-             rather than as SVG text — five labels around the arc would collide and
-             risk glyph cutoff (the v1.12.0 "C" bug). -->
-        <svg class="knob-svg" viewBox="0 0 300 300" id="knob">
+             SVG <text> anchored on a concentric outer circle of radius 156 (1.3×
+             the detent radius), one per detent — see the .knob-labels group below.
+             The viewBox is widened to -60 -20 420 320 so they never clip. -->
+        <svg class="knob-svg" viewBox="-60 -20 420 320" id="knob">
           <path class="knob-arc-bg" d="M 65 235 A 120 120 0 1 1 235 235"/>
           <g id="detents">
             <circle class="knob-detent" data-pos="0" cx="65.1"  cy="234.9" r="6"/>
@@ -866,6 +850,15 @@
           </g>
           <circle cx="150" cy="150" r="14" fill="#0D0C0B" stroke="#332F2A" stroke-width="1"/>
           <circle cx="150" cy="150" r="3" fill="#F7931A"/>
+          <!-- Radial level labels, one anchored to each detent (label-radius 1.3×
+               detent-radius). Click-to-snap routes through the same handler as the dots. -->
+          <g class="knob-labels">
+            <text class="knob-label" data-pos="0" x="39.6"  y="260.4" text-anchor="end"    dominant-baseline="middle" dx="-4">CONSERVATIVE</text>
+            <text class="knob-label" data-pos="1" x="5.8"   y="90.3"  text-anchor="end"    dominant-baseline="middle" dx="-4">BALANCED</text>
+            <text class="knob-label" data-pos="2" x="150"   y="-6"    text-anchor="middle" dominant-baseline="baseline" dy="-4">MODERATE</text>
+            <text class="knob-label" data-pos="3" x="294.2" y="90.3"  text-anchor="start"  dominant-baseline="middle" dx="4">AGGRESSIVE</text>
+            <text class="knob-label" data-pos="4" x="260.4" y="260.4" text-anchor="start"  dominant-baseline="middle" dx="4">ULTRA</text>
+          </g>
         </svg>
       </div>
       </div>
@@ -879,9 +872,6 @@
           <span class="knob-thresh-label">Thresholds</span>
           <span class="knob-thresh-values" id="knob-thresholds">T1 — · T2 — · T3 —</span>
         </div>
-        <!-- Slider-style label scale: one clickable label per detent, left→right in
-             detent order. Populated by renderKnob() from AGGRESSION_LEVELS. -->
-        <div class="knob-scale" id="knob-scale"></div>
         <!-- mode pills -->
         <div class="mode-row">
           <button class="mode-pill" data-mode="btc">BTC</button>
@@ -947,13 +937,6 @@
         <div class="adjust-caption">Harvests small swings while BTC trades in a range. Always live as "Sideways Market."</div>
       </div>
 
-      <!-- Advanced: software updates -->
-      <div class="adjust-section">
-        <div class="adjust-section-title">Advanced</div>
-        <button class="advanced-btn" id="btn-update-bot" onclick="showUpdateModal()">Update Bot</button>
-        <button class="advanced-btn" id="btn-update-dash" onclick="showDashUpdateModal()" style="display:none">Update Dashboard</button>
-        <div class="adjust-caption">Updating the bot pulls the latest trading engine from GitHub and restarts it (~2 min). The dashboard update reloads this page.</div>
-      </div>
     </div>
   </details>
 
@@ -1577,15 +1560,10 @@ function footerStatus(bot) {
  * clobbering an in-progress edit.
  */
 function wireControls() {
-  // Knob detents + transparent hit-targets — static SVG elements, direct listeners.
-  document.querySelectorAll('#knob .knob-detent, #knob .knob-hit').forEach(el => {
+  // Knob detents, transparent hit-targets, and radial labels — static SVG
+  // elements, direct listeners. All route to the same detent-snap handler.
+  document.querySelectorAll('#knob .knob-detent, #knob .knob-hit, #knob .knob-label').forEach(el => {
     el.addEventListener('click', () => setAggression(parseInt(el.dataset.pos, 10)));
-  });
-  // Scale labels are rebuilt each poll by buildKnobScale(), so delegate from the
-  // stable container (same pattern as the preset tiles).
-  document.getElementById('knob-scale').addEventListener('click', e => {
-    const tick = e.target.closest('.knob-tick');
-    if (tick) setAggression(parseInt(tick.dataset.pos, 10));
   });
 
   // Mode pills.
@@ -1695,6 +1673,19 @@ async function loadData() {
   }
 }
 
+// Parent mode: above 200MA → BTC Accumulation, below → USD Accumulation.
+// Falls back to the bot's own mode field, then to price-vs-MA, then null if all unknown.
+function deriveParentMode(b, price) {
+  const side = b?.trend?.side;
+  if (side === 'above') return 'BTC Accumulation';
+  if (side === 'below') return 'USD Accumulation';
+  const rawMode = (b?.mode || '').toLowerCase();
+  if (rawMode.includes('usd')) return 'USD Accumulation';
+  if (rawMode.includes('btc')) return 'BTC Accumulation';
+  if (b?.ma200 && price) return price >= b.ma200 ? 'BTC Accumulation' : 'USD Accumulation';
+  return null;
+}
+
 // ── Render ────────────────────────────────────────────────────────────
 function render(data, trades, settings, deposits) {
   const p = data.portfolio || {};
@@ -1704,11 +1695,10 @@ function render(data, trades, settings, deposits) {
   const btcStack = p.btc_balance || 0;
   const usdReserve = p.usd_balance || 0;
 
-  // Parent mode from mood colour (bear → USD Accum, bull → BTC Accum)
-  const parentMode = (mood.color === 'bear') ? 'USD Accumulation'
-                   : (mood.color === 'bull' || mood.color === 'positive') ? 'BTC Accumulation'
-                   : 'BTC Accumulation';
-  document.getElementById('state-pill').textContent = `Running · ${parentMode}`;
+  // Parent mode from the bot's actual 200-MA trend (b.trend.side), with fallbacks.
+  const parentMode = deriveParentMode(b, price);
+  document.getElementById('state-pill').textContent =
+    parentMode ? `Running · ${parentMode}` : 'Running';
 
   // Top stats
   document.getElementById('btc-stack').textContent = fmtBtc(btcStack);
@@ -1891,23 +1881,9 @@ function detectLevel(settings) {
  * @param {Object} settings  Live /api/settings object.
  */
 function renderKnob(settings) {
-  buildKnobScale();                              // idempotent; labels never change
   const i = detectLevel(settings);
   paintKnob(i < 0 ? 2 : i, i);                   // needle on Moderate when custom
   lastLevel = i < 0 ? 2 : i;
-}
-
-/**
- * Build the HTML label scale beneath the dial, one clickable label per level in
- * detent order. Rendered once (re-running just rewrites identical markup) since
- * the level set is static. Each label routes clicks to setAggression().
- */
-function buildKnobScale() {
-  const scale = document.getElementById('knob-scale');
-  if (scale.childElementCount === AGGRESSION_LEVELS.length) return;  // already built
-  scale.innerHTML = AGGRESSION_LEVELS.map((lvl, idx) =>
-    `<button type="button" class="knob-tick" data-pos="${idx}">${esc(lvl.label)}</button>`
-  ).join('');
 }
 
 /**
@@ -1945,7 +1921,7 @@ function paintKnob(needleIdx, activeIdx) {
   // v1.11.1 bug). CSS transforms need the `deg` suffix.
   document.getElementById('needle-group').style.transform = `rotate(${lvl.angle}deg)`;
   document.querySelectorAll('.knob-detent').forEach((d, idx) => d.classList.toggle('active', idx === activeIdx));
-  document.querySelectorAll('.knob-tick').forEach((t, idx) => t.classList.toggle('active', idx === activeIdx));
+  document.querySelectorAll('#knob .knob-label').forEach((t, idx) => t.classList.toggle('active', idx === activeIdx));
 }
 
 /**
@@ -2587,6 +2563,7 @@ async function executeUpdate() {
 }
 
 /** Open the Update Dashboard confirm modal, pre-filling current/latest versions. */
+// Dash auto-deploys on push; kept for emergency manual trigger if reintroduced later.
 function showDashUpdateModal() {
   const cur = _dashVersionData?.current ?? '—';
   const latest = _dashVersionData?.latest ?? cur;
