@@ -84,14 +84,13 @@
   .pill .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--green); box-shadow: 0 0 8px var(--green); }
 
   /* === TOP STATUS ROW === */
-  /* Three cards at desktop: BTC STACK | USD RESERVE | MARKET (gauge). The two
-     numeric cards share an equal 1fr each; the gauge column is given 1.1fr so the
-     220px gauge SVG keeps breathing room and centres comfortably. BTC PRICE lives
-     as a sub-line inside the BTC STACK card (v1.12.7 — reverted v1.12.5's split
-     into a standalone fourth card). */
+  /* Two cards at desktop (v1.13.11): PORTFOLIO | MARKET (gauge). The Portfolio
+     card now contains the total value plus two sub-stats (BTC STACK + USD
+     RESERVE) so it gets ~2/3 of the row (2fr); the gauge column keeps its prior
+     1.1fr so the 220px gauge SVG is unchanged in size and position. */
   .top-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1.1fr;
+    grid-template-columns: 2fr 1.1fr;
     gap: var(--space-3);
     margin-bottom: var(--space-5);
   }
@@ -134,6 +133,36 @@
   .stat-sub-inline { color: var(--text-muted); }
   .stat-sub-inline .price { color: var(--text); }
   .stat-sub-inline .live  { color: var(--text-faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* === PORTFOLIO card (v1.13.11) ============================================
+     Combines the former BTC STACK + USD RESERVE cards. Reuses the .stat shell
+     (padding, border, radius). A centred top region promotes the total value;
+     a 2-column breakdown beneath holds the two former cards at a smaller scale
+     so the hierarchy reads total-first, stack/reserve-second. */
+  .portfolio-card { gap: var(--space-3); }
+  .portfolio-total {
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center; gap: 2px;
+    padding-top: var(--space-3); padding-bottom: var(--space-2);
+  }
+  /* Live BTC price line directly under the total — same look as the old
+     "BTC $X live" sub-text. */
+  .portfolio-total-sub { margin-top: 4px; }
+  /* Breakdown: two sub-stats side-by-side; collapses to 1-column on mobile
+     (see @media 760px below). A faint top border separates it from the total. */
+  .portfolio-breakdown {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border);
+  }
+  .portfolio-sub-stat { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  /* Sub-stat hero numbers sit at ~78% of the top total's scale so the total
+     stays unmistakably the lead figure. */
+  .portfolio-sub-stat .stat-value {
+    font-size: clamp(22px, 3.5vw, 34px);
+  }
 
   /* Market gauge tile */
   .gauge-tile { padding: var(--space-3) var(--space-4) var(--space-3); align-items: center; gap: 4px; }
@@ -619,6 +648,10 @@
        size that fits an 8-decimal BTC value rather than letting the vw clamp grow. */
     .stat-value { font-size: 32px; }
     .stat-hero { padding-top: var(--space-4); padding-bottom: var(--space-3); }
+    /* Portfolio sub-stats stack vertically (BTC Stack over USD Reserve) and the
+       sub-stat hero numbers stay below the top total (v1.13.11). */
+    .portfolio-breakdown { grid-template-columns: 1fr; }
+    .portfolio-sub-stat .stat-value { font-size: 25px; }
   }
 
   /* === ASK BOTCOIN (Grok chat) ============================================ */
@@ -829,25 +862,38 @@
     </div>
   </header>
 
-  <!-- TOP: STACK / RESERVE / GAUGE -->
+  <!-- TOP: PORTFOLIO / GAUGE -->
   <div class="top-grid">
-    <div class="stat stat-hero">
-      <div class="stat-label">BTC Stack</div>
-      <div class="stat-value btc mono" id="btc-stack">—</div>
-      <!-- "≈ $X today" is set on #btc-stack-sub; the live BTC price continues on
-           the same line via #tool-price (v1.12.7 — reverted v1.12.5's standalone
-           BTC PRICE card). The live-price poll still targets #tool-price, so no
-           poll rewiring is needed; it just sets the inline span instead. -->
-      <div class="stat-sub">
-        <span id="btc-stack-sub">—</span>
-        <span class="stat-sub-sep">&nbsp;·&nbsp;</span>
-        <span class="stat-sub-inline" id="tool-price">—</span>
+    <!-- PORTFOLIO card (v1.13.11): the former BTC STACK + USD RESERVE cards
+         consolidated into one. Top region promotes the total portfolio value
+         (BTC value + USD reserve) with the live BTC price beneath it; the
+         bottom region keeps both former cards as smaller side-by-side
+         sub-stats so the stack-growth signal is retained. -->
+    <div class="stat portfolio-card">
+      <div class="stat-label">Portfolio</div>
+      <div class="portfolio-total">
+        <div class="stat-value btc mono" id="portfolio-total">—</div>
+        <!-- Live BTC price, moved up from the old BTC STACK sub-line. The
+             live-price poll still targets #tool-price, so it stays the element
+             whose value updates. -->
+        <div class="portfolio-total-sub stat-sub">
+          <span class="stat-sub-inline" id="tool-price">—</span>
+        </div>
       </div>
-    </div>
-    <div class="stat stat-hero">
-      <div class="stat-label">USD Reserve</div>
-      <div class="stat-value mono" id="usd-reserve">—</div>
-      <div class="stat-sub">dry powder available</div>
+      <div class="portfolio-breakdown">
+        <div class="portfolio-sub-stat">
+          <div class="stat-label">BTC Stack</div>
+          <div class="stat-value btc mono" id="btc-stack">—</div>
+          <!-- "≈ $X today" only here now; the live BTC price moved up to the
+               header sub-text (v1.13.11) to avoid redundancy. -->
+          <div class="stat-sub"><span id="btc-stack-sub">—</span></div>
+        </div>
+        <div class="portfolio-sub-stat">
+          <div class="stat-label">USD Reserve</div>
+          <div class="stat-value mono" id="usd-reserve">—</div>
+          <div class="stat-sub">dry powder available</div>
+        </div>
+      </div>
     </div>
     <div class="stat gauge-tile">
       <div class="stat-label">Market</div>
@@ -1863,10 +1909,17 @@ function render(data, trades, settings, deposits) {
   document.getElementById('state-pill').textContent =
     parentMode ? `Running · ${parentMode}` : 'Running';
 
-  // Top stats
+  // Top stats — Portfolio card (v1.13.11). The total is the same expression the
+  // GROWTH card used for "Portfolio today": BTC value + USD reserve. Falls back
+  // to "—" gracefully if neither component is available (e.g. price missing).
   document.getElementById('btc-stack').textContent = fmtBtc(btcStack);
   document.getElementById('btc-stack-sub').textContent = '≈ ' + fmtUsd(btcStack * price) + ' today';
   document.getElementById('usd-reserve').textContent = fmtUsd(usdReserve);
+  const portfolioTotal = (p.btc_balance != null || p.usd_balance != null)
+    ? btcStack * price + usdReserve
+    : null;
+  document.getElementById('portfolio-total').textContent =
+    portfolioTotal != null ? fmtUsd(portfolioTotal) : '—';
 
   renderGauge(price, b.ma200, mood, b.trend, b?.ma_days_built);
   renderKnob(settings);
@@ -2410,9 +2463,10 @@ function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDe
   // and USD transfers are valued on the same scale CoinGecko backfilled.
   renderGrowthApy(deposits, portfolioToday);
 
+  // "Portfolio today" moved to the new PORTFOLIO card (v1.13.11). Only the
+  // invested-basis caveat remains here, shown when deposits are still syncing.
   document.getElementById('growth-meta').textContent =
-    'Portfolio today: ' + fmtUsd(portfolioToday) + ' (BTC + USD reserve)' +
-    (haveDeposits ? '' : ' · invested basis incomplete (deposits syncing)');
+    haveDeposits ? '' : 'Invested basis incomplete (deposits syncing)';
 
   // Growth breakdown — exactly two signed buckets that sum to the headline
   // `growth` figure above (v1.12.7):
