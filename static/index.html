@@ -444,19 +444,6 @@
   .tool .v small { font-size: 11px; color: var(--text-muted); font-weight: 500; margin-left: 4px; font-family: var(--font-body); letter-spacing: 0; }
   .tool .v.bear { color: var(--red); }
   .tool .v.bull { color: var(--green); }
-  /* Fees Saved card (v1.13.8) — standalone stat card under the toolbar. Matches
-     the surface/border treatment of .toolbar; the green value ties it to the
-     "money saved" framing. */
-  .fees-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: var(--space-3) var(--space-4);
-    margin-bottom: var(--space-5);
-  }
-  .fees-card .k { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
-  .fees-card .v { font-size: 24px; font-weight: 700; color: var(--green); margin-top: 2px; }
-  .fees-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
   /* Total Trades: 3 self-labeling items on one line. Headerless, so it grows to
      fill the cell height and stays vertically centred against its labelled siblings.
      Horizontally centred so it sits balanced in the wider middle column of the
@@ -1107,16 +1094,6 @@
       <div class="k">Avg Cost / BTC</div>
       <div class="v" id="tool-avgcost">—</div>
     </div>
-  </div>
-
-  <!-- FEES SAVED (v1.13.8) — maker-only fee savings for the current month.
-       Hidden by default; render() reveals it only when /dash/maker_stats returns
-       a usable payload (available !== false AND maker_fill_rate present). Against
-       an older bot the card stays display:none, so the layout is unchanged. -->
-  <div class="fees-card" id="fees-card" style="display:none">
-    <div class="k" id="fees-label">Fees Saved</div>
-    <div class="v mono" id="fees-value">—</div>
-    <div class="fees-sub" id="fees-sub"></div>
   </div>
 
   <!-- TRADE HISTORY -->
@@ -1831,17 +1808,12 @@ async function fetchMakerStats() {
 
 async function loadData() {
   try {
-    const [data, trades, settings, deposits, makerRaw] = await Promise.all([
+    const [data, trades, settings, deposits] = await Promise.all([
       botFetch('/api/status'),
       botFetch('/api/trades').catch(() => []),
       botFetch('/api/settings').catch(() => ({})),
-      botFetch('/api/deposits').catch(() => null),  // graceful: null on failure
-      fetchMakerStats()                              // graceful: null on failure
+      botFetch('/api/deposits').catch(() => null)   // graceful: null on failure
     ]);
-    // Hide the Fees Saved card on any error / missing field (older bot). Only a
-    // payload that is explicitly available AND carries a maker_fill_rate counts.
-    const makerStats = (makerRaw && makerRaw.available !== false
-                        && makerRaw.maker_fill_rate !== undefined) ? makerRaw : null;
     // Diagnostic — one-time on first poll so Andy can see /api/deposits shape in DevTools.
     if (!window._depositsLogged) {
       window._depositsLogged = true;
@@ -1856,7 +1828,7 @@ async function loadData() {
     // the optimistic UI with now-stale pre-save values. The next poll (or the
     // post-save render) reflects the new state.
     if (window._savingSettings) return;
-    render(data || {}, trades || [], settings || {}, deposits, makerStats);
+    render(data || {}, trades || [], settings || {}, deposits);
     document.getElementById('last-updated').textContent =
       'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
   } catch (e) {
@@ -1878,7 +1850,7 @@ function deriveParentMode(b, price) {
 }
 
 // ── Render ────────────────────────────────────────────────────────────
-function render(data, trades, settings, deposits, makerStats) {
+function render(data, trades, settings, deposits) {
   const p = data.portfolio || {};
   const b = data.bot || {};
   const mood = data.mood || {};
@@ -1955,9 +1927,9 @@ function render(data, trades, settings, deposits, makerStats) {
   // Footer status — derived from live bot state (mode + Sideways Market).
   document.getElementById('footer-status').textContent = footerStatus(b);
 
-  // Tier 1 surfaces (v1.13.8): volatility chip, throttle lines, effective dip
-  // thresholds, and the Fees Saved card. All self-hide against an older bot.
-  renderTier1(b, settings, makerStats);
+  // Tier 1 surfaces (v1.13.8): volatility chip, throttle lines, and effective
+  // dip thresholds. All self-hide against an older bot.
+  renderTier1(b, settings);
 
   renderTrades(trades, settings);
 }
@@ -1965,14 +1937,12 @@ function render(data, trades, settings, deposits, makerStats) {
 /**
  * Paint the Tier 1 (bot v1.5.0) UI surfaces. Every block uses optional chaining
  * and explicit !== undefined guards so a v1.4.0 bot — which omits all of these
- * fields — produces empty slots and a hidden Fees Saved card, leaving the
- * dashboard pixel-identical to v1.13.7.
+ * fields — produces empty slots, leaving the dashboard pixel-identical to v1.13.7.
  *
  * @param {Object} b           The `bot` block from /api/status.
  * @param {Object} settings    Live /api/settings object (for effective tiers).
- * @param {Object|null} makerStats  /dash/maker_stats payload, or null when hidden.
  */
-function renderTier1(b, settings, makerStats) {
+function renderTier1(b, settings) {
   b = b || {};
   settings = settings || {};
 
@@ -2027,23 +1997,6 @@ function renderTier1(b, settings, makerStats) {
       `<span class="effective-note">→ Effective ${esc(effParts.join(' · '))}${esc(volNote)}</span>`;
   } else {
     effSlot.innerHTML = '';
-  }
-
-  // 2 (stat card) — Fees Saved this month. makerStats is already gated in
-  // loadData (null = hide), so a non-null value here is safe to show.
-  const feesCard = document.getElementById('fees-card');
-  if (makerStats) {
-    document.getElementById('fees-label').textContent =
-      `Fees Saved (${makerStats.month || 'this month'})`;
-    document.getElementById('fees-value').textContent =
-      fmtUsd(makerStats.fees_saved_usd || 0);
-    const rate = Math.round((makerStats.maker_fill_rate || 0) * 100);
-    const closed = makerStats.trades_closed;
-    const closedStr = (closed !== undefined && closed !== null) ? ` · ${esc(String(closed))} trades` : '';
-    document.getElementById('fees-sub').innerHTML = `${rate}% maker fill rate${closedStr}`;
-    feesCard.style.display = '';
-  } else {
-    feesCard.style.display = 'none';
   }
 }
 
