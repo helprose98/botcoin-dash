@@ -705,11 +705,18 @@ LIVE USER DATA
 
 @app.route("/")
 def index():
+    # v2 is the default dashboard as of v1.12.0 (static/index.html is the v2 content).
     return send_from_directory("static", "index.html")
+
+@app.route("/v1")
+def index_v1():
+    # Legacy dashboard, preserved for users who prefer it or for debugging.
+    return send_from_directory("static", "v1.html")
 
 @app.route("/v2")
 def index_v2():
-    return send_from_directory("static", "v2.html")
+    # Transitional redirect: v2 is now served at /, so keep old /v2 bookmarks working.
+    return Response(status=301, headers={"Location": "/"})
 
 @app.route("/about")
 def about_page():
