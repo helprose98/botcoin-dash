@@ -331,6 +331,12 @@
   .growth-pct { font-size: 14px; color: var(--green); font-weight: 600; }
   .growth-pct.neg { color: var(--red); }
   .growth-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  /* APY equivalent (money-weighted annualized return). Hidden until xirr() yields a number. */
+  .growth-apy { font-size: 15px; font-weight: 700; color: var(--green); margin-top: 6px; }
+  .growth-apy.neg { color: var(--red); }
+  .growth-apy .apy-label { font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--text-muted); margin-left: 4px; }
+  .growth-comparator { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
 
   /* === TOOLBAR === */
   /* Hero numbers row (BTC Price | trades/fees | Avg Cost/BTC). Three blocks on a
@@ -892,6 +898,8 @@
       <div class="growth-hero">
         <div class="growth-value mono" id="growth-value">—</div>
         <div class="growth-pct" id="growth-pct">—</div>
+        <div class="growth-apy" id="growth-apy" style="display:none"></div>
+        <div class="growth-comparator" id="growth-comparator" style="display:none"></div>
         <div class="growth-meta" id="growth-meta">—</div>
       </div>
       <div class="row">
@@ -1157,6 +1165,85 @@ function fmtUsd0(n) {
 function fmtBtc(n) {
   if (n == null || isNaN(n)) return '—';
   return Number(n).toFixed(8);
+}
+
+// ── XIRR: money-weighted annualized return ────────────────────────────
+// Newton-Raphson tuning constants. These control convergence behaviour and
+// are intentionally named so the math below reads without magic numbers.
+const XIRR_GUESS = 0.10;        // 10% — neutral starting rate for the solver
+const XIRR_TOLERANCE = 1e-7;    // stop when |NPV| or the rate step is below this
+const XIRR_MAX_ITERATIONS = 100;// cap iterations so a bad input can't spin forever
+const DAYS_PER_YEAR = 365;      // day-count basis for annualizing each cash flow
+
+/**
+ * Compute the money-weighted annualized return (XIRR) for an irregular series
+ * of dated cash flows — the same metric Excel's XIRR() and brokerages use.
+ *
+ * Sign convention (caller's responsibility):
+ *   - Money the user PUTS IN (deposits to the bot) is NEGATIVE — it leaves
+ *     their wallet.
+ *   - Money the user COULD TAKE OUT (today's portfolio value) is POSITIVE.
+ *   A valid series therefore needs at least one negative and one positive flow;
+ *   otherwise there is no return to solve for.
+ *
+ * Method: solve NPV(r) = Σ cf_i / (1 + r)^((date_i - date_0) / 365) = 0 for r
+ * via Newton-Raphson, using the analytic NPV derivative for fast convergence.
+ *
+ * @param {{date: Date, amount: number}[]} cashflows  Dated flows, any order; the
+ *   first element's date is used as the t=0 epoch for year fractions.
+ * @returns {number|null} Annualized rate as a decimal (0.042 ⇒ 4.2%), or `null`
+ *   when there isn't enough signal to produce a meaningful number, namely:
+ *   fewer than two flows, all flows the same sign, the derivative collapses to
+ *   zero, the rate would fall to/below -100%, or it fails to converge within
+ *   XIRR_MAX_ITERATIONS. Callers treat `null` as "not enough data yet".
+ */
+function xirr(cashflows) {
+  if (cashflows.length < 2) return null;
+  if (!cashflows.some(c => c.amount > 0) || !cashflows.some(c => c.amount < 0)) return null;
+
+  const t0 = cashflows[0].date.getTime();
+  const years = cf => (cf.date.getTime() - t0) / (1000 * 60 * 60 * 24 * DAYS_PER_YEAR);
+
+  let rate = XIRR_GUESS;
+  for (let i = 0; i < XIRR_MAX_ITERATIONS; i++) {
+    let npv = 0, dnpv = 0;
+    for (const cf of cashflows) {
+      const t = years(cf);
+      const denom = Math.pow(1 + rate, t);
+      npv += cf.amount / denom;
+      dnpv += -t * cf.amount / (denom * (1 + rate));
+    }
+    if (Math.abs(npv) < XIRR_TOLERANCE) return rate;
+    if (dnpv === 0) return null;                  // flat derivative — can't step
+    const newRate = rate - npv / dnpv;
+    if (newRate <= -1) return null;               // rate can't go below -100%
+    if (Math.abs(newRate - rate) < XIRR_TOLERANCE) return newRate;
+    rate = newRate;
+  }
+  return null;                                    // didn't converge
+}
+
+/**
+ * Map an annualized return (decimal) to a grounded, lay-person comparator
+ * caption — answering "is the bot beating somewhere safe I could park cash?".
+ * Tone is factual, not hype. Returns '' for a null/NaN rate so callers can
+ * simply hide the caption.
+ *
+ * @param {number|null} rate  Annualized return as a decimal (0.042 ⇒ 4.2%).
+ * @returns {string} Comparator caption, or '' when there is no rate to describe.
+ */
+function apyComparator(rate) {
+  if (rate == null || isNaN(rate)) return '';
+  const pct = rate * 100;
+  if (pct < 0)    return 'underwater so far — bot needs more time';
+  if (pct < 2)    return 'roughly a checking account';
+  if (pct < 4)    return 'savings account territory';
+  if (pct < 5.5)  return 'high-yield savings territory';
+  if (pct < 7)    return 'treasury bonds territory';
+  if (pct < 10)   return 'above the long-run inflation hedge';
+  if (pct < 14)   return "around the S&P 500's long-term average";
+  if (pct < 25)   return 'outperforming most index funds';
+  return 'crushing traditional markets';
 }
 
 // ── API helper (via dash proxy) ───────────────────────────────────────
@@ -1512,7 +1599,7 @@ function render(data, trades, settings, deposits) {
     : null;
   const totalInvested = (depTotal != null ? depTotal : 0) + botPurchases;
   const portfolioToday = btcStack * price + usdReserve;
-  renderGrowth(data, trades, totalInvested, portfolioToday, price, depTotal != null);
+  renderGrowth(data, trades, totalInvested, portfolioToday, price, depTotal != null, deposits);
 
   // Toolbar
   document.getElementById('tool-price').innerHTML = fmtUsd0(price) + '<small>live</small>';
@@ -1908,7 +1995,7 @@ function renderInvested(deposits, botPurchases) {
   totalEl.textContent = fmtUsd(total);
 }
 
-function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDeposits) {
+function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDeposits, deposits) {
   const p = data.portfolio || {};
   const growth = portfolioToday - totalInvested;
   const pct = totalInvested > 0 ? (growth / totalInvested * 100) : 0;
@@ -1920,6 +2007,13 @@ function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDe
   vEl.classList.toggle('neg', neg);
   pctEl.textContent = (neg ? '' : '+') + pct.toFixed(1) + '% vs total invested';
   pctEl.classList.toggle('neg', neg);
+
+  // APY equivalent: money-weighted annualized return (XIRR) over the deposit
+  // history. Deposits leave the wallet (negative); today's withdrawable value
+  // is positive. Each deposit's contribution is its at-time USD value, so BTC
+  // and USD transfers are valued on the same scale CoinGecko backfilled.
+  renderGrowthApy(deposits, portfolioToday);
+
   document.getElementById('growth-meta').textContent =
     'Portfolio today: ' + fmtUsd(portfolioToday) + ' (BTC + USD reserve)' +
     (haveDeposits ? '' : ' · invested basis incomplete (deposits syncing)');
@@ -1937,6 +2031,45 @@ function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDe
   // House Money (extra BTC): net BTC gained on closed recycler_rebuy pairs × price
   const houseMoney = houseMoneyBtc(trades) * price;
   document.getElementById('growth-house').textContent = '+' + fmtUsd(houseMoney);
+}
+
+// Render the "X.X% APY" line + comparator caption under the growth dollar
+// figure. Builds the XIRR cash-flow series from the deposit ledger (each
+// deposit negative, at its CoinGecko-backfilled at-time USD value) plus a
+// single positive entry for today's withdrawable portfolio value. A null
+// result (too few/insufficiently-signed flows, or non-convergence) hides both
+// lines rather than showing a misleading number.
+function renderGrowthApy(deposits, portfolioToday) {
+  const apyEl = document.getElementById('growth-apy');
+  const compEl = document.getElementById('growth-comparator');
+
+  const list = (deposits && Array.isArray(deposits.deposits)) ? deposits.deposits : [];
+  // Deposits OUT of the user's wallet are negative; valued at their at-time USD.
+  // Timestamps are UTC without a zone suffix (matching /api/trades), so append 'Z'.
+  const cashflows = list.map(d => ({
+    date: new Date((d.timestamp || '') + 'Z'),
+    amount: -(d.usd_value_at_time || 0),
+  }));
+  // Today's portfolio value is the positive flow the user could withdraw now.
+  cashflows.push({ date: new Date(), amount: portfolioToday });
+
+  const rate = xirr(cashflows);
+  if (rate == null) {
+    apyEl.style.display = 'none';
+    compEl.style.display = 'none';
+    return;
+  }
+
+  const neg = rate < 0;
+  const pct = (rate * 100).toFixed(1);
+  apyEl.innerHTML = esc((neg ? '' : '+') + pct + '%') +
+    '<span class="apy-label">APY</span>';
+  apyEl.classList.toggle('neg', neg);
+  apyEl.style.display = '';
+
+  const caption = apyComparator(rate);
+  compEl.textContent = '≈ ' + caption;
+  compEl.style.display = caption ? '' : 'none';
 }
 
 // Walk USD-recycler pairs oldest→newest: each resell closes the most recent
