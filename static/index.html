@@ -1192,6 +1192,15 @@ const XIRR_GUESS = 0.10;        // 10% — neutral starting rate for the solver
 const XIRR_TOLERANCE = 1e-7;    // stop when |NPV| or the rate step is below this
 const XIRR_MAX_ITERATIONS = 100;// cap iterations so a bad input can't spin forever
 const DAYS_PER_YEAR = 365;      // day-count basis for annualizing each cash flow
+// Multiple Newton starting points: a single fixed guess can diverge or step
+// past the rate guards on deeply-negative series, so we try several in order.
+const XIRR_NEWTON_GUESSES = [0.1, -0.3, 0.5, -0.7, 0.0];
+// Bracket grid for the bisection fallback: a sign change of NPV between any
+// two adjacent rates guarantees a root that bisection will converge on.
+const XIRR_BRACKETS = [-0.999, -0.5, -0.2, 0.0, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0];
+const XIRR_RATE_FLOOR = -0.999;     // Newton can't step to/below -99.9%
+const XIRR_RATE_CEIL = 10;          // …or above 1000% — implausible, bail out
+const XIRR_BISECTION_ITERATIONS = 80;// bisection steps once a bracket is found
 
 /**
  * Compute the money-weighted annualized return (XIRR) for an irregular series
@@ -1204,8 +1213,12 @@ const DAYS_PER_YEAR = 365;      // day-count basis for annualizing each cash flo
  *   A valid series therefore needs at least one negative and one positive flow;
  *   otherwise there is no return to solve for.
  *
- * Method: solve NPV(r) = Σ cf_i / (1 + r)^((date_i - date_0) / 365) = 0 for r
- * via Newton-Raphson, using the analytic NPV derivative for fast convergence.
+ * Method: solve NPV(r) = Σ cf_i / (1 + r)^((date_i - date_0) / 365) = 0 for r.
+ * Hybrid Newton-Raphson + bisection: tries multiple Newton starts, falls back
+ * to bisection on a fixed bracket grid. Newton (with the analytic derivative)
+ * converges fast when it converges; bisection is guaranteed to find a root once
+ * a sign change is bracketed, so deeply-negative early-stage returns that make
+ * Newton diverge still compute instead of returning null.
  *
  * @param {{date: Date, amount: number}[]} cashflows  Dated flows, any order; the
  *   first element's date is used as the t=0 epoch for year fractions.
@@ -1221,24 +1234,54 @@ function xirr(cashflows) {
 
   const t0 = cashflows[0].date.getTime();
   const years = cf => (cf.date.getTime() - t0) / (1000 * 60 * 60 * 24 * DAYS_PER_YEAR);
-
-  let rate = XIRR_GUESS;
-  for (let i = 0; i < XIRR_MAX_ITERATIONS; i++) {
-    let npv = 0, dnpv = 0;
+  // NPV(rate) and its derivative, both over the same t0 epoch.
+  const npv = rate => {
+    let v = 0;
+    for (const cf of cashflows) v += cf.amount / Math.pow(1 + rate, years(cf));
+    return v;
+  };
+  const dnpv = rate => {
+    let v = 0;
     for (const cf of cashflows) {
       const t = years(cf);
-      const denom = Math.pow(1 + rate, t);
-      npv += cf.amount / denom;
-      dnpv += -t * cf.amount / (denom * (1 + rate));
+      v += -t * cf.amount / Math.pow(1 + rate, t + 1);
     }
-    if (Math.abs(npv) < XIRR_TOLERANCE) return rate;
-    if (dnpv === 0) return null;                  // flat derivative — can't step
-    const newRate = rate - npv / dnpv;
-    if (newRate <= -1) return null;               // rate can't go below -100%
-    if (Math.abs(newRate - rate) < XIRR_TOLERANCE) return newRate;
-    rate = newRate;
+    return v;
+  };
+
+  // Multi-start Newton-Raphson: each guess gets its own iteration budget.
+  for (const guess of XIRR_NEWTON_GUESSES) {
+    let rate = guess;
+    for (let i = 0; i < XIRR_MAX_ITERATIONS; i++) {
+      const f = npv(rate);
+      if (Math.abs(f) < XIRR_TOLERANCE) return rate;
+      const df = dnpv(rate);
+      if (df === 0) break;                            // flat derivative — try next start
+      const newRate = rate - f / df;
+      if (newRate <= XIRR_RATE_FLOOR || newRate > XIRR_RATE_CEIL) break;  // out of plausible range
+      if (Math.abs(newRate - rate) < XIRR_TOLERANCE) return newRate;
+      rate = newRate;
+    }
   }
-  return null;                                    // didn't converge
+
+  // Bisection fallback: scan the bracket grid for a sign change in NPV.
+  for (let i = 0; i < XIRR_BRACKETS.length - 1; i++) {
+    let lo = XIRR_BRACKETS[i], hi = XIRR_BRACKETS[i + 1];
+    let flo = npv(lo), fhi = npv(hi);
+    if (flo === 0) return lo;
+    if (fhi === 0) return hi;
+    if (flo * fhi > 0) continue;                     // no sign change in this bracket
+    for (let j = 0; j < XIRR_BISECTION_ITERATIONS; j++) {
+      const m = (lo + hi) / 2;
+      const fm = npv(m);
+      if (Math.abs(fm) < XIRR_TOLERANCE || hi - lo < 1e-7) return m;
+      if (fm * flo > 0) { lo = m; flo = fm; }        // same sign as lo — move lo up
+      else { hi = m; fhi = fm; }                     // else move hi down
+    }
+    return (lo + hi) / 2;                            // best estimate after the budget
+  }
+
+  return null;                                       // no root in plausible range
 }
 
 /**
@@ -2121,8 +2164,12 @@ function renderGrowthApy(deposits, portfolioToday) {
   // State C: xirr didn't converge or has insufficient signal — but we DO have
   // deposit data. Surface the count so Andy can see something is being computed.
   if (rate == null) {
-    showApyStatus(apyEl, compEl, 'APY: building…',
-                  `${list.length} deposit${list.length === 1 ? '' : 's'} · waiting for more signal`);
+    const earliest = Math.min(...cashflows.map(cf => cf.date.getTime()));
+    const days = Math.max(1, Math.round((Date.now() - earliest) / 86400000));
+    const depWord = list.length === 1 ? 'deposit' : 'deposits';
+    const dayWord = days === 1 ? 'day' : 'days';
+    showApyStatus(apyEl, compEl, 'APY: not enough signal yet',
+                  `${list.length} ${depWord} over ${days} ${dayWord} · need more variation to compute`);
     return;
   }
 
