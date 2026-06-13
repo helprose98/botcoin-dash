@@ -1,4 +1,19 @@
 <!doctype html>
+<!--
+  myBotCoin dashboard (v2).
+
+  v1.13.8 — Tier 1 UI surface (pairs with bot v1.5.0). All new fields are
+  optional and backward-compatible: against an older bot that omits them the
+  dashboard renders identically to v1.13.7 (no volatility chip, no Fees Saved
+  card, no throttle lines, no maker/taker/pending badges). New surfaces:
+    · Volatility chip in the status banner (calm/normal/storm regime).
+    · "Fees Saved (this month)" card from /dash/maker_stats (maker fill rate).
+    · Cooldown + daily-cap lines under the mode pill when the throttle is active.
+    · Effective-threshold note, vol-adaptive toggle, and anti-thrash inputs in
+      the Adjust panel.
+    · MAKER / TAKER / PENDING badges on recent-trade rows; fee_actual_usd used
+      when present.
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -57,6 +72,9 @@
   }
   .logo { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
   .logo span { color: var(--accent); }
+  /* Status pill + volatility chip stack, right-aligned. The chip drops below the
+     pill so neither overflows the banner on a 375px viewport (v1.13.8). */
+  .brand-status { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); }
   .pill {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 4px 10px; border-radius: 999px;
@@ -426,6 +444,19 @@
   .tool .v small { font-size: 11px; color: var(--text-muted); font-weight: 500; margin-left: 4px; font-family: var(--font-body); letter-spacing: 0; }
   .tool .v.bear { color: var(--red); }
   .tool .v.bull { color: var(--green); }
+  /* Fees Saved card (v1.13.8) — standalone stat card under the toolbar. Matches
+     the surface/border treatment of .toolbar; the green value ties it to the
+     "money saved" framing. */
+  .fees-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+  .fees-card .k { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+  .fees-card .v { font-size: 24px; font-weight: 700; color: var(--green); margin-top: 2px; }
+  .fees-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
   /* Total Trades: 3 self-labeling items on one line. Headerless, so it grows to
      fill the cell height and stays vertically centred against its labelled siblings.
      Horizontally centred so it sits balanced in the wider middle column of the
@@ -469,6 +500,44 @@
   .badge.buy  { background: var(--green-dim); color: var(--green); }
   .badge.sell { background: var(--red-dim);   color: var(--red); }
   .reason { color: var(--text-muted); font-size: 13px; }
+
+  /* === TIER 1 (v1.13.8) — volatility / throttle / maker surfaces ===
+     Colors use the dashboard's own dark-theme palette (green = calm/maker,
+     accent-orange = storm/taker, muted = normal/normal-pending) rather than the
+     light-theme swatches in the spec, so contrast holds on the #121110 bg. */
+
+  /* Volatility chip — sits in the status pill row of the header banner. */
+  .vol-chip {
+    display: inline-flex; align-items: center; gap: var(--space-1);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-sm);
+    font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .vol-chip.calm   { background: var(--green-dim);  color: var(--green); }
+  .vol-chip.normal { background: var(--surface-3);  color: var(--text-muted); }
+  .vol-chip.storm  { background: var(--accent-dim); color: var(--accent); }
+
+  /* Throttle lines — cooldown / daily-cap status under the mode pills. */
+  .throttle-line { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .throttle-line.muted { opacity: 0.7; }
+
+  /* Effective-threshold note — shown next to a dip tier when vol-adjusted. */
+  .effective-note {
+    display: inline-block; margin-left: var(--space-2);
+    font-size: 11px; color: var(--accent); font-weight: 600;
+  }
+
+  /* MAKER / TAKER / PENDING badges on trade rows. */
+  .badge-maker, .badge-taker, .badge-pending {
+    display: inline-block; margin-left: var(--space-1);
+    padding: 0 6px; border-radius: var(--radius-sm);
+    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+    vertical-align: middle;
+  }
+  .badge-maker   { background: var(--green-dim);  color: var(--green); }
+  .badge-taker   { background: var(--accent-dim); color: var(--accent); }
+  .badge-pending { background: var(--surface-3);  color: var(--text-muted); }
 
   /* === COMMUNITY STATS BAR === */
   .community {
@@ -765,7 +834,12 @@
 <div class="container">
   <header class="brand">
     <div class="logo">my<span>Bot</span>Coin</div>
-    <div class="pill"><span class="dot"></span> <span id="state-pill">Connecting…</span></div>
+    <div class="brand-status">
+      <div class="pill"><span class="dot"></span> <span id="state-pill">Connecting…</span></div>
+      <!-- Volatility chip (v1.13.8). Populated by render() from b.volatility; stays
+           empty/hidden against older bots that omit the volatility block. -->
+      <div id="vol-chip-slot"></div>
+    </div>
   </header>
 
   <!-- TOP: STACK / RESERVE / GAUGE -->
@@ -872,6 +946,10 @@
           <span class="knob-thresh-label">Thresholds</span>
           <span class="knob-thresh-values" id="knob-thresholds">T1 — · T2 — · T3 —</span>
         </div>
+        <!-- Effective (vol-adjusted) thresholds (v1.13.8). render() fills this from
+             settings.effective_dip_tier* when they differ from the base tiers; stays
+             empty against older bots / when vol-adaptation makes no difference. -->
+        <div id="effective-slot"></div>
         <!-- mode pills -->
         <div class="mode-row">
           <button class="mode-pill" data-mode="btc">BTC</button>
@@ -879,6 +957,9 @@
           <button class="mode-pill" data-mode="auto">Auto</button>
         </div>
         <div class="mode-caption" id="mode-caption">Bot auto-switches based on 200-day MA.</div>
+        <!-- Anti-thrash throttle status (v1.13.8). Populated by render() from
+             b.throttle; stays empty against older bots that omit the block. -->
+        <div id="throttle-slot"></div>
       </div>
     </div>
   </section>
@@ -935,6 +1016,37 @@
           </div>
         </div>
         <div class="adjust-caption">Harvests small swings while BTC trades in a range. Always live as "Sideways Market."</div>
+      </div>
+
+      <!-- Volatility-adaptive thresholds (v1.13.8). Hidden until the bot reports
+           vol-adaptive support (settings.volatility_adaptive_enabled present);
+           older bots that omit the field leave this section display:none. -->
+      <div class="adjust-section" id="vol-adaptive-section" style="display:none">
+        <div class="field-line">
+          <div class="adjust-section-title">Volatility-adaptive thresholds</div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="vol-adaptive-toggle">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="adjust-caption">When on, the bot tightens dip/spike thresholds in calm markets and loosens them in stormy ones, based on 14-day volatility vs the 90-day baseline.</div>
+      </div>
+
+      <!-- Anti-thrash guard (v1.13.8). Hidden until the bot reports throttle support
+           (settings.min_gap_between_trades_seconds or max_trades_per_day present);
+           older bots leave this section display:none. Inputs save in seconds: the
+           min-gap field is shown in minutes and converted on commit. -->
+      <div class="adjust-section" id="antithrash-section" style="display:none">
+        <div class="adjust-section-title">Anti-thrash guard</div>
+        <div class="field-line">
+          <label for="min-gap-min">Min gap between trades (min)</label>
+          <input class="num-input" id="min-gap-min" type="number" min="0" max="1440" step="1" inputmode="numeric" placeholder="60">
+        </div>
+        <div class="field-line">
+          <label for="max-per-day">Max trades per day</label>
+          <input class="num-input" id="max-per-day" type="number" min="1" max="48" step="1" inputmode="numeric" placeholder="8">
+        </div>
+        <div class="adjust-caption">Prevents over-trading in choppy markets. Recycler cycle-closing trades always bypass these limits so open cycles finish.</div>
       </div>
 
     </div>
@@ -995,6 +1107,16 @@
       <div class="k">Avg Cost / BTC</div>
       <div class="v" id="tool-avgcost">—</div>
     </div>
+  </div>
+
+  <!-- FEES SAVED (v1.13.8) — maker-only fee savings for the current month.
+       Hidden by default; render() reveals it only when /dash/maker_stats returns
+       a usable payload (available !== false AND maker_fill_rate present). Against
+       an older bot the card stays display:none, so the layout is unchanged. -->
+  <div class="fees-card" id="fees-card" style="display:none">
+    <div class="k" id="fees-label">Fees Saved</div>
+    <div class="v mono" id="fees-value">—</div>
+    <div class="fees-sub" id="fees-sub"></div>
   </div>
 
   <!-- TRADE HISTORY -->
@@ -1227,6 +1349,17 @@ function fmtUsd0(n) {
 function fmtBtc(n) {
   if (n == null || isNaN(n)) return '—';
   return Number(n).toFixed(8);
+}
+// Human-readable countdown for the anti-thrash cooldown line (v1.13.8): seconds →
+// "45s" / "12m" / "1h 5m". Returns an em-dash for missing/non-positive input.
+function formatDuration(seconds) {
+  if (!seconds || seconds < 0) return '—';
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMin = minutes % 60;
+  return remainingMin ? `${hours}h ${remainingMin}m` : `${hours}h`;
 }
 
 // ── XIRR: money-weighted annualized return ────────────────────────────
@@ -1634,6 +1767,43 @@ function wireControls() {
   };
   maxEl.addEventListener('blur', commitMax);
   maxEl.addEventListener('keydown', e => { if (e.key === 'Enter') maxEl.blur(); });
+
+  // Volatility-adaptive toggle (v1.13.8). Boolean only; the bot's /api/settings
+  // POST accepts volatility_adaptive_enabled directly.
+  const volToggle = document.getElementById('vol-adaptive-toggle');
+  volToggle.addEventListener('change', () => {
+    const prev = lastSettings;
+    saveSettings({ volatility_adaptive_enabled: volToggle.checked },
+      () => renderTwirldown(lastSettings),
+      () => renderTwirldown(prev));
+  });
+
+  // Anti-thrash min-gap (v1.13.8). Shown in minutes; convert to seconds on commit
+  // (min_gap_between_trades_seconds = minutes * 60), matching the bot's contract.
+  const gapEl = document.getElementById('min-gap-min');
+  const commitGap = () => {
+    const v = parseInt(gapEl.value, 10);
+    if (isNaN(v) || v < 0 || v > 1440) { flashInput(gapEl, false); renderTwirldown(lastSettings); return; }
+    const prev = lastSettings;
+    saveSettings({ min_gap_between_trades_seconds: String(v * 60) },
+      () => flashInput(gapEl, true),
+      () => { flashInput(gapEl, false); renderTwirldown(prev); });
+  };
+  gapEl.addEventListener('blur', commitGap);
+  gapEl.addEventListener('keydown', e => { if (e.key === 'Enter') gapEl.blur(); });
+
+  // Anti-thrash daily cap (v1.13.8).
+  const capEl = document.getElementById('max-per-day');
+  const commitCap = () => {
+    const v = parseInt(capEl.value, 10);
+    if (isNaN(v) || v < 1 || v > 48) { flashInput(capEl, false); renderTwirldown(lastSettings); return; }
+    const prev = lastSettings;
+    saveSettings({ max_trades_per_day: String(v) },
+      () => flashInput(capEl, true),
+      () => { flashInput(capEl, false); renderTwirldown(prev); });
+  };
+  capEl.addEventListener('blur', commitCap);
+  capEl.addEventListener('keydown', e => { if (e.key === 'Enter') capEl.blur(); });
 }
 
 /** Flash a number input green (ok) or red (fail), clearing after 900ms. */
@@ -1643,14 +1813,35 @@ function flashInput(el, ok) {
   setTimeout(() => el.classList.remove('ok', 'err'), 900);
 }
 
+// Fetch monthly maker stats via the dash's /dash/maker_stats proxy (v1.13.8). The
+// proxy returns {available:false} when the bot is older / lacks the endpoint, and
+// this helper additionally maps any network error to null. render() treats both as
+// "hide the Fees Saved card", so an older bot is pixel-identical to v1.13.7.
+async function fetchMakerStats() {
+  try {
+    const r = await fetch(`/dash/maker_stats?ip=${BOT_IP}`, {
+      headers: { 'X-Bot-Password': BOT_PW }
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (e) {
+    return null;
+  }
+}
+
 async function loadData() {
   try {
-    const [data, trades, settings, deposits] = await Promise.all([
+    const [data, trades, settings, deposits, makerRaw] = await Promise.all([
       botFetch('/api/status'),
       botFetch('/api/trades').catch(() => []),
       botFetch('/api/settings').catch(() => ({})),
-      botFetch('/api/deposits').catch(() => null)   // graceful: null on failure
+      botFetch('/api/deposits').catch(() => null),  // graceful: null on failure
+      fetchMakerStats()                              // graceful: null on failure
     ]);
+    // Hide the Fees Saved card on any error / missing field (older bot). Only a
+    // payload that is explicitly available AND carries a maker_fill_rate counts.
+    const makerStats = (makerRaw && makerRaw.available !== false
+                        && makerRaw.maker_fill_rate !== undefined) ? makerRaw : null;
     // Diagnostic — one-time on first poll so Andy can see /api/deposits shape in DevTools.
     if (!window._depositsLogged) {
       window._depositsLogged = true;
@@ -1665,7 +1856,7 @@ async function loadData() {
     // the optimistic UI with now-stale pre-save values. The next poll (or the
     // post-save render) reflects the new state.
     if (window._savingSettings) return;
-    render(data || {}, trades || [], settings || {}, deposits);
+    render(data || {}, trades || [], settings || {}, deposits, makerStats);
     document.getElementById('last-updated').textContent =
       'Updated ' + new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
   } catch (e) {
@@ -1687,7 +1878,7 @@ function deriveParentMode(b, price) {
 }
 
 // ── Render ────────────────────────────────────────────────────────────
-function render(data, trades, settings, deposits) {
+function render(data, trades, settings, deposits, makerStats) {
   const p = data.portfolio || {};
   const b = data.bot || {};
   const mood = data.mood || {};
@@ -1764,7 +1955,96 @@ function render(data, trades, settings, deposits) {
   // Footer status — derived from live bot state (mode + Sideways Market).
   document.getElementById('footer-status').textContent = footerStatus(b);
 
+  // Tier 1 surfaces (v1.13.8): volatility chip, throttle lines, effective dip
+  // thresholds, and the Fees Saved card. All self-hide against an older bot.
+  renderTier1(b, settings, makerStats);
+
   renderTrades(trades, settings);
+}
+
+/**
+ * Paint the Tier 1 (bot v1.5.0) UI surfaces. Every block uses optional chaining
+ * and explicit !== undefined guards so a v1.4.0 bot — which omits all of these
+ * fields — produces empty slots and a hidden Fees Saved card, leaving the
+ * dashboard pixel-identical to v1.13.7.
+ *
+ * @param {Object} b           The `bot` block from /api/status.
+ * @param {Object} settings    Live /api/settings object (for effective tiers).
+ * @param {Object|null} makerStats  /dash/maker_stats payload, or null when hidden.
+ */
+function renderTier1(b, settings, makerStats) {
+  b = b || {};
+  settings = settings || {};
+
+  // 1 — Volatility chip. Only when the bot reports a multiplier; regime drives
+  // the color class (calm / normal / storm).
+  const volSlot = document.getElementById('vol-chip-slot');
+  const mult = b.volatility?.multiplier;
+  if (mult !== undefined && mult !== null) {
+    const regimeClass = mult < 0.95 ? 'calm' : mult > 1.10 ? 'storm' : 'normal';
+    const regimeLabel = b.volatility?.regime || 'normal';
+    volSlot.innerHTML =
+      `<div class="vol-chip ${regimeClass}" title="14-day volatility vs the 90-day baseline. Affects how readily the bot triggers dip buys and spike sells.">`
+      + `Vol: ${Number(mult).toFixed(2)}× · ${esc(regimeLabel)}</div>`;
+  } else {
+    volSlot.innerHTML = '';
+  }
+
+  // 2 — Throttle lines (anti-thrash). Cooldown line only when a cooldown is
+  // active; the daily-count line whenever trades_today is reported (incl. 0).
+  const throttleSlot = document.getElementById('throttle-slot');
+  let throttleHtml = '';
+  const cooldown = b.throttle?.seconds_until_next_allowed;
+  if (cooldown !== undefined && cooldown !== null && cooldown > 0) {
+    throttleHtml +=
+      `<div class="throttle-line" title="Global minimum gap between trades. Prevents over-trading in chop.">`
+      + `Cooldown: ${esc(formatDuration(cooldown))}</div>`;
+  }
+  if (b.throttle?.trades_today !== undefined && b.throttle?.trades_today !== null) {
+    const cap = b.throttle?.max_per_day;
+    const capStr = (cap !== undefined && cap !== null) ? `/${esc(String(cap))}` : '';
+    throttleHtml +=
+      `<div class="throttle-line muted">Today: ${esc(String(b.throttle.trades_today))}${capStr} trades</div>`;
+  }
+  throttleSlot.innerHTML = throttleHtml;
+
+  // 4 — Effective (vol-adjusted) dip thresholds. Show a tier's effective % only
+  // when it differs from the base by more than 0.1% (0.001 as a fraction).
+  const effSlot = document.getElementById('effective-slot');
+  const effParts = [];
+  [1, 2, 3].forEach(n => {
+    const base = parseFloat(settings['dip_tier' + n]);
+    const eff = settings['effective_dip_tier' + n];
+    if (eff !== undefined && eff !== null && !isNaN(base) && Math.abs(eff - base) > 0.001) {
+      effParts.push(`T${n} ${(eff * 100).toFixed(1)}%`);
+    }
+  });
+  if (effParts.length) {
+    const volMult = settings.vol_multiplier;
+    const volNote = (volMult !== undefined && volMult !== null)
+      ? ` (vol ${Number(volMult).toFixed(2)}×)` : '';
+    effSlot.innerHTML =
+      `<span class="effective-note">→ Effective ${esc(effParts.join(' · '))}${esc(volNote)}</span>`;
+  } else {
+    effSlot.innerHTML = '';
+  }
+
+  // 2 (stat card) — Fees Saved this month. makerStats is already gated in
+  // loadData (null = hide), so a non-null value here is safe to show.
+  const feesCard = document.getElementById('fees-card');
+  if (makerStats) {
+    document.getElementById('fees-label').textContent =
+      `Fees Saved (${makerStats.month || 'this month'})`;
+    document.getElementById('fees-value').textContent =
+      fmtUsd(makerStats.fees_saved_usd || 0);
+    const rate = Math.round((makerStats.maker_fill_rate || 0) * 100);
+    const closed = makerStats.trades_closed;
+    const closedStr = (closed !== undefined && closed !== null) ? ` · ${esc(String(closed))} trades` : '';
+    document.getElementById('fees-sub').innerHTML = `${rate}% maker fill rate${closedStr}`;
+    feesCard.style.display = '';
+  } else {
+    feesCard.style.display = 'none';
+  }
 }
 
 // Kraken-derived 200MA fallback, cached for the session (ported from v1). Used to
@@ -2081,6 +2361,41 @@ function renderTwirldown(settings) {
     maxEl.value = (mp == null || mp === '') ? '' : parseInt(mp, 10);
     maxEl.placeholder = (mp == null || mp === '') ? '5' : '';
   }
+
+  // Volatility-adaptive toggle (v1.13.8). Reveal the section only when the bot
+  // reports the field; older bots omit it and the section stays hidden. Default
+  // to checked (the bot's default is enabled) unless explicitly false.
+  const volSection = document.getElementById('vol-adaptive-section');
+  if (settings.volatility_adaptive_enabled !== undefined) {
+    volSection.style.display = '';
+    document.getElementById('vol-adaptive-toggle').checked =
+      settings.volatility_adaptive_enabled !== false;
+  } else {
+    volSection.style.display = 'none';
+  }
+
+  // Anti-thrash guard inputs (v1.13.8). Reveal only when the bot reports either
+  // throttle setting. Min-gap is stored in seconds but shown/edited in minutes.
+  const antiSection = document.getElementById('antithrash-section');
+  const hasGap = settings.min_gap_between_trades_seconds !== undefined;
+  const hasCap = settings.max_trades_per_day !== undefined;
+  if (hasGap || hasCap) {
+    antiSection.style.display = '';
+    const gapEl = document.getElementById('min-gap-min');
+    if (document.activeElement !== gapEl) {
+      const secs = parseFloat(settings.min_gap_between_trades_seconds);
+      gapEl.value = isNaN(secs) ? '' : Math.round(secs / 60);
+      gapEl.placeholder = isNaN(secs) ? '60' : '';
+    }
+    const capEl = document.getElementById('max-per-day');
+    if (document.activeElement !== capEl) {
+      const cap = parseInt(settings.max_trades_per_day, 10);
+      capEl.value = isNaN(cap) ? '' : cap;
+      capEl.placeholder = isNaN(cap) ? '8' : '';
+    }
+  } else {
+    antiSection.style.display = 'none';
+  }
 }
 
 /**
@@ -2358,12 +2673,19 @@ function renderTrades(trades, settings) {
     const badge = side === 'sell'
       ? '<span class="badge sell">SELL</span>'
       : '<span class="badge buy">BUY</span>';
+    // Maker indicator (v1.13.8). was_maker is true/false/null; fill_status may be
+    // absent on older bots. Strict checks mean an older trade renders no badge.
+    let makerBadge = '';
+    if (t.was_maker === true)  makerBadge += '<span class="badge-maker">MAKER</span>';
+    if (t.was_maker === false) makerBadge += '<span class="badge-taker">TAKER</span>';
+    if (t.fill_status === 'pending' || t.fill_status === 'open')
+      makerBadge += '<span class="badge-pending">PENDING</span>';
     return `<tr>
       <td class="mono">${esc(timeAgo(t.timestamp))}</td>
       <td>${badge}</td>
       <td class="mono">${esc(fmtBtc(t.btc_amount))} BTC</td>
       <td class="mono">${esc(fmtUsd(t.price_usd))}</td>
-      <td class="reason">${esc(reasonCopy(t, settings, trades))}</td>
+      <td class="reason">${esc(reasonCopy(t, settings, trades))}${makerBadge}</td>
     </tr>`;
   }).join('');
 

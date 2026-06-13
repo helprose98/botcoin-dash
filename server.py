@@ -157,6 +157,7 @@ ALLOWED_PATHS = (
     "/api/open_orders",
     "/api/dca_baseline",
     "/api/deposits",
+    "/api/maker_stats",
 )
 
 
@@ -371,6 +372,56 @@ def dash_version():
     return {"current": current, "latest": latest, "update_available": ver_gt(latest, current)}
 
 
+@app.route("/dash/maker_stats")
+def dash_maker_stats():
+    """Proxy the bot's /api/maker_stats with graceful backward compatibility.
+
+    The maker-stats endpoint is new in bot v1.5.0. When the dashboard is pointed
+    at an older bot that doesn't have it, the bot returns 404 — in that case (and
+    on any connection error) this route returns {"available": false} so the
+    "Fees Saved" widget hides cleanly with no console error. Mirrors the IP
+    validation + SSRF guards used by /proxy; auth rides on X-Bot-Password.
+    """
+    import re
+    import ipaddress
+    bot_ip = request.args.get("ip", "")
+
+    # Same validation as /proxy: plain IPs only, no private/loopback/link-local.
+    if not re.match(r'^[\d.]+$', bot_ip):
+        return {"available": False}
+    try:
+        parsed_ip = ipaddress.ip_address(bot_ip)
+        if parsed_ip.is_private or parsed_ip.is_loopback or parsed_ip.is_link_local or parsed_ip.is_reserved:
+            return {"available": False}
+    except ValueError:
+        return {"available": False}
+
+    headers = {}
+    pw = request.headers.get("X-Bot-Password")
+    if pw:
+        headers["X-Bot-Password"] = pw
+
+    try:
+        resp = requests.get(f"http://{bot_ip}:8081/api/maker_stats",
+                            headers=headers, timeout=15)
+    except requests.exceptions.RequestException:
+        # Bot unreachable / timed out — treat as unavailable, hide the widget.
+        return {"available": False}
+
+    # Older bot without the endpoint → 404. Hide the widget, no error surfaced.
+    if resp.status_code == 404:
+        return {"available": False}
+    if resp.status_code != 200:
+        return {"available": False}
+
+    return Response(
+        resp.content,
+        status=200,
+        headers={k: v for k, v in resp.headers.items()
+                 if k.lower() not in ('transfer-encoding', 'content-encoding')}
+    )
+
+
 @app.route("/dash/update", methods=["POST"])
 def dash_update():
     """Trigger a self-update of the dash server via the update watcher.
@@ -547,6 +598,49 @@ Live account data:
                 elif sideways:
                     bot_context += f"\n- Sideways Market: inactive (14d range: {sideways.get('range_pct', '?')}%)"
 
+                # ── Tier 1 (bot v1.5.0) live blocks — all optional / best-effort ──
+                # Volatility-adaptive thresholds: surface the regime + multiplier so
+                # Grok can explain why thresholds are tighter/looser right now.
+                volatility = bot.get("volatility") if isinstance(bot, dict) else None
+                if isinstance(volatility, dict) and volatility.get("multiplier") is not None:
+                    bot_context += (
+                        f"\n- Volatility regime: {volatility.get('regime', 'normal')} "
+                        f"(multiplier {volatility.get('multiplier')}× · "
+                        f"14d ATR {volatility.get('atr_pct', '?')} vs baseline {volatility.get('baseline_pct', '?')})"
+                    )
+
+                # Anti-thrash throttle: cooldown + daily cap usage.
+                throttle = bot.get("throttle") if isinstance(bot, dict) else None
+                if isinstance(throttle, dict) and throttle.get("trades_today") is not None:
+                    cooldown = throttle.get("seconds_until_next_allowed", 0) or 0
+                    cooldown_note = (f"{int(cooldown)}s until next trade allowed"
+                                     if cooldown > 0 else "no cooldown active")
+                    bot_context += (
+                        f"\n- Anti-thrash guard: {throttle.get('trades_today')}/"
+                        f"{throttle.get('max_per_day', '?')} trades today, "
+                        f"min-gap {throttle.get('min_gap_seconds', '?')}s, {cooldown_note} "
+                        f"(Recycler cycle-closing trades bypass the guard)"
+                    )
+
+                # Maker stats: monthly fee savings + maker fill rate. New /api/maker_stats
+                # endpoint; older bots 404 — best-effort, skip silently on any failure.
+                try:
+                    maker_r = requests.get(f"http://{bot_ip}:8081/api/maker_stats",
+                                           headers=headers, timeout=5)
+                    if maker_r.ok:
+                        ms = maker_r.json() or {}
+                        if ms.get("maker_fill_rate") is not None:
+                            bot_context += (
+                                f"\n- Maker stats ({ms.get('month', 'this month')}): "
+                                f"saved ${ms.get('fees_saved_usd', 0)} on fees "
+                                f"(paid ${ms.get('fees_paid_usd', 0)} vs "
+                                f"${ms.get('fees_taker_baseline_usd', 0)} taker baseline), "
+                                f"{round((ms.get('maker_fill_rate') or 0) * 100)}% maker fill rate "
+                                f"across {ms.get('trades_closed', '?')} closed trades"
+                            )
+                except Exception:
+                    pass  # maker_stats is best-effort context
+
                 if trades_r.ok:
                     trades_list = trades_r.json()[:10] if isinstance(trades_r.json(), list) else []
                     if trades_list:
@@ -681,6 +775,42 @@ Sideways Market layers ON TOP of the parent mode:
 - Either way, the prime directive (more BTC long-term) is served.
 
 The aggression knob does NOT affect Sideways Market thresholds — they're fixed and proven.
+
+═══════════════════════════════════════════
+MAKER-ONLY ORDERS (Tier 1, bot v1.5.0)
+═══════════════════════════════════════════
+The bot now places every order as a **post-only limit order** that rests on the order book instead of crossing the spread. Resting orders pay Kraken's **maker fee (0.16%)** instead of the **taker fee (0.26%)** — a roughly 38% cut on trading costs. On the user's trade volume this compounds into measurable extra BTC over hundreds of trades, which directly serves the prime directive.
+
+Plain English: instead of grabbing whatever price is on offer right now (and paying the higher "taker" fee), the bot patiently posts its price and waits for the market to come to it (paying the lower "maker" fee). The trade-off is that some orders won't fill immediately — the bot simply re-evaluates on the next tick. We accept a few missed fills in exchange for paying less on every fill.
+
+The dashboard surfaces this two ways:
+- A **"Fees Saved (this month)"** card showing dollars saved vs the taker-fee baseline, plus the **maker fill rate** (what % of fills landed as maker).
+- **MAKER / TAKER / PENDING badges** on each row of the recent-trades table. PENDING means the post-only order is still resting on the book and hasn't filled yet — normal, not stuck.
+
+If asked "how much have I saved on fees?" use the live maker-stats numbers below (fees_saved_usd, maker_fill_rate) when present.
+
+═══════════════════════════════════════════
+VOLATILITY-ADAPTIVE THRESHOLDS (Tier 1, bot v1.5.0)
+═══════════════════════════════════════════
+The bot now adapts its dip/spike thresholds to how volatile the market actually is, measured by 14-day ATR (Average True Range) against a 90-day baseline. This is **adaptive sensitivity**, not a change in how much money is deployed.
+
+- **Calm market** (volatility below baseline) → thresholds **tighten**, so the bot reacts to smaller dips/spikes that are proportionally meaningful when the market is quiet.
+- **Stormy market** (volatility above baseline) → thresholds **loosen**, so the bot requires a bigger move before triggering — filtering out noise and avoiding falling knives.
+
+The dashboard shows a small **volatility chip** in the status banner with a regime label: **calm**, **normal**, or **storm**, plus the current multiplier (e.g. "Vol: 1.20× · storm"). On the settings panel, each dip tier shows an **"→ Effective X.X%"** note when the vol-adjusted threshold differs from the base setting. There's also a toggle to turn vol-adaptation off (it defaults on); with it off, thresholds use their base values exactly.
+
+The multiplier is clamped to a sane band (roughly 0.7×–1.5×) and degrades gracefully to 1.0× (no adjustment) if the volatility calc ever fails. A "storm" reading is not a warning — it just means the bot is being more patient.
+
+═══════════════════════════════════════════
+ANTI-THRASH GUARD (Tier 1, bot v1.5.0)
+═══════════════════════════════════════════
+A global dampener that prevents over-trading (death-by-fees) in choppy markets. Two limits sit above the per-strategy cooldowns:
+- **Minimum gap between trades** — a global cooldown so two trades can't fire back-to-back (default 1 hour).
+- **Maximum trades per day** — a hard daily cap across all strategies and manual Quick Buys (default 8, resets at UTC midnight).
+
+**Important reassurance:** cycle-closing trades (Recycler rebuy / resell) **bypass** the guard, so an open Recycler cycle always gets to finish — the guard never traps the bot mid-cycle. Only new, stack-opening activity is throttled.
+
+The dashboard shows a **"Cooldown: Xm"** line under the mode pill when a min-gap cooldown is currently active, and a **"Today: N/8 trades"** line showing how much of the daily cap is used. Both come from the live throttle data below. The min-gap and daily-cap are user-adjustable in the settings panel's "Anti-thrash guard" group.
 
 ═══════════════════════════════════════════
 THE V2 DASHBOARD (v1.12.x) — WHAT THE USER ACTUALLY SEES
