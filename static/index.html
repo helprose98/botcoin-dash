@@ -154,10 +154,24 @@
   .knob-needle { stroke: var(--accent); stroke-width: 4; stroke-linecap: round;
     filter: drop-shadow(0 0 8px var(--accent-glow)); }
   .knob-dot { fill: var(--accent); filter: drop-shadow(0 0 8px var(--accent-glow)); }
-  .knob-tick { fill: var(--text-faint); font-size: 11px; font-weight: 600;
-    font-family: var(--font-body); letter-spacing: 0.05em; text-transform: uppercase; }
-  .knob-tick.active { fill: var(--accent); }
-  .knob-label-wrap { text-align: center; margin-top: -8px; }
+  /* Slider-style label scale beneath the dial: five evenly-weighted, clickable
+     labels in detent order. Replaces the per-detent SVG <text> ticks — five arc
+     labels would overlap and risk glyph cutoff. Full width so the labels spread
+     under their detents; wraps gracefully on very narrow screens. */
+  .knob-scale {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    width: 100%; max-width: 320px; gap: 4px; margin-top: -6px;
+  }
+  .knob-tick {
+    font-size: 11px; font-weight: 600; font-family: var(--font-body);
+    letter-spacing: 0.03em; text-transform: uppercase; text-align: center;
+    color: var(--text-faint); cursor: pointer; line-height: 1.2;
+    background: none; border: none; padding: 4px 2px;
+    transition: color var(--transition);
+  }
+  .knob-tick:hover { color: var(--accent-hover); }
+  .knob-tick.active { color: var(--accent); }
+  .knob-label-wrap { text-align: center; margin-top: 2px; }
   .knob-label { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
   .knob-tag { font-size: 13px; color: var(--text-muted); margin-top: 2px; max-width: 360px; }
 
@@ -212,9 +226,10 @@
   .adjust-section { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
   .adjust-section + .adjust-section { border-top: 1px solid var(--divider); padding-top: 14px; }
   .adjust-section-title { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
-  /* Three equal columns at desktop so all aggression tiles sit on one row.
-     Collapses to a single column at the mobile breakpoint (see @media 760px). */
-  .preset-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  /* Five equal columns at desktop so all aggression tiles sit on one row, 1:1 with
+     the five knob detents. Collapses to a single column at the mobile breakpoint
+     (see @media 760px). */
+  .preset-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
   .preset-btn {
     min-width: 0; padding: 8px 6px;
     background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -226,6 +241,14 @@
   .preset-btn:disabled { opacity: 0.5; cursor: default; }
   .preset-btn .pct { display: block; font-family: var(--font-mono); font-size: 10px; font-weight: 500; color: var(--text-faint); margin-top: 3px; }
   .preset-btn.active .pct { color: var(--accent); }
+  /* Plain-English summary of each aggression level — five subtle rows beneath the
+     preset tiles. Level name emphasised in the accent colour; description in muted
+     body text. No icons, no decoration (matches v2 helper-text). The active level's
+     row is brightened so it ties to the selected tile/detent. */
+  .preset-summary { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
+  .preset-summary-row { font-size: 11px; line-height: 1.45; color: var(--text-faint); }
+  .preset-summary-row .lvl { color: var(--accent); font-weight: 600; }
+  .preset-summary-row.active { color: var(--text-muted); }
   .field-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .field-line label { font-size: 12px; color: var(--text-muted); }
   .num-input {
@@ -310,9 +333,13 @@
   .growth-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
   /* === TOOLBAR === */
+  /* Hero numbers row (BTC Price | trades/fees | Avg Cost/BTC). Three blocks on a
+     1fr/1fr/1fr grid so the row spans the full container width — matching the
+     full-width Advanced twirl-down row. Previously repeat(4,1fr) with only three
+     children, which left the right quarter empty (v1.12.2 fix). */
   .toolbar {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr 1fr 1fr;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
@@ -327,9 +354,11 @@
   .tool .v.bear { color: var(--red); }
   .tool .v.bull { color: var(--green); }
   /* Total Trades: 3 self-labeling items on one line. Headerless, so it grows to
-     fill the cell height and stays vertically centred against its labelled siblings. */
-  .trades-row { flex: 1; display: flex; align-items: center; flex-wrap: wrap;
-    font-size: 15px; font-weight: 600; }
+     fill the cell height and stays vertically centred against its labelled siblings.
+     Horizontally centred so it sits balanced in the wider middle column of the
+     full-width hero row (v1.12.2). */
+  .trades-row { flex: 1; display: flex; align-items: center; justify-content: center;
+    flex-wrap: wrap; font-size: 15px; font-weight: 600; }
   .trades-row .ti { color: var(--text); white-space: nowrap; }
   .trades-row .ti .u { font-family: var(--font-body); font-weight: 500; font-size: 13px;
     color: var(--text-muted); letter-spacing: 0; margin-left: 3px; }
@@ -719,20 +748,27 @@
     <div class="hero-inner">
       <div class="hero-title">Aggressiveness</div>
       <div class="knob-wrap">
+        <!-- Five detents evenly spaced across the 270° arc (−135°…+135°, step
+             67.5°). Detent dots sit on radius 120 about centre (150,150); the
+             coordinates below are 150 + 120·sin(θ) , 150 − 120·cos(θ). Labels are
+             rendered as a separate HTML scale beneath the dial (see .knob-scale)
+             rather than as SVG text — five labels around the arc would collide and
+             risk glyph cutoff (the v1.12.0 "C" bug). -->
         <svg class="knob-svg" viewBox="0 0 300 300" id="knob">
           <path class="knob-arc-bg" d="M 65 235 A 120 120 0 1 1 235 235"/>
           <g id="detents">
-            <circle class="knob-detent" data-pos="0" cx="65" cy="235" r="6"/>
-            <circle class="knob-detent" data-pos="1" cx="150" cy="30" r="6"/>
-            <circle class="knob-detent" data-pos="2" cx="235" cy="235" r="6"/>
+            <circle class="knob-detent" data-pos="0" cx="65.1"  cy="234.9" r="6"/>
+            <circle class="knob-detent" data-pos="1" cx="39.1"  cy="104.1" r="6"/>
+            <circle class="knob-detent" data-pos="2" cx="150"   cy="30"    r="6"/>
+            <circle class="knob-detent" data-pos="3" cx="260.9" cy="104.1" r="6"/>
+            <circle class="knob-detent" data-pos="4" cx="234.9" cy="234.9" r="6"/>
           </g>
           <!-- larger transparent click targets over each detent (the 6px dots alone are hard to hit) -->
-          <circle class="knob-hit" data-pos="0" cx="65" cy="235" r="22"/>
-          <circle class="knob-hit" data-pos="1" cx="150" cy="30" r="22"/>
-          <circle class="knob-hit" data-pos="2" cx="235" cy="235" r="22"/>
-          <text class="knob-tick" data-pos="0" x="55" y="265" text-anchor="middle" style="cursor:pointer">Conservative</text>
-          <text class="knob-tick" data-pos="1" x="150" y="18" text-anchor="middle" style="cursor:pointer">Moderate</text>
-          <text class="knob-tick" data-pos="2" x="260" y="265" text-anchor="middle" style="cursor:pointer">Aggressive</text>
+          <circle class="knob-hit" data-pos="0" cx="65.1"  cy="234.9" r="20"/>
+          <circle class="knob-hit" data-pos="1" cx="39.1"  cy="104.1" r="20"/>
+          <circle class="knob-hit" data-pos="2" cx="150"   cy="30"    r="20"/>
+          <circle class="knob-hit" data-pos="3" cx="260.9" cy="104.1" r="20"/>
+          <circle class="knob-hit" data-pos="4" cx="234.9" cy="234.9" r="20"/>
           <circle class="knob-center" cx="150" cy="150" r="62"/>
           <circle cx="150" cy="150" r="62" fill="none" stroke="rgba(247,147,26,0.15)" stroke-width="1"/>
           <g id="needle-group" class="knob-needle-group">
@@ -743,6 +779,9 @@
           <circle cx="150" cy="150" r="3" fill="#F7931A"/>
         </svg>
       </div>
+      <!-- Slider-style label scale: one clickable label per detent, left→right in
+           detent order. Populated by renderKnob() from AGGRESSION_LEVELS. -->
+      <div class="knob-scale" id="knob-scale"></div>
       <div class="knob-label-wrap">
         <div class="knob-label" id="knob-label">—</div>
         <div class="knob-tag" id="knob-tag">—</div>
@@ -758,16 +797,18 @@
     </div>
   </section>
 
-  <!-- ADVANCED (twirl-down): own full-width row so the 3 aggression presets fit
+  <!-- ADVANCED (twirl-down): own full-width row so the 5 aggression presets fit
        on a single line and the panel spans the full dashboard content width. -->
   <details class="adjust">
     <summary>Adjust thresholds &amp; DCA cadence</summary>
     <div class="adjust-body">
-      <!-- Aggression presets: three options mirroring the three knob detents. -->
+      <!-- Aggression presets: five tiles mirroring the five knob detents (1:1 with
+           the bot's dip-threshold presets). Below them, a plain-English summary of
+           what each level does to the stack (populated from AGGRESSION_LEVELS). -->
       <div class="adjust-section">
         <div class="adjust-section-title">Aggression preset</div>
         <div class="preset-row" id="preset-row"></div>
-        <div class="adjust-caption">These match the three settings on the dial above.</div>
+        <div class="preset-summary" id="preset-summary"></div>
       </div>
 
       <!-- DCA amount + cadence -->
@@ -1018,23 +1059,55 @@
 const TREND_FRESH_DAYS = 14;
 const TREND_ESTABLISHED_DAYS = 60;
 
-// 3-detent knob positions (read-only in phase 1)
-const KNOB_POSITIONS = [
-  { angle: -135, label: 'Conservative', tag: 'Patient. Acts only on big moves. Lower trade frequency, larger thresholds.' },
-  { angle: 0,    label: 'Moderate',     tag: 'Balanced patience and action. Bot acts on meaningful dips and spikes; ignores small noise.' },
-  { angle: 135,  label: 'Aggressive',   tag: 'Hair-trigger. Acts on smaller moves more often. Higher trade frequency.' }
-];
-
-// 5-level presets mirror the legacy dashboard's AGGRESSION_LEVELS. They are no
-// longer rendered as choices (the twirl-down shows only the 3 knob detents),
-// but detectKnobDetent still uses them to place the *needle* when the bot is on
-// a legacy Conservative or Ultra preset, collapsing the 5 levels onto 3 detents.
+// ── Aggression levels — single source of truth (v1.12.2) ────────────────
+// The knob detents, the twirl-down preset tiles, and the layman's-terms summary
+// all read from this one array. There is NO mapping layer: each entry is one bot
+// "aggression preset" expressed directly as the three dip-buy thresholds the bot
+// API stores (DIP_THRESHOLD_PERCENT / TIER2 / TIER3). The dashboard owns these
+// preset definitions because the bot API takes raw thresholds, not a named level
+// — these five sets are the canonical presets the dashboard has always written
+// (they match the legacy dashboard's AGGRESSION_LEVELS 1:1).
+//
+// Fields:
+//   key     — stable identifier (used for selection/lookup; never shown raw)
+//   label   — display name shown on the dial scale and preset tiles
+//   dip1/2/3— the three tier thresholds written verbatim to /api/settings
+//   angle   — needle rotation in degrees; five detents evenly spaced across the
+//             270° arc (−135° → +135°, step 67.5°)
+//   tag     — short caption shown beside the dial when this level is selected
+//   summary — one-sentence plain-English description of what this level does to
+//             Andy's stack (grounded in trading-logic.md, not invented)
 const AGGRESSION_LEVELS = [
-  { name:'Conservative', dip1:'0.12',  dip2:'0.22',  dip3:'0.35' },
-  { name:'Balanced',     dip1:'0.07',  dip2:'0.15',  dip3:'0.22' },
-  { name:'Aggressive',   dip1:'0.05',  dip2:'0.10',  dip3:'0.16' },
-  { name:'Max Stack',    dip1:'0.03',  dip2:'0.07',  dip3:'0.12' },
-  { name:'Ultra ⚡',     dip1:'0.015', dip2:'0.030', dip3:'0.060' },
+  {
+    key: 'conservative', label: 'Conservative',
+    dip1: '0.12', dip2: '0.22', dip3: '0.35', angle: -135,
+    tag: 'Most patient. Only buys after major drops; lets most dips pass.',
+    summary: 'Only buys after large price drops — it lets most dips pass and deploys your cash slowly, just on the deepest pullbacks.'
+  },
+  {
+    key: 'balanced', label: 'Balanced',
+    dip1: '0.07', dip2: '0.15', dip3: '0.22', angle: -67.5,
+    tag: 'Waits for meaningful pullbacks before buying. Deploys gradually.',
+    summary: 'Waits for a clear, meaningful pullback before buying, then deploys your cash gradually as the dip deepens.'
+  },
+  {
+    key: 'moderate', label: 'Moderate',
+    dip1: '0.05', dip2: '0.10', dip3: '0.16', angle: 0,
+    tag: 'The middle path. Buys on moderate dips and scales in across pullbacks.',
+    summary: 'The middle path — buys on moderate dips and scales into a pullback in steps, balancing patience with putting cash to work.'
+  },
+  {
+    key: 'aggressive', label: 'Aggressive',
+    dip1: '0.03', dip2: '0.07', dip3: '0.12', angle: 67.5,
+    tag: 'Buys early on smaller dips. Deploys capital more often.',
+    summary: 'Buys early on smaller dips and deploys capital more often, catching most reasonable discounts rather than holding out.'
+  },
+  {
+    key: 'ultra', label: 'Ultra ⚡',
+    dip1: '0.015', dip2: '0.030', dip3: '0.060', angle: 135,
+    tag: 'Maximum stacking. Buys aggressively on even shallow dips.',
+    summary: 'Maximum stacking — buys aggressively on even shallow dips to grab as much BTC as possible, spending your reserve fastest.'
+  },
 ];
 
 // ── State ─────────────────────────────────────────────────────────────
@@ -1045,22 +1118,13 @@ let communityTimer = null;          // slow (5-min) poll for community stats
 let showAllTrades = false;          // Recent Trades: collapsed (last 6) vs all
 let lastTrades = [];                // cached for re-render on toggle
 let lastSettings = {};              // freshest /api/settings — twirl-down reads numbers from here
-let lastDetent = 1;                 // last detent shown on the knob (for optimistic revert)
+let lastLevel = 2;                  // last aggression level index painted on the knob
+                                    // (default Moderate); used for optimistic revert
 window._savingSettings = false;     // FIX 5: true while a write is in flight (pauses poll clobber)
 let _dashVersionData = null;        // latest /dash/version payload (for the Update Dashboard modal)
 let _botVersionData = null;         // latest /api/version payload (for the Update Bot modal + pill)
 let _askOpen = false;               // Ask BotCoin drawer open state
 let _askBusy = false;               // true while a /chat request is in flight
-
-// Each knob detent writes a full 3-tier dip preset. Indices line up with
-// KNOB_POSITIONS. Per the approved Phase-2 mapping the knob exposes the three
-// "everyday" presets (Balanced / Aggressive / Max Stack); the extreme
-// Conservative and Ultra presets remain reachable from the twirl-down radios.
-const KNOB_PRESET = [
-  { name: 'Balanced',   dip1: '0.07', dip2: '0.15', dip3: '0.22' },  // detent 0 · Conservative knob face
-  { name: 'Aggressive', dip1: '0.05', dip2: '0.10', dip3: '0.16' },  // detent 1 · Moderate
-  { name: 'Max Stack',  dip1: '0.03', dip2: '0.07', dip3: '0.12' },  // detent 2 · Aggressive
-];
 
 // Mode pill UI value ("btc"/"usd"/"auto") → the MODE value the bot actually
 // stores. The bot/legacy dashboard use the *_accumulate spellings; we keep
@@ -1301,9 +1365,15 @@ function footerStatus(bot) {
  * clobbering an in-progress edit.
  */
 function wireControls() {
-  // Knob detents, their text labels, and the transparent hit-targets.
-  document.querySelectorAll('#knob .knob-detent, #knob .knob-hit, #knob .knob-tick').forEach(el => {
-    el.addEventListener('click', () => onDetentClick(parseInt(el.dataset.pos, 10)));
+  // Knob detents + transparent hit-targets — static SVG elements, direct listeners.
+  document.querySelectorAll('#knob .knob-detent, #knob .knob-hit').forEach(el => {
+    el.addEventListener('click', () => setAggression(parseInt(el.dataset.pos, 10)));
+  });
+  // Scale labels are rebuilt each poll by buildKnobScale(), so delegate from the
+  // stable container (same pattern as the preset tiles).
+  document.getElementById('knob-scale').addEventListener('click', e => {
+    const tick = e.target.closest('.knob-tick');
+    if (tick) setAggression(parseInt(tick.dataset.pos, 10));
   });
 
   // Mode pills.
@@ -1562,98 +1632,109 @@ async function renderGauge(price, botMA200, mood, trend, maDaysBuilt) {
 }
 
 /**
- * Strict match of the live dip thresholds against the three knob detents
- * (KNOB_PRESET). Unlike detectKnobDetent — which always lands the *needle* on a
- * detent — this returns -1 when the bot is on a legacy Conservative/Ultra preset
- * or has drifted, so the twirl-down can honestly show "Custom" while still
- * displaying the true live percentages.
+ * Match the bot's live dip thresholds against the five aggression levels. Each
+ * level is a unique threshold triple, so this is an exact identity lookup — there
+ * is no mapping or bucketing layer (v1.12.2 removed the old 5→3 collapse). Returns
+ * -1 when the live thresholds match no level (manual/custom drift), so the dial
+ * and tiles can honestly show "Custom" while still surfacing the true live %.
  *
  * @param {Object} settings  Live /api/settings object.
- * @returns {number} detent index 0..2, or -1 when nothing matches exactly.
+ * @returns {number} level index 0..4, or -1 when nothing matches exactly.
  */
-function detectDetent(settings) {
+function detectLevel(settings) {
   const d1 = (parseFloat(settings.dip_tier1) * 100).toFixed(1);
   const d2 = (parseFloat(settings.dip_tier2) * 100).toFixed(1);
   const d3 = (parseFloat(settings.dip_tier3) * 100).toFixed(1);
-  for (let i = 0; i < KNOB_PRESET.length; i++) {
-    const p = KNOB_PRESET[i];
-    if ((parseFloat(p.dip1)*100).toFixed(1) === d1 &&
-        (parseFloat(p.dip2)*100).toFixed(1) === d2 &&
-        (parseFloat(p.dip3)*100).toFixed(1) === d3) return i;
-  }
-  return -1;
-}
-
-function detectKnobDetent(settings) {
-  // Recover 5-level preset from dip thresholds, then collapse to 3 detents.
-  const d1 = (parseFloat(settings.dip_tier1) * 100).toFixed(1);
-  const d2 = (parseFloat(settings.dip_tier2) * 100).toFixed(1);
-  const d3 = (parseFloat(settings.dip_tier3) * 100).toFixed(1);
-  let level = -1;
   for (let i = 0; i < AGGRESSION_LEVELS.length; i++) {
     const l = AGGRESSION_LEVELS[i];
     if ((parseFloat(l.dip1)*100).toFixed(1) === d1 &&
         (parseFloat(l.dip2)*100).toFixed(1) === d2 &&
-        (parseFloat(l.dip3)*100).toFixed(1) === d3) { level = i; break; }
+        (parseFloat(l.dip3)*100).toFixed(1) === d3) return i;
   }
-  if (level < 0) return 1;          // unknown/manual → Moderate
-  if (level <= 1) return 0;          // Conservative / Balanced → Conservative
-  if (level === 2) return 1;         // Aggressive → Moderate
-  return 2;                          // Max Stack / Ultra → Aggressive
+  return -1;
 }
 
 /**
- * Paint the knob to the detent derived from the bot's live dip thresholds.
- * Records the rendered detent in `lastDetent` so a failed detent write can
- * revert the needle to where it actually was.
+ * Paint the knob from the bot's live dip thresholds. When the live thresholds
+ * match no level (custom drift) the needle rests on Moderate for a sane visual,
+ * but no detent/scale label is highlighted so the UI doesn't falsely claim a
+ * preset is active. Records the painted level in `lastLevel` for optimistic
+ * revert on a failed write.
  *
  * @param {Object} settings  Live /api/settings object.
  */
 function renderKnob(settings) {
-  const i = detectKnobDetent(settings);
-  paintKnob(i);
-  lastDetent = i;
+  buildKnobScale();                              // idempotent; labels never change
+  const i = detectLevel(settings);
+  paintKnob(i < 0 ? 2 : i, i);                   // needle on Moderate when custom
+  lastLevel = i < 0 ? 2 : i;
 }
 
-/** Move the needle/highlight to a detent index without touching the bot. */
-function paintKnob(i) {
-  const pos = KNOB_POSITIONS[i];
-  document.getElementById('knob-label').textContent = pos.label;
-  document.getElementById('knob-tag').textContent = pos.tag;
+/**
+ * Build the HTML label scale beneath the dial, one clickable label per level in
+ * detent order. Rendered once (re-running just rewrites identical markup) since
+ * the level set is static. Each label routes clicks to setAggression().
+ */
+function buildKnobScale() {
+  const scale = document.getElementById('knob-scale');
+  if (scale.childElementCount === AGGRESSION_LEVELS.length) return;  // already built
+  scale.innerHTML = AGGRESSION_LEVELS.map((lvl, idx) =>
+    `<button type="button" class="knob-tick" data-pos="${idx}">${esc(lvl.label)}</button>`
+  ).join('');
+}
+
+/**
+ * Move the needle + highlight to a level index without touching the bot.
+ *
+ * @param {number} needleIdx     Level whose angle the needle should point to (0..4).
+ * @param {number} [activeIdx]   Level to highlight as selected; pass -1 to clear
+ *                               all highlights (custom/no-match). Defaults to needleIdx.
+ */
+function paintKnob(needleIdx, activeIdx) {
+  if (activeIdx === undefined) activeIdx = needleIdx;
+  const lvl = AGGRESSION_LEVELS[needleIdx];
+  const sel = activeIdx >= 0 ? AGGRESSION_LEVELS[activeIdx] : null;
+  document.getElementById('knob-label').textContent = sel ? sel.label : 'Custom';
+  document.getElementById('knob-tag').textContent = sel
+    ? sel.tag
+    : 'Custom thresholds — no preset matches the bot\u2019s current settings.';
   // Rotate via CSS transform (not the SVG attribute). The .knob-needle-group
   // CSS already supplies transform-box: view-box + transform-origin: 150px 150px,
   // so a bare rotate() spins about the knob centre and the CSS transition
   // animates it. Mixing CSS transform-origin with an SVG `rotate(N 150 150)`
   // attribute applied the centre twice and flung the needle offscreen (the
   // v1.11.1 bug). CSS transforms need the `deg` suffix.
-  document.getElementById('needle-group').style.transform = `rotate(${pos.angle}deg)`;
-  document.querySelectorAll('.knob-detent').forEach((d, idx) => d.classList.toggle('active', idx === i));
-  document.querySelectorAll('.knob-tick').forEach((t, idx) => t.classList.toggle('active', idx === i));
+  document.getElementById('needle-group').style.transform = `rotate(${lvl.angle}deg)`;
+  document.querySelectorAll('.knob-detent').forEach((d, idx) => d.classList.toggle('active', idx === activeIdx));
+  document.querySelectorAll('.knob-tick').forEach((t, idx) => t.classList.toggle('active', idx === activeIdx));
 }
 
 /**
- * Handle a click on a knob detent (or its label/hit-target): optimistically
- * snap the knob, then write the matching 3-tier dip preset. Reverts to the
- * previous detent on failure. No-ops while another save is mid-flight.
+ * Canonical aggression setter — the SINGLE write path shared by knob detents,
+ * scale labels, and twirl-down preset tiles. Optimistically snaps the dial to
+ * the chosen level, writes that level's three dip thresholds to /api/settings,
+ * refreshes the twirl-down on success, and reverts the dial on failure. No-ops
+ * while another save is mid-flight.
  *
- * @param {number} i  Target detent index (0..2).
+ * @param {number} i  Target level index (0..4 into AGGRESSION_LEVELS).
  */
-function onDetentClick(i) {
-  if (window._savingSettings) return;          // FIX 1: no double-fire mid-save
-  // Skip the write only when the bot's LIVE thresholds already equal this
-  // detent's preset. Comparing against the painted needle (lastDetent) alone
-  // would wrongly block a legacy/"Custom" state where the needle rests on a
-  // fallback detent but the actual thresholds differ — the user must be able
-  // to overwrite those.
-  if (i === lastDetent && detectDetent(lastSettings) === i) return;
-  const prev = lastDetent;
-  const preset = KNOB_PRESET[i];
-  paintKnob(i);                                 // optimistic
-  lastDetent = i;
+function setAggression(i) {
+  if (window._savingSettings) return;            // FIX 1: no double-fire mid-save
+  if (i < 0 || i >= AGGRESSION_LEVELS.length) return;
+  // Skip the write only when the bot's LIVE thresholds already equal this level.
+  // Comparing against the painted needle (lastLevel) alone would wrongly block a
+  // custom/drifted state where the needle rests on a fallback level but the live
+  // thresholds differ — the user must be able to overwrite those.
+  if (i === lastLevel && detectLevel(lastSettings) === i) return;
+  const prev = lastLevel;
+  const lvl = AGGRESSION_LEVELS[i];
+  paintKnob(i);                                  // optimistic
+  lastLevel = i;
+  renderTwirldown({ ...lastSettings, dip_tier1: lvl.dip1, dip_tier2: lvl.dip2, dip_tier3: lvl.dip3 });  // optimistic tile highlight
   saveSettings(
-    { dip_tier1: preset.dip1, dip_tier2: preset.dip2, dip_tier3: preset.dip3 },
-    () => { renderTwirldown(lastSettings); },   // refresh live % under the radios
-    () => { paintKnob(prev); lastDetent = prev; }
+    { dip_tier1: lvl.dip1, dip_tier2: lvl.dip2, dip_tier3: lvl.dip3 },
+    () => { renderTwirldown(lastSettings); },    // confirmed; refresh live % on tiles
+    () => { paintKnob(prev); lastLevel = prev; renderTwirldown(lastSettings); }
   );
 }
 
@@ -1700,19 +1781,18 @@ function onModeClick(ui) {
 /**
  * Render the interactive twirl-down. CRITICAL (FIX 3.5): every live number shown
  * here — DCA amount, cadence, range trade size, max positions, the "Custom"
- * threshold note — is read straight from the live `settings` object. The three
- * preset buttons display the fixed targets they WRITE (the KNOB_PRESET detents),
- * which by definition equal the live values when one is active.
+ * threshold note — is read straight from the live `settings` object. The five
+ * preset tiles display the fixed targets they WRITE (the AGGRESSION_LEVELS dip
+ * thresholds), which by definition equal the live values when one is active.
  *
  * @param {Object} settings  Live /api/settings object.
  */
 function renderTwirldown(settings) {
-  // The twirl-down exposes exactly the three knob detents (KNOB_PRESET), labeled
-  // identically to the dial faces (KNOB_POSITIONS). detectDetent() returns which
-  // detent the live thresholds match, or -1 when the bot is on a legacy
-  // Conservative/Ultra preset or has drifted — in which case we show "Custom"
-  // but still surface the true live percentages below.
-  const detectedDetent = detectDetent(settings);
+  // Five tiles, 1:1 with the five knob detents (AGGRESSION_LEVELS). detectLevel()
+  // returns which level the live thresholds match, or -1 when the bot has drifted
+  // to manual/custom thresholds — in which case no tile is active and we surface
+  // the true live percentages in a "Custom" note below.
+  const detectedLevel = detectLevel(settings);
 
   // Live dip % string from the bot's real thresholds (FIX 3.5: never the table).
   const liveDip = n => {
@@ -1722,28 +1802,33 @@ function renderTwirldown(settings) {
   const livePctLabel = `${liveDip(1)} / ${liveDip(2)} / ${liveDip(3)}`;
 
   const row = document.getElementById('preset-row');
-  // Three options only — one per knob detent, in detent order.
-  row.innerHTML = KNOB_PRESET.map((preset, idx) => {
-    const active = idx === detectedDetent;
-    // Each button shows the percentages it WRITES (the three hard-coded detent
-    // targets). When active these equal the live values anyway, so this stays
-    // consistent with FIX 3.5 while keeping every button's intent legible.
-    const pct = `−${(parseFloat(preset.dip1)*100).toFixed(1)}% / −${(parseFloat(preset.dip2)*100).toFixed(1)}% / −${(parseFloat(preset.dip3)*100).toFixed(1)}%`;
-    // Label matches the dial face, not the underlying preset name.
-    const label = KNOB_POSITIONS[idx].label;
+  // Five tiles — one per aggression level, in detent order.
+  row.innerHTML = AGGRESSION_LEVELS.map((lvl, idx) => {
+    const active = idx === detectedLevel;
+    // Each tile shows the percentages it WRITES (the level's three dip targets).
+    // When active these equal the live values anyway (FIX 3.5).
+    const pct = `−${(parseFloat(lvl.dip1)*100).toFixed(1)}% / −${(parseFloat(lvl.dip2)*100).toFixed(1)}% / −${(parseFloat(lvl.dip3)*100).toFixed(1)}%`;
     // No `disabled` here — double-fire is guarded in the click handler. Tying
     // it to _savingSettings left controls stuck disabled after a save.
     return `<button class="preset-btn${active ? ' active' : ''}" data-level="${idx}">`
-         + `${esc(label)}<span class="pct">${esc(pct)}</span></button>`;
+         + `${esc(lvl.label)}<span class="pct">${esc(pct)}</span></button>`;
   }).join('');
-  // When live values match no detent (legacy preset or manual drift), say so.
-  if (detectedDetent < 0) {
+  // When live values match no level (manual drift), say so.
+  if (detectedLevel < 0) {
     const note = document.createElement('div');
     note.className = 'adjust-caption';
     note.style.color = 'var(--gold)';
+    note.style.gridColumn = '1 / -1';
     note.textContent = `Custom thresholds active (${livePctLabel}) — no preset matches.`;
     row.appendChild(note);
   }
+
+  // Plain-English summary — one row per level, the active level brightened so it
+  // ties visually to the selected tile/detent. Stacks naturally on mobile.
+  document.getElementById('preset-summary').innerHTML = AGGRESSION_LEVELS.map((lvl, idx) =>
+    `<div class="preset-summary-row${idx === detectedLevel ? ' active' : ''}">`
+      + `<span class="lvl">${esc(lvl.label)}</span> — ${esc(lvl.summary)}</div>`
+  ).join('');
 
   // DCA amount — live value only, "—" if absent.
   const amtEl = document.getElementById('dca-amount');
@@ -1784,15 +1869,15 @@ function renderTwirldown(settings) {
 }
 
 /**
- * Twirl-down preset click. The three buttons map 1:1 onto the knob detents, so
- * we route straight through onDetentClick — picking a preset and turning the
- * dial to the same face are now the exact same write path (same payload, same
- * optimistic snap, same revert).
+ * Twirl-down preset-tile click. The five tiles map 1:1 onto the knob detents, so
+ * we route straight through setAggression — picking a tile and turning the dial
+ * to the same level are the exact same write path (same payload, same optimistic
+ * snap of needle + tile highlight, same revert).
  *
- * @param {number} idx  Detent index 0..2 (matches KNOB_PRESET / KNOB_POSITIONS).
+ * @param {number} idx  Level index 0..4 (matches AGGRESSION_LEVELS).
  */
 function onPresetClick(idx) {
-  onDetentClick(idx);
+  setAggression(idx);
 }
 
 function renderInvested(deposits, botPurchases) {
