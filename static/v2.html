@@ -85,10 +85,13 @@
     text-transform: uppercase; color: var(--text-muted);
   }
   .stat-value {
-    font-family: var(--font-mono); font-weight: 700;
-    font-size: 30px; letter-spacing: -0.02em; color: var(--text);
+    font-family: var(--font-mono); font-weight: 800;
+    font-size: 56px; line-height: 1.05; letter-spacing: -0.03em; color: var(--text);
+    font-feature-settings: 'tnum' 'lnum';
   }
   .stat-value.btc { color: var(--accent); }
+  /* Hero numbers get vertical breathing room so the value leads the card. */
+  .stat-hero { padding-top: var(--space-5); padding-bottom: var(--space-4); justify-content: center; }
   .stat-sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
 
   /* Market gauge tile */
@@ -435,6 +438,9 @@
     .top-grid, .duo, .toolbar { grid-template-columns: 1fr; }
     .adjust-body { grid-template-columns: 1fr; }
     .knob-wrap { width: 260px; height: 260px; }
+    /* Hero numbers scale down gracefully on narrow viewports. */
+    .stat-value { font-size: 40px; }
+    .stat-hero { padding-top: var(--space-4); padding-bottom: var(--space-3); }
   }
 </style>
 </head>
@@ -475,12 +481,12 @@
 
   <!-- TOP: STACK / RESERVE / GAUGE -->
   <div class="top-grid">
-    <div class="stat">
+    <div class="stat stat-hero">
       <div class="stat-label">BTC Stack</div>
       <div class="stat-value btc mono" id="btc-stack">—</div>
       <div class="stat-sub" id="btc-stack-sub">—</div>
     </div>
-    <div class="stat">
+    <div class="stat stat-hero">
       <div class="stat-label">USD Reserve</div>
       <div class="stat-value mono" id="usd-reserve">—</div>
       <div class="stat-sub">dry powder available</div>
@@ -555,11 +561,11 @@
       <details class="adjust">
         <summary>Adjust thresholds &amp; DCA cadence</summary>
         <div class="adjust-body">
-          <!-- Aggression presets (full 5 levels). Labels show LIVE dip % from /api/settings. -->
+          <!-- Aggression presets: three options mirroring the three knob detents. -->
           <div class="adjust-section">
             <div class="adjust-section-title">Aggression preset</div>
             <div class="preset-row" id="preset-row"></div>
-            <div class="adjust-caption">These five presets feed the 3-knob above. Pick a preset for finer control.</div>
+            <div class="adjust-caption">These match the three settings on the dial above.</div>
           </div>
 
           <!-- DCA amount + cadence -->
@@ -734,9 +740,10 @@ const KNOB_POSITIONS = [
   { angle: 135,  label: 'Aggressive',   tag: 'Hair-trigger. Acts on smaller moves more often. Higher trade frequency.' }
 ];
 
-// 5-level presets mirror the legacy dashboard's AGGRESSION_LEVELS so we can
-// recover the active level from the bot's dip thresholds (no aggression field
-// exists on /api/settings). The 5 levels collapse onto the 3 knob detents.
+// 5-level presets mirror the legacy dashboard's AGGRESSION_LEVELS. They are no
+// longer rendered as choices (the twirl-down shows only the 3 knob detents),
+// but detectKnobDetent still uses them to place the *needle* when the bot is on
+// a legacy Conservative or Ultra preset, collapsing the 5 levels onto 3 detents.
 const AGGRESSION_LEVELS = [
   { name:'Conservative', dip1:'0.12',  dip2:'0.22',  dip3:'0.35' },
   { name:'Balanced',     dip1:'0.07',  dip2:'0.15',  dip3:'0.22' },
@@ -1168,6 +1175,29 @@ function renderGauge(price, ma200, mood, trend) {
   }
 }
 
+/**
+ * Strict match of the live dip thresholds against the three knob detents
+ * (KNOB_PRESET). Unlike detectKnobDetent — which always lands the *needle* on a
+ * detent — this returns -1 when the bot is on a legacy Conservative/Ultra preset
+ * or has drifted, so the twirl-down can honestly show "Custom" while still
+ * displaying the true live percentages.
+ *
+ * @param {Object} settings  Live /api/settings object.
+ * @returns {number} detent index 0..2, or -1 when nothing matches exactly.
+ */
+function detectDetent(settings) {
+  const d1 = (parseFloat(settings.dip_tier1) * 100).toFixed(1);
+  const d2 = (parseFloat(settings.dip_tier2) * 100).toFixed(1);
+  const d3 = (parseFloat(settings.dip_tier3) * 100).toFixed(1);
+  for (let i = 0; i < KNOB_PRESET.length; i++) {
+    const p = KNOB_PRESET[i];
+    if ((parseFloat(p.dip1)*100).toFixed(1) === d1 &&
+        (parseFloat(p.dip2)*100).toFixed(1) === d2 &&
+        (parseFloat(p.dip3)*100).toFixed(1) === d3) return i;
+  }
+  return -1;
+}
+
 function detectKnobDetent(settings) {
   // Recover 5-level preset from dip thresholds, then collapse to 3 detents.
   const d1 = (parseFloat(settings.dip_tier1) * 100).toFixed(1);
@@ -1220,7 +1250,12 @@ function paintKnob(i) {
  */
 function onDetentClick(i) {
   if (window._savingSettings) return;          // FIX 1: no double-fire mid-save
-  if (i === lastDetent) return;                 // already there — nothing to write
+  // Skip the write only when the bot's LIVE thresholds already equal this
+  // detent's preset. Comparing against the painted needle (lastDetent) alone
+  // would wrongly block a legacy/"Custom" state where the needle rests on a
+  // fallback detent but the actual thresholds differ — the user must be able
+  // to overwrite those.
+  if (i === lastDetent && detectDetent(lastSettings) === i) return;
   const prev = lastDetent;
   const preset = KNOB_PRESET[i];
   paintKnob(i);                                 // optimistic
@@ -1273,18 +1308,23 @@ function onModeClick(ui) {
 }
 
 /**
- * Render the interactive twirl-down. CRITICAL (FIX 3.5): every number shown
- * here — dip percentages, DCA amount, range trade size, max positions — is
- * read straight from the live `settings` object, never from the preset table.
- * The AGGRESSION_LEVELS table is used only to *match* a label and to *write*
- * when a preset is picked. Missing fields render as "—".
+ * Render the interactive twirl-down. CRITICAL (FIX 3.5): every live number shown
+ * here — DCA amount, cadence, range trade size, max positions, the "Custom"
+ * threshold note — is read straight from the live `settings` object. The three
+ * preset buttons display the fixed targets they WRITE (the KNOB_PRESET detents),
+ * which by definition equal the live values when one is active.
  *
  * @param {Object} settings  Live /api/settings object.
  */
 function renderTwirldown(settings) {
-  const detected = detectAggressionLevel(settings);   // index into AGGRESSION_LEVELS, or -1
+  // The twirl-down exposes exactly the three knob detents (KNOB_PRESET), labeled
+  // identically to the dial faces (KNOB_POSITIONS). detectDetent() returns which
+  // detent the live thresholds match, or -1 when the bot is on a legacy
+  // Conservative/Ultra preset or has drifted — in which case we show "Custom"
+  // but still surface the true live percentages below.
+  const detectedDetent = detectDetent(settings);
 
-  // Live dip % for the active preset's sub-label (true bot values, not presets).
+  // Live dip % string from the bot's real thresholds (FIX 3.5: never the table).
   const liveDip = n => {
     const v = parseFloat(settings['dip_tier' + n]);
     return isNaN(v) ? '—' : '−' + (v * 100).toFixed(1) + '%';
@@ -1292,20 +1332,22 @@ function renderTwirldown(settings) {
   const livePctLabel = `${liveDip(1)} / ${liveDip(2)} / ${liveDip(3)}`;
 
   const row = document.getElementById('preset-row');
-  row.innerHTML = AGGRESSION_LEVELS.map((l, idx) => {
-    const active = idx === detected;
-    // The active button surfaces the LIVE values; others show their own preset
-    // targets so the user can see what picking them would write.
-    const pct = active
-      ? livePctLabel
-      : `−${(parseFloat(l.dip1)*100).toFixed(1)}% / −${(parseFloat(l.dip2)*100).toFixed(1)}% / −${(parseFloat(l.dip3)*100).toFixed(1)}%`;
+  // Three options only — one per knob detent, in detent order.
+  row.innerHTML = KNOB_PRESET.map((preset, idx) => {
+    const active = idx === detectedDetent;
+    // Each button shows the percentages it WRITES (the three hard-coded detent
+    // targets). When active these equal the live values anyway, so this stays
+    // consistent with FIX 3.5 while keeping every button's intent legible.
+    const pct = `−${(parseFloat(preset.dip1)*100).toFixed(1)}% / −${(parseFloat(preset.dip2)*100).toFixed(1)}% / −${(parseFloat(preset.dip3)*100).toFixed(1)}%`;
+    // Label matches the dial face, not the underlying preset name.
+    const label = KNOB_POSITIONS[idx].label;
     // No `disabled` here — double-fire is guarded in the click handler. Tying
     // it to _savingSettings left controls stuck disabled after a save.
     return `<button class="preset-btn${active ? ' active' : ''}" data-level="${idx}">`
-         + `${esc(l.name)}<span class="pct">${esc(pct)}</span></button>`;
+         + `${esc(label)}<span class="pct">${esc(pct)}</span></button>`;
   }).join('');
-  // When live values match no preset (manual drift), show that honestly.
-  if (detected < 0) {
+  // When live values match no detent (legacy preset or manual drift), say so.
+  if (detectedDetent < 0) {
     const note = document.createElement('div');
     note.className = 'adjust-caption';
     note.style.color = 'var(--gold)';
@@ -1352,33 +1394,15 @@ function renderTwirldown(settings) {
 }
 
 /**
- * Find which AGGRESSION_LEVELS preset the live dip thresholds match exactly.
- * @param {Object} settings  Live /api/settings object.
- * @returns {number} index into AGGRESSION_LEVELS, or -1 for custom/drift.
+ * Twirl-down preset click. The three buttons map 1:1 onto the knob detents, so
+ * we route straight through onDetentClick — picking a preset and turning the
+ * dial to the same face are now the exact same write path (same payload, same
+ * optimistic snap, same revert).
+ *
+ * @param {number} idx  Detent index 0..2 (matches KNOB_PRESET / KNOB_POSITIONS).
  */
-function detectAggressionLevel(settings) {
-  const d1 = (parseFloat(settings.dip_tier1) * 100).toFixed(1);
-  const d2 = (parseFloat(settings.dip_tier2) * 100).toFixed(1);
-  const d3 = (parseFloat(settings.dip_tier3) * 100).toFixed(1);
-  for (let i = 0; i < AGGRESSION_LEVELS.length; i++) {
-    const l = AGGRESSION_LEVELS[i];
-    if ((parseFloat(l.dip1)*100).toFixed(1) === d1 &&
-        (parseFloat(l.dip2)*100).toFixed(1) === d2 &&
-        (parseFloat(l.dip3)*100).toFixed(1) === d3) return i;
-  }
-  return -1;
-}
-
-/** Write a full 5-level aggression preset; the knob re-derives on next render. */
 function onPresetClick(idx) {
-  if (window._savingSettings) return;
-  const l = AGGRESSION_LEVELS[idx];
-  const prev = lastSettings;
-  saveSettings(
-    { dip_tier1: l.dip1, dip_tier2: l.dip2, dip_tier3: l.dip3 },
-    () => { renderKnob(lastSettings); renderTwirldown(lastSettings); },
-    () => { renderTwirldown(prev); }
-  );
+  onDetentClick(idx);
 }
 
 function renderInvested(deposits, botPurchases) {
