@@ -179,7 +179,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
     padding: var(--space-6) var(--space-5) var(--space-5);
-    margin-bottom: var(--space-6);
+    margin-bottom: var(--space-5);
     position: relative;
     overflow: hidden;
   }
@@ -383,6 +383,14 @@
 
   /* === ACTIVITY CARD (v2.0 "What your bot's been up to") === */
   .activity-card { margin-bottom: var(--space-5); }
+  /* Conversational title — mirrors .agg-title so the two "newer" cards
+     (aggression dial + activity log) share a visual register. The eyebrow
+     style used by .breakdown-card h2 is wrong here; the text is a friendly
+     sentence, not a label. */
+  .activity-card h2 {
+    font-size: 17px; font-weight: 700; color: var(--text);
+    letter-spacing: -0.01em; margin-bottom: var(--space-3);
+  }
   .bot-summary {
     font-size: 14px; line-height: 1.5; color: var(--text);
     margin-bottom: var(--space-3);
@@ -946,6 +954,10 @@
   /* Aggression radar dial */
   .card.agg-card {
     padding: var(--space-5); position: relative;
+    /* Sits directly above the activity card. Extra margin (vs the .card-base
+       default of zero) gives the aggression dial breathing room and signals a
+       section break between "control" and "log". */
+    margin-bottom: var(--space-6);
   }
   .agg-header {
     display: flex; justify-content: space-between; align-items: flex-start;
