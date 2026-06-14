@@ -428,6 +428,15 @@
   .activity-ico.sell { background: var(--red-dim);   color: var(--red); }
   .activity-text { flex: 1; color: var(--text); }
   .activity-text .when { color: var(--text-faint); font-size: 11px; margin-left: 6px; }
+  /* Per-trade detail sub-line — absolute timestamp + BTC amount + price.
+     Tabular-nums so the numeric columns visually line up across rows. */
+  .activity-text .activity-detail {
+    margin-top: 2px;
+    color: var(--text-faint);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+  }
   .activity-empty { font-size: 13px; color: var(--text-muted); }
   /* Expand/collapse the trade list. Text-only link button — same register as
      the "Show expert controls" twirl-down summary. No background, no border;
@@ -1770,6 +1779,51 @@ function fmtBtc(n) {
   if (n == null || isNaN(n)) return '—';
   return Number(n).toFixed(8);
 }
+/**
+ * Build the per-trade detail sub-line. Format:
+ *   "Jun 10, 2026 · 11:04am · 0.00024536 BTC @ $64,237"
+ *
+ * Degrades gracefully: any part that's missing or unparseable is omitted,
+ * separators collapse. Never throws — bad trade data must not break the
+ * activity card.
+ *
+ * @param {Object} t  trade row from /api/trades (timestamp, btc_amount, price)
+ * @returns {string}  detail line, or "" if every part is unavailable
+ */
+function fmtTradeDetail(t) {
+  const parts = [];
+
+  // Absolute date + time. Two separate parts so a partial Date is still useful.
+  if (t && t.timestamp) {
+    const d = new Date(t.timestamp);
+    if (!isNaN(d.getTime())) {
+      // "Jun 10, 2026"
+      const datePart = d.toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric'
+      });
+      // "11:04am" — force lowercase suffix, no leading zero on the hour.
+      const timePart = d.toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit', hour12: true
+      }).replace(/\s?(AM|PM)$/i, (_, mer) => mer.toLowerCase());
+      parts.push(datePart, timePart);
+    }
+  }
+
+  // BTC quantity at fill. Skip zero or missing — there's no meaningful trade
+  // with zero BTC, but we never want to print "0.00000000 BTC".
+  const btc = Number(t && t.btc_amount);
+  if (Number.isFinite(btc) && btc > 0) {
+    parts.push(`${fmtBtc(btc)} BTC`);
+  }
+
+  // BTC price at fill. fmtUsd0 already prints "$64,237" (no decimals, comma).
+  const px = Number(t && t.price);
+  if (Number.isFinite(px) && px > 0) {
+    parts.push(`@ ${fmtUsd0(px)}`);
+  }
+
+  return parts.join(' · ');
+}
 // ── XIRR: money-weighted annualized return ────────────────────────────
 // Newton-Raphson tuning constants. These control convergence behaviour and
 // are intentionally named so the math below reads without magic numbers.
@@ -2415,9 +2469,14 @@ function renderActivity(trades, settings) {
   listEl.innerHTML = trades.slice(0, shown).map(t => {
     const sell = (t.side || '').toLowerCase() === 'sell';
     const ico = sell ? '<div class="activity-ico sell">↓</div>' : '<div class="activity-ico buy">↑</div>';
+    // Detail sub-line. Empty string -> render nothing (no empty <div>) to keep
+    // rows that lack trade data from showing a hollow gap underneath.
+    const detail = fmtTradeDetail(t);
+    const detailLine = detail ? `<div class="activity-detail">${esc(detail)}</div>` : '';
     return `<div class="activity-row">${ico}<div class="activity-text">`
       + `${esc(activitySentence(t, settings, trades))}`
       + `<span class="when">${esc(timeAgo(t.timestamp))}</span>`
+      + detailLine
       + `</div></div>`;
   }).join('');
 
