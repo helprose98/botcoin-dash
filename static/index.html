@@ -76,6 +76,12 @@
     font-size: 12px; color: var(--text-muted);
   }
   .pill .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--green); box-shadow: 0 0 8px var(--green); }
+  /* Header pill dot tinted by current v2 operating regime. Harvest is the one
+     state that's stack-reducing, so the orange pulse signals "actively selling
+     into a rally" at a glance. */
+  .pill .dot.regime-accumulate { background: var(--green); }
+  .pill .dot.regime-neutral    { background: var(--text-muted); }
+  .pill .dot.regime-harvest    { background: var(--accent); }
 
   /* === TOP STATUS ROW === */
   /* Two cards at desktop (v1.13.11): PORTFOLIO | MARKET (gauge). The Portfolio
@@ -173,7 +179,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
     padding: var(--space-6) var(--space-5) var(--space-5);
-    margin-bottom: var(--space-5);
+    margin-bottom: var(--space-6);
     position: relative;
     overflow: hidden;
   }
@@ -2019,17 +2025,23 @@ async function loadVersions() {
 }
 
 /**
- * Build the footer status line from the live bot state: which side the bot is
- * stacking, prefixed with "Sideways · " when the Sideways Market strategy is
- * currently active. Mirrors v1's footer intent with v2's richer wording.
+ * Build the footer status line from the live bot state, reading the v2
+ * operating regime (Accumulate / Neutral / Harvest) via deriveParentMode().
  *
  * @param {Object} bot  The `bot` block from /api/status.
  */
 function footerStatus(bot) {
-  const mode = (bot.active_mode || 'btc_accumulate').toLowerCase();
-  const side = mode === 'usd_accumulate' ? 'Stacking USD' : 'Stacking BTC';
-  const sideways = bot.sideways && bot.sideways.active;
-  return sideways ? `Sideways Market · ${side}` : side;
+  // v2 footer state line. Mirrors the header pill's regime label but uses a
+  // longer, plainer phrasing because the footer has the room.
+  const { label, regime } = deriveParentMode(bot, bot?.price);
+
+  if (!label) return 'Running';
+
+  // Friendly long-form descriptors. These are the user-facing equivalents of
+  // the regime names — written for a lay reader, not a trader.
+  if (regime === 'accumulate') return 'Accumulating sats';
+  if (regime === 'harvest')    return 'Harvesting into rally';
+  return 'Neutral · Recycling volatility';   // neutral
 }
 
 /**
@@ -2155,17 +2167,43 @@ async function loadData() {
   }
 }
 
-// Parent mode: above 200MA → BTC Accumulation, below → USD Accumulation.
-// Falls back to the bot's own mode field, then to price-vs-MA, then null if all unknown.
+// Operating-regime label for the header status pill. v2 has three regimes:
+// Accumulate / Neutral / Harvest. We render the verb form because it reads
+// better in a status-pill context ("Running · Accumulating" vs "· Accumulate").
+// Returns { label, regime } so callers can also style on the regime key.
+//
+// Field precedence:
+//   1. b.operating_regime.operating_regime  — authoritative v2 source from bot
+//   2. price vs ma200×1.15  — best-effort derivation if regime field missing
+//                              (older bot without v2 fields, or 200MA still building)
+//   3. price vs ma200       — fallback to a 2-state read when we only know the trend
+// Returns null label if nothing usable.
 function deriveParentMode(b, price) {
+  const VERBS = {
+    accumulate: 'Accumulating',
+    neutral:    'Neutral',
+    harvest:    'Harvesting',
+  };
+
+  // 1) Authoritative: bot emits operating_regime as part of /api/status (v2.x bots).
+  const op = (b?.operating_regime?.operating_regime || '').toLowerCase();
+  if (VERBS[op]) return { label: VERBS[op], regime: op };
+
+  // 2) Derive from price-vs-MA when the bot is too old to ship the regime field.
+  //    Harvest threshold matches the bot's regime detector (200MA × 1.15).
+  const ma200 = b?.ma200;
+  if (ma200 && price) {
+    if (price >= ma200 * 1.15) return { label: VERBS.harvest,    regime: 'harvest' };
+    if (price <  ma200)        return { label: VERBS.accumulate, regime: 'accumulate' };
+    return                            { label: VERBS.neutral,    regime: 'neutral' };
+  }
+
+  // 3) Last-ditch fallback — coarser two-state read from the trend side.
   const side = b?.trend?.side;
-  if (side === 'above') return 'BTC Accumulation';
-  if (side === 'below') return 'USD Accumulation';
-  const rawMode = (b?.mode || '').toLowerCase();
-  if (rawMode.includes('usd')) return 'USD Accumulation';
-  if (rawMode.includes('btc')) return 'BTC Accumulation';
-  if (b?.ma200 && price) return price >= b.ma200 ? 'BTC Accumulation' : 'USD Accumulation';
-  return null;
+  if (side === 'above') return { label: VERBS.neutral,    regime: 'neutral' };
+  if (side === 'below') return { label: VERBS.accumulate, regime: 'accumulate' };
+
+  return { label: null, regime: null };
 }
 
 // ── Render ────────────────────────────────────────────────────────────
@@ -2177,10 +2215,19 @@ function render(data, trades, settings, deposits) {
   const btcStack = p.btc_balance || 0;
   const usdReserve = p.usd_balance || 0;
 
-  // Parent mode from the bot's actual 200-MA trend (b.trend.side), with fallbacks.
-  const parentMode = deriveParentMode(b, price);
+  // deriveParentMode now returns { label, regime } — destructure for the pill text
+  // and use the regime key to tag the dot for regime-specific styling.
+  const { label: parentMode, regime: parentRegime } = deriveParentMode(b, price);
   document.getElementById('state-pill').textContent =
     parentMode ? `Running · ${parentMode}` : 'Running';
+
+  // Tag the dot inside the header pill so Harvest can pulse orange.
+  // Selector: the .dot sibling immediately before #state-pill, scoped to .pill.
+  const headerDot = document.querySelector('header.brand .pill .dot');
+  if (headerDot) {
+    headerDot.classList.remove('regime-accumulate', 'regime-neutral', 'regime-harvest');
+    if (parentRegime) headerDot.classList.add(`regime-${parentRegime}`);
+  }
 
   // Top stats — Portfolio card (v1.13.11). The total is the same expression the
   // GROWTH card used for "Portfolio today": BTC value + USD reserve. Falls back
