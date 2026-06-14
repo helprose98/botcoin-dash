@@ -839,6 +839,277 @@
     cursor: pointer; transition: all var(--transition);
   }
   .advanced-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ============================================================
+     v2.0 layman dashboard styles — adapted from approved mockup.
+     Replaces toolbar / knob hero / advanced twirl-down. Existing
+     dash variables (--accent, --surface, --space-*, --font-mono)
+     are reused; new classnames live only here.
+     ============================================================ */
+
+  /* Hero portfolio card */
+  .card.hero-portfolio {
+    padding: var(--space-6) var(--space-5);
+    margin-bottom: var(--space-4);
+  }
+  .hero-portfolio .hero-label {
+    font-size: 13px; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin-bottom: var(--space-2);
+  }
+  .hero-portfolio .hero-value {
+    font-size: 56px; font-weight: 700; color: var(--text);
+    line-height: 1.05; letter-spacing: -0.02em;
+    font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  }
+  .hero-portfolio .hero-subline {
+    margin-top: var(--space-4); font-size: 15px; color: var(--text);
+    display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5);
+  }
+  .hero-portfolio .hero-stat { color: var(--text-muted); }
+  .hero-portfolio .hero-stat b {
+    color: var(--text); font-family: var(--font-mono);
+    font-weight: 600; margin-left: 4px;
+  }
+  .hero-portfolio .hero-meta {
+    margin-top: var(--space-4);
+    display: flex; flex-wrap: wrap; align-items: baseline;
+    gap: var(--space-2) var(--space-4);
+    font-size: 14px;
+  }
+  .hero-portfolio .hero-price {
+    font-family: var(--font-mono); color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .hero-portfolio .hero-delta {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 14px; font-weight: 700; letter-spacing: 0.02em;
+    padding: 4px 12px; border-radius: 999px;
+    background: var(--green-dim); color: var(--green);
+    border: 1px solid color-mix(in srgb, var(--green) 40%, transparent);
+    font-variant-numeric: tabular-nums;
+  }
+  .hero-portfolio .hero-delta.down {
+    background: var(--red-dim); color: var(--red);
+    border-color: color-mix(in srgb, var(--red) 40%, transparent);
+  }
+  .hero-portfolio .hero-delta:empty { display: none; }
+
+  /* Breakdown row — "What you put in" + "How you're doing" */
+  .breakdown-row {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: var(--space-4); margin-bottom: var(--space-4);
+  }
+  @media (max-width: 720px) {
+    .breakdown-row { grid-template-columns: 1fr; }
+  }
+  .breakdown-card h2 {
+    font-size: 13px; font-weight: 600; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--text-muted);
+    margin-bottom: var(--space-3);
+  }
+  .bd-line {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: var(--space-2) 0; font-size: 14px; color: var(--text);
+  }
+  .bd-label { color: var(--text); }
+  .bd-sub {
+    color: var(--text-muted); font-size: 11px;
+    margin-left: 8px; font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .bd-val {
+    font-weight: 700; color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .bd-total {
+    border-top: 1px solid var(--border);
+    margin-top: var(--space-3); padding-top: var(--space-3);
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 17px; font-weight: 700; color: var(--text);
+  }
+  .bd-footnote {
+    margin-top: var(--space-3); color: var(--text-muted);
+    font-size: 11px;
+  }
+  .growth-attr {
+    border-top: 1px solid var(--border);
+    margin-top: var(--space-4); padding-top: var(--space-3);
+  }
+
+  /* Aggression radar dial */
+  .card.agg-card {
+    padding: var(--space-5); position: relative;
+  }
+  .agg-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: var(--space-3);
+  }
+  .agg-title {
+    font-size: 17px; font-weight: 700; color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .agg-tag {
+    font-size: 11px; color: var(--text-muted);
+    letter-spacing: 0.18em; text-transform: uppercase; font-weight: 600;
+  }
+  .agg-gauge-wrap {
+    display: flex; justify-content: center;
+    padding: var(--space-2) 0 var(--space-3);
+  }
+  .agg-gauge { width: 100%; max-width: 480px; height: auto; }
+  .agg-gauge .arc-bg { stroke: var(--surface-3); }
+  .agg-gauge .arc-fg { stroke: var(--accent-dim); }
+  .agg-gauge .zone-dot {
+    fill: var(--text-faint); transition: fill 0.2s, filter 0.2s;
+  }
+  .agg-gauge .zone-dot.active {
+    fill: var(--accent);
+    filter: drop-shadow(0 0 6px var(--accent-glow));
+  }
+  .agg-gauge .zone-label {
+    fill: var(--text-muted); font-size: 13px; font-weight: 600;
+    letter-spacing: 0.08em; text-anchor: middle;
+    font-family: var(--font-body);
+  }
+  .agg-gauge .zone-label.active { fill: var(--accent); }
+  .agg-gauge .needle {
+    stroke: var(--accent); stroke-width: 3; stroke-linecap: round;
+    transition: transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1);
+    transform-origin: 240px 240px;
+  }
+  .agg-gauge .needle-tip {
+    fill: var(--accent);
+    filter: drop-shadow(0 0 4px var(--accent-glow));
+    transition: transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1);
+    transform-origin: 240px 240px;
+  }
+  .agg-gauge .hub-outer {
+    fill: var(--surface-2); stroke: var(--accent); stroke-width: 1.2;
+  }
+  .agg-gauge .hub-inner { fill: var(--accent); }
+  .agg-gauge .zone-click { fill: transparent; cursor: pointer; }
+  .agg-current {
+    text-align: center; font-size: 22px; font-weight: 700;
+    color: var(--text); letter-spacing: -0.01em;
+    margin-top: var(--space-2);
+  }
+  .agg-help {
+    text-align: center; color: var(--text-muted);
+    font-size: 13px; margin-top: var(--space-2);
+    max-width: 540px; margin-left: auto; margin-right: auto;
+  }
+
+  /* Activity card (mockup-faithful) */
+  .card.activity-card .bot-summary {
+    font-size: 16px; color: var(--text); line-height: 1.55;
+    margin-bottom: var(--space-3);
+  }
+  .card.activity-card .bot-summary b {
+    color: var(--accent); font-weight: 600;
+  }
+
+  /* Expert drawer — collapsed by default, exposes every raw threshold */
+  details.expert-drawer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 0;
+    margin-bottom: var(--space-4);
+  }
+  details.expert-drawer > summary {
+    cursor: pointer; list-style: none;
+    padding: var(--space-3) var(--space-5);
+    font-size: 15px; font-weight: 600; color: var(--text);
+    display: flex; align-items: center; gap: var(--space-3);
+  }
+  details.expert-drawer > summary::-webkit-details-marker { display: none; }
+  details.expert-drawer > summary::before {
+    content: "▶"; font-size: 10px; color: var(--text-muted);
+    transition: transform 0.2s;
+  }
+  details.expert-drawer[open] > summary::before { transform: rotate(90deg); }
+  .expert-hint {
+    font-weight: 400; font-size: 13px; color: var(--text-muted);
+    margin-left: 4px;
+  }
+  details.expert-drawer .expert-body { padding: 0 var(--space-5) var(--space-4); }
+  .expert-caption {
+    font-size: 12px; color: var(--text-muted);
+    padding: var(--space-2) 0 var(--space-3);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: var(--space-3);
+  }
+  details.expert-group {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-3); overflow: hidden;
+  }
+  details.expert-group > summary {
+    cursor: pointer; list-style: none;
+    padding: var(--space-2) var(--space-3);
+    font-size: 13px; font-weight: 700; color: var(--accent);
+    background: var(--surface-2);
+    display: flex; align-items: center; gap: var(--space-2);
+    letter-spacing: 0.02em;
+  }
+  details.expert-group > summary::-webkit-details-marker { display: none; }
+  details.expert-group > summary::before {
+    content: "▶"; font-size: 10px; color: var(--text-muted);
+    transition: transform 0.2s;
+  }
+  details.expert-group[open] > summary::before { transform: rotate(90deg); }
+  .expert-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3);
+  }
+  @media (max-width: 600px) { .expert-grid { grid-template-columns: 1fr; } }
+  .ekv { display: flex; flex-direction: column; gap: 4px; }
+  .ekv label {
+    font-size: 11px; color: var(--text-muted);
+    font-weight: 500;
+  }
+  .ekv .ek {
+    background: var(--bg-deep); border: 1px solid var(--border);
+    color: var(--text); border-radius: var(--radius-sm);
+    padding: 6px var(--space-2);
+    font-family: var(--font-mono); font-size: 13px;
+  }
+  .ekv .ek:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .expert-reset {
+    margin-top: var(--space-3); width: 100%;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-muted); border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: var(--font-body);
+    transition: all var(--transition);
+  }
+  .expert-reset:hover {
+    border-color: var(--red); color: var(--red);
+  }
+
+  /* Site footer (v2.0) */
+  .site-footer {
+    margin-top: var(--space-5); padding-top: var(--space-4);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px; color: var(--text-muted);
+  }
+  .site-footer .footer-left,
+  .site-footer .footer-right { display: flex; align-items: center; gap: 8px; }
+  .footer-dot { color: var(--text-faint); }
+  .footer-updated {
+    text-align: right; font-size: 11px; color: var(--text-faint);
+    margin-top: 4px; font-family: var(--font-mono);
+  }
+
+  @media (max-width: 600px) {
+    .hero-portfolio .hero-value { font-size: 36px; }
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
@@ -877,67 +1148,26 @@
     <div class="pill"><span class="dot"></span> <span id="state-pill">Connecting…</span></div>
   </header>
 
-  <!-- TOP: PORTFOLIO / GAUGE -->
-  <div class="top-grid">
-    <!-- PORTFOLIO card (v1.13.11): the former BTC STACK + USD RESERVE cards
-         consolidated into one. Top region promotes the total portfolio value
-         (BTC value + USD reserve) with the live BTC price beneath it; the
-         bottom region keeps both former cards as smaller side-by-side
-         sub-stats so the stack-growth signal is retained. -->
-    <div class="stat portfolio-card">
-      <div class="stat-label">Portfolio</div>
-      <div class="portfolio-total">
-        <div class="stat-value btc mono" id="portfolio-total">—</div>
-        <!-- Live BTC price, moved up from the old BTC STACK sub-line. The
-             live-price poll still targets #tool-price, so it stays the element
-             whose value updates. -->
-        <div class="portfolio-total-sub stat-sub">
-          <span class="stat-sub-inline" id="tool-price">—</span>
-        </div>
-      </div>
-      <div class="portfolio-breakdown">
-        <div class="portfolio-sub-stat">
-          <div class="stat-label">BTC Stack</div>
-          <div class="stat-value btc mono" id="btc-stack">—</div>
-          <!-- "≈ $X today" only here now; the live BTC price moved up to the
-               header sub-text (v1.13.11) to avoid redundancy. -->
-          <div class="stat-sub"><span id="btc-stack-sub">—</span></div>
-        </div>
-        <div class="portfolio-sub-stat">
-          <div class="stat-label">USD Reserve</div>
-          <div class="stat-value mono" id="usd-reserve">—</div>
-          <div class="stat-sub">dry powder available</div>
-        </div>
-      </div>
+  <!-- 1. HERO PORTFOLIO CARD — mockup-faithful: total value, stack + reserve, delta vs deposits. -->
+  <div class="card hero-portfolio">
+    <div class="hero-label">Your portfolio is worth</div>
+    <div class="hero-value mono" id="portfolio-total">—</div>
+    <div class="hero-subline">
+      <span class="hero-stat">Bitcoin stack: <b class="mono" id="btc-stack">—</b></span>
+      <span class="hero-stat">Cash reserve: <b class="mono" id="usd-reserve">—</b></span>
     </div>
-    <div class="stat gauge-tile">
-      <div class="stat-label">Market</div>
-      <div class="gauge-wrap">
-        <svg class="gauge-svg" viewBox="0 0 200 120">
-          <defs>
-            <linearGradient id="gaugeArc" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%"  stop-color="#F87171"/>
-              <stop offset="50%" stop-color="#FBBF24"/>
-              <stop offset="100%" stop-color="#4ADE80"/>
-            </linearGradient>
-          </defs>
-          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="url(#gaugeArc)" stroke-width="14" stroke-linecap="round" opacity="0.85"/>
-          <g id="gauge-needle" transform="rotate(0 100 100)">
-            <line x1="100" y1="100" x2="100" y2="30" stroke="#EAE7E2" stroke-width="3" stroke-linecap="round"/>
-            <circle cx="100" cy="100" r="6" fill="#EAE7E2"/>
-          </g>
-          <text x="22" y="118" fill="#7A7570" font-size="10" font-weight="700">BEAR</text>
-          <text x="178" y="118" fill="#7A7570" font-size="10" font-weight="700" text-anchor="end">BULL</text>
-        </svg>
-        <div class="gauge-label" id="gauge-label">—</div>
-        <div class="gauge-sub" id="gauge-sub">—</div>
-        <div class="gauge-note" id="gauge-note"></div>
-      </div>
+    <div class="hero-meta">
+      <span class="hero-price" id="tool-price">—</span>
+      <span class="hero-delta" id="hero-delta"></span>
     </div>
+    <!-- Retained ID — kept hidden so legacy render() write doesn't error. -->
+    <span id="btc-stack-sub" style="display:none"></span>
   </div>
 
-  <!-- HERO: ONE KNOB -->
-  <section class="hero">
+  <!-- LEGACY KNOB SECTION — replaced by the radar dial below. Hidden, kept only
+       to host orphaned IDs used by legacy paintKnob/renderModePills code paths
+       so render() doesn't NPE on a v1 bot reply. Will be removed in next clean-up. -->
+  <section class="hero" style="display:none">
     <div class="hero-inner">
       <div class="hero-title">Aggressiveness</div>
 
@@ -1005,9 +1235,95 @@
     </div>
   </section>
 
-  <!-- ADVANCED (twirl-down): own full-width row so the 5 aggression presets fit
-       on a single line and the panel spans the full dashboard content width. -->
-  <details class="adjust">
+  <!-- 2. BREAKDOWN ROW — mockup-faithful: What you put in | How you're doing. -->
+  <div class="breakdown-row">
+    <div class="card breakdown-card">
+      <h2>What you put in</h2>
+      <div class="bd-line">
+        <span class="bd-label">BTC deposits <span class="bd-sub" id="put-btc-sub"></span></span>
+        <span class="bd-val mono" id="put-btc">—</span>
+      </div>
+      <div class="bd-line">
+        <span class="bd-label">USD deposits</span>
+        <span class="bd-val mono" id="put-usd">—</span>
+      </div>
+      <div class="bd-line">
+        <span class="bd-label">Bot purchases <span class="bd-sub">DCA buys</span></span>
+        <span class="bd-val mono" id="put-bot">—</span>
+      </div>
+      <div class="bd-total">
+        <span>Total invested</span>
+        <span class="bd-val mono" id="put-total">—</span>
+      </div>
+      <div class="bd-footnote" id="put-footnote">BTC deposits valued at BTC price at the time each transfer hit Kraken.</div>
+      <span class="syncing-badge" id="deposits-badge" style="display:none">Deposit history syncing…</span>
+    </div>
+
+    <div class="card breakdown-card">
+      <h2>How you're doing</h2>
+      <div class="growth-hero">
+        <div class="growth-value mono" id="growth-value">—</div>
+        <div class="growth-pct" id="growth-pct">—</div>
+        <div class="growth-apy" id="growth-apy" style="display:none"></div>
+        <div class="growth-comparator" id="growth-comparator" style="display:none"></div>
+        <div class="growth-meta" id="growth-meta"></div>
+      </div>
+      <div class="growth-attr">
+        <div class="bd-line">
+          <span class="bd-label">BTC price appreciation</span>
+          <span class="bd-val mono" id="growth-appreciation" style="color:var(--green)">—</span>
+        </div>
+        <div class="bd-line">
+          <span class="bd-label">Bot trading earnings <span class="bd-sub">USD profit</span></span>
+          <span class="bd-val mono" id="growth-bot" style="color:var(--green)">—</span>
+        </div>
+        <div class="bd-line">
+          <span class="bd-label">BTC stacked by bot <span class="bd-sub">extra sats earned</span></span>
+          <span class="bd-val mono" id="growth-stacked" style="color:var(--accent)">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. AGGRESSION RADAR DIAL — mockup-faithful: clicking a zone snaps the bot's aggression. -->
+  <div class="card agg-card">
+    <div class="agg-header">
+      <h2 class="agg-title">How risky should the bot trade?</h2>
+      <div class="agg-tag">Aggressiveness</div>
+    </div>
+    <div class="agg-gauge-wrap">
+      <svg class="agg-gauge" viewBox="0 0 480 320" xmlns="http://www.w3.org/2000/svg" aria-label="Aggression dial">
+        <path d="M 80 240 A 160 160 0 0 1 400 240" fill="none" class="arc-bg" stroke-width="2"/>
+        <path d="M 80 240 A 160 160 0 0 1 400 240" fill="none" class="arc-fg" stroke-width="12" opacity="0.6"/>
+        <circle id="agg-dot1" cx="80"    cy="240"   r="8" class="zone-dot"/>
+        <circle id="agg-dot2" cx="126.9" cy="126.9" r="8" class="zone-dot"/>
+        <circle id="agg-dot3" cx="240"   cy="80"    r="8" class="zone-dot"/>
+        <circle id="agg-dot4" cx="353.1" cy="126.9" r="8" class="zone-dot"/>
+        <circle id="agg-dot5" cx="400"   cy="240"   r="8" class="zone-dot"/>
+        <circle cx="240" cy="240" r="54" fill="none" stroke="rgba(247,147,26,0.25)" stroke-width="1"/>
+        <line id="agg-needle-line" x1="240" y1="240" x2="240" y2="80" class="needle"/>
+        <circle id="agg-needle-tip" cx="240" cy="80" r="6" class="needle-tip"/>
+        <circle cx="240" cy="240" r="16" class="hub-outer"/>
+        <circle cx="240" cy="240" r="6"  class="hub-inner"/>
+        <text id="agg-lbl1" x="60"  y="272" class="zone-label">CONSERVATIVE</text>
+        <text id="agg-lbl2" x="100" y="108" class="zone-label">BALANCED</text>
+        <text id="agg-lbl3" x="240" y="62"  class="zone-label">MODERATE</text>
+        <text id="agg-lbl4" x="380" y="108" class="zone-label">AGGRESSIVE</text>
+        <text id="agg-lbl5" x="420" y="272" class="zone-label">ULTRA</text>
+        <circle cx="80"    cy="240"   r="32" class="zone-click" onclick="setAggression(0)"/>
+        <circle cx="126.9" cy="126.9" r="32" class="zone-click" onclick="setAggression(1)"/>
+        <circle cx="240"   cy="80"    r="32" class="zone-click" onclick="setAggression(2)"/>
+        <circle cx="353.1" cy="126.9" r="32" class="zone-click" onclick="setAggression(3)"/>
+        <circle cx="400"   cy="240"   r="32" class="zone-click" onclick="setAggression(4)"/>
+      </svg>
+    </div>
+    <div class="agg-current" id="agg-current">—</div>
+    <div class="agg-help">Lower = bot plays it safe and stacks slowly. Higher = bot takes bigger swings for more profit, with more ups and downs.</div>
+  </div>
+
+  <!-- LEGACY ADVANCED DRAWER — hidden, retained so renderTwirldown's element
+       lookups don't NPE when called from setAggression's optimistic path. -->
+  <details class="adjust" style="display:none">
     <summary>Adjust thresholds &amp; DCA cadence</summary>
     <div class="adjust-body">
       <!-- Aggression presets: five tiles mirroring the five knob detents (1:1 with
@@ -1062,101 +1378,19 @@
     </div>
   </details>
 
-  <!-- TWO-UP: INVESTED / GROWTH -->
-  <div class="duo">
-    <div class="card">
-      <div class="card-title">What You Put In <span class="syncing-badge" id="deposits-badge" style="display:none">Deposit history syncing…</span></div>
-      <div class="row">
-        <div class="label">BTC deposits<span class="sub" id="put-btc-sub"></span></div>
-        <div class="val" id="put-btc">—</div>
-      </div>
-      <div class="row">
-        <div class="label">USD deposits</div>
-        <div class="val" id="put-usd">—</div>
-      </div>
-      <div class="row">
-        <div class="label">Bot purchases<span class="sub">DCA + Quick Buys</span></div>
-        <div class="val" id="put-bot">—</div>
-      </div>
-      <div class="row total divider">
-        <div class="label">Total invested</div>
-        <div class="val" id="put-total">—</div>
-      </div>
-      <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5;">
-        BTC deposits valued at BTC price at the time each transfer hit Kraken.
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Growth</div>
-      <div class="growth-hero">
-        <div class="growth-value mono" id="growth-value">—</div>
-        <div class="growth-pct" id="growth-pct">—</div>
-        <div class="growth-apy" id="growth-apy" style="display:none"></div>
-        <div class="growth-comparator" id="growth-comparator" style="display:none"></div>
-        <div class="growth-meta" id="growth-meta">—</div>
-      </div>
-      <div class="row">
-        <div class="label">BTC Price Appreciation</div>
-        <div class="val" id="growth-appreciation" style="color:var(--green)">—</div>
-      </div>
-      <div class="row">
-        <div class="label">Bot Trading Earnings</div>
-        <div class="val" id="growth-bot" style="color:var(--green)">—</div>
-      </div>
-      <div class="row">
-        <div class="label">BTC stacked by bot<span class="sub">from trading cycles</span></div>
-        <div class="val mono" id="growth-stacked" style="color:var(--accent)">—</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- WHAT YOUR BOT'S BEEN UP TO — plain-English activity card (v2.0 mockup) -->
+  <!-- 4. WHAT YOUR BOT'S BEEN UP TO — single trades view, plain-English sentences. -->
   <div class="card activity-card">
-    <div class="card-title">What your bot's been up to</div>
+    <h2>What your bot's been up to</h2>
     <div class="bot-summary" id="bot-summary">—</div>
     <div class="activity-list" id="activity-list"></div>
   </div>
 
-  <!-- TOOLBAR -->
-  <div class="toolbar">
-    <div class="tool">
-      <!-- Self-labeling inline row: "X days | N trades | $X.XX fees" — no header needed. -->
-      <div class="v trades-row" id="tool-trades">—</div>
-    </div>
-    <div class="tool">
-      <div class="k">Avg Cost / BTC</div>
-      <div class="v" id="tool-avgcost">—</div>
-    </div>
-  </div>
-
-  <!-- TRADE HISTORY -->
-  <div class="trades">
-    <div class="trades-head">
-      <div class="trades-title">Recent Trades</div>
-      <div style="font-size:12px;color:var(--text-muted)"><span id="trades-count">last 6 shown</span> · <button id="trades-toggle" onclick="toggleAllTrades()" style="background:none;border:none;padding:0;font:inherit;color:var(--accent);cursor:pointer">view all →</button></div>
-    </div>
-    <div id="trades-scroll">
-    <table class="trades-table">
-      <thead>
-        <tr>
-          <th>When</th><th>Type</th><th>Amount</th><th>Price</th><th>Reason</th>
-        </tr>
-      </thead>
-      <tbody id="trades-body">
-        <tr><td class="reason" colspan="5">Loading trades…</td></tr>
-      </tbody>
-    </table>
-    </div>
-  </div>
-
-  <!-- EXPERT CONTROLS (v2.0) — every Strategy v2 threshold as a raw knob, behind
-       a twirl-down so the main view stays clean. Each input carries data-key
-       (the exact /api/settings key) and data-default (the v2 locked default) so
-       saveExpertKey() and resetExpertDefaults() are fully data-driven. The whole
-       block hides on a v1.x bot (no v2 fields in /api/status). -->
-  <details class="expert" id="expert-drawer" style="display:none">
-    <summary>Expert controls — Strategy v2.0 knobs</summary>
+  <!-- 5. EXPERT CONTROLS — every strategy threshold as a raw knob, collapsed by
+       default. Each input carries data-key (the exact /api/settings key) and
+       data-default (the locked default) so saveExpertKey() and
+       resetExpertDefaults() are fully data-driven. -->
+  <details class="expert expert-drawer" id="expert-drawer">
+    <summary>Show expert controls <span class="expert-hint">— advanced strategy settings, most people never need these</span></summary>
     <div class="expert-body">
       <div class="expert-caption">
         Advanced. These write raw thresholds straight to your bot. Defaults are tuned;
@@ -1224,23 +1458,7 @@
     </div>
   </details>
 
-  <!-- COMMUNITY STATS -->
-  <div class="community" id="community-bar">
-    <span class="community-title">myBotCoin Community</span>
-    <div class="community-stat">
-      <span class="cs-value mono" id="cs-active">—</span>
-      <span class="cs-label">active bots</span>
-    </div>
-    <div class="community-stat">
-      <span class="cs-value mono" id="cs-trades">—</span>
-      <span class="cs-label">trades executed</span>
-    </div>
-    <div class="community-stat">
-      <span class="cs-value mono" id="cs-installs">—</span>
-      <span class="cs-label">bots installed</span>
-    </div>
-  </div>
-
+  <!-- 6. FOOTER — version chips + status. -->
   <footer class="site-footer">
     <div class="footer-left" id="footer-status">—</div>
     <div class="footer-right">
@@ -1963,8 +2181,13 @@ function render(data, trades, settings, deposits) {
   document.getElementById('portfolio-total').textContent =
     portfolioTotal != null ? fmtUsd(portfolioTotal) : '—';
 
+  // renderGauge is a no-op in v2.0 (gauge tile removed); call retained for
+  // call-site compatibility with future bot-event hooks.
   renderGauge(price, b.ma200, mood, b.trend, b?.ma_days_built);
   renderKnob(settings);
+  // renderModePills / renderTwirldown are no-ops in v2.0 (legacy DOM
+  // removed). They're still invoked to keep the call shape stable for any
+  // mid-flight optimistic updates from setAggression().
   renderModePills(settings);
   renderTwirldown(settings);
 
@@ -1990,41 +2213,28 @@ function render(data, trades, settings, deposits) {
     stackedEl.textContent = (stacked > 0 ? '+' : '') + fmtBtc(stacked) + ' BTC';
   }
 
-  // BTC Price — inline continuation of the BTC STACK card's "≈ $X today" sub-line
-  // (v1.12.7; reverted v1.12.5's standalone card). The live-price poll still
-  // targets #tool-price, so it stays the element whose price updates. Render the
-  // full "BTC $X live" string here: a muted "BTC" prefix, the brighter value, and
-  // a faint "live" suffix. fmtUsd0 output is numeric/$-formatted only — safe to
-  // inline without esc().
-  document.getElementById('tool-price').innerHTML =
-    'BTC <span class="price">' + fmtUsd0(price) + '</span> <span class="live">live</span>';
+  // BTC live price — plain text inside the hero meta row.
+  // The live-price poll still targets #tool-price.
+  const priceEl = document.getElementById('tool-price');
+  if (priceEl) priceEl.textContent = `BTC ${fmtUsd0(price)} live`;
 
-  // "Total Trades" tile: days | trades | fees. There is no stored bot start
-  // time, so "days trading" is derived from the EARLIEST /api/trades timestamp
-  // (UTC, matching timeAgo's convention). Empty trades → em-dash.
-  let daysLabel = '—';
-  if (trades && trades.length) {
-    const earliest = trades.reduce((min, t) => {
-      const ms = new Date(t.timestamp + 'Z').getTime();
-      return ms < min ? ms : min;
-    }, Infinity);
-    if (isFinite(earliest)) {
-      const days = Math.floor((Date.now() - earliest) / 86400000);
-      daysLabel = days <= 0 ? 'today' : days === 1 ? '1 day' : `${days} days`;
+  // Hero delta vs total deposits — the headline "are we up or down vs what we
+  // put in?" pill. Only paints once deposits have loaded (depTotal != null);
+  // otherwise stays empty (CSS hides empty .hero-delta). Uses portfolioToday +
+  // totalInvested computed above.
+  const heroDeltaEl = document.getElementById('hero-delta');
+  if (heroDeltaEl) {
+    if (depTotal != null && totalInvested > 0) {
+      const diff = portfolioToday - totalInvested;
+      const up = diff >= 0;
+      heroDeltaEl.classList.toggle('down', !up);
+      const arrow = up ? '▲' : '▼';
+      const sign  = up ? '+' : '−';
+      heroDeltaEl.textContent = `${arrow} ${sign}${fmtUsd(Math.abs(diff))} vs deposits`;
+    } else {
+      heroDeltaEl.textContent = '';
     }
   }
-  // "today"/"—" have no separate unit word; the others split number + unit.
-  const daysItem = (daysLabel === '—' || daysLabel === 'today')
-    ? `<span class="ti">${esc(daysLabel)}</span>`
-    : `<span class="ti">${esc(daysLabel.split(' ')[0])}<span class="u">${esc(daysLabel.split(' ')[1])}</span></span>`;
-  const tradesItem = `<span class="ti">${esc(String(b.trade_count ?? 0))}<span class="u">trades</span></span>`;
-  const feesRaw = Number(b.total_fees_paid) || 0;
-  const feesStr = feesRaw > 0 ? fmtUsd(feesRaw) : '$0';   // spec: 0/missing → "$0 fees"
-  const feesItem = `<span class="ti">${esc(feesStr)}<span class="u">fees</span></span>`;
-  document.getElementById('tool-trades').innerHTML =
-    `${daysItem}<span class="sep">|</span>${tradesItem}<span class="sep">|</span>${feesItem}`;
-
-  document.getElementById('tool-avgcost').textContent = fmtUsd0(p.avg_cost_basis);
 
   // Footer status — derived from live bot state (mode + Sideways Market).
   document.getElementById('footer-status').textContent = footerStatus(b);
@@ -2209,61 +2419,11 @@ let _gaugeFromHistory = false;
  * @param {number} [maDaysBuilt] Days of own price history the bot has collected.
  */
 async function renderGauge(price, botMA200, mood, trend, maDaysBuilt) {
-  const labelEl = document.getElementById('gauge-label');
-  const subEl = document.getElementById('gauge-sub');
-  const noteEl = document.getElementById('gauge-note');
-  const needle = document.getElementById('gauge-needle');
-
-  let ma200 = botMA200;
-  let usingHistory = false;
-
-  // If the bot doesn't have 200 days yet, fetch a 200MA from Kraken OHLC once.
-  if (!ma200 || (maDaysBuilt != null && maDaysBuilt < 200)) {
-    if (!_gaugeMA200) {
-      try {
-        // Kraken public OHLC — 1440min candles = daily; average the last 200 closes.
-        const r = await fetch('https://api.kraken.com/0/public/OHLC?pair=XBTUSD&interval=1440');
-        const j = await r.json();
-        const candles = j.result?.XXBTZUSD || j.result?.XBTUSD || Object.values(j.result || {})[0];
-        if (candles && candles.length >= 200) {
-          const closes = candles.slice(-200).map(c => parseFloat(c[4]));
-          _gaugeMA200 = closes.reduce((a, b) => a + b, 0) / closes.length;
-          _gaugeFromHistory = true;
-        }
-      } catch (e) { /* silently fail — gauge degrades to "vs 200-day MA" */ }
-    }
-    if (_gaugeMA200) { ma200 = _gaugeMA200; usingHistory = _gaugeFromHistory; }
-  }
-
-  // Needle angle from (price - ma)/ma clamped to ±25% → -90°..+90°
-  let angle = 0;
-  if (ma200 && price) {
-    let rel = (price - ma200) / ma200;
-    rel = Math.max(-0.25, Math.min(0.25, rel));
-    angle = (rel / 0.25) * 90;
-  }
-  needle.setAttribute('transform', `rotate(${angle.toFixed(1)} 100 100)`);
-
-  const label = mood.label || (ma200 && price ? (price >= ma200 ? 'Bull Market' : 'Bear Market') : 'Market');
-  labelEl.textContent = label;
-  labelEl.style.color = (mood.color === 'bear') ? 'var(--red)'
-                      : (mood.color === 'bull') ? 'var(--green)' : 'var(--text)';
-
-  // Conviction subtitle from bot.trend; degrade gracefully if missing
-  if (trend && trend.duration_days != null && trend.side) {
-    const d = trend.duration_days;
-    const conviction = d < TREND_FRESH_DAYS ? 'fresh'
-                     : d < TREND_ESTABLISHED_DAYS ? 'established' : 'entrenched';
-    const action = trend.side === 'above' ? 'stacking BTC' : 'stacking USD';
-    subEl.innerHTML = `${esc(conviction)} · ${esc(String(d))} days · <span style="color:var(--text)">${esc(action)}</span>`;
-  } else {
-    subEl.textContent = 'vs 200-day MA';
-  }
-
-  // MA-200 "building" notice — only while falling back to Kraken history.
-  noteEl.textContent = usingHistory
-    ? `Using historical 200MA data — updates live as your bot builds its own (${esc(String(maDaysBuilt ?? 0))}/200 days)`
-    : '';
+  // v2.0 dashboard removed the bull/bear gauge tile; the regime is now
+  // surfaced inside the activity card's plain-English summary. This shim
+  // is kept (and called from render()) only so any stale callsite or
+  // future bot-event hook doesn't NPE. Intentional no-op.
+  return;
 }
 
 /**
@@ -2311,35 +2471,61 @@ function renderKnob(settings) {
  * @param {number} [activeIdx]   Level to highlight as selected; pass -1 to clear
  *                               all highlights (custom/no-match). Defaults to needleIdx.
  */
+// v2.0 dashboard: aggression radar dial.
+// The five zones map 1:1 to AGGRESSION_LEVELS (index 0..4). The needle
+// rotates from MODERATE-up (0°) by [-90, -45, 0, +45, +90] degrees to point
+// at each zone dot. Function name preserved because setAggression() and
+// detectLevel() call back into paintKnob to repaint after a save/revert.
+//
+// needleIdx  → where the needle physically points (matches the live bot)
+// activeIdx  → which zone is highlighted as "selected" (== needleIdx unless
+//              the bot is mid-save and a custom state is detected; -1 hides
+//              the active highlight without moving the needle).
+const AGG_DIAL_ANGLES = [-90, -45, 0, 45, 90];
 function paintKnob(needleIdx, activeIdx) {
   if (activeIdx === undefined) activeIdx = needleIdx;
   const lvl = AGGRESSION_LEVELS[needleIdx];
   const sel = activeIdx >= 0 ? AGGRESSION_LEVELS[activeIdx] : null;
-  document.getElementById('knob-label').textContent = sel ? sel.label : 'Custom';
-  document.getElementById('knob-tag').textContent = sel
-    ? sel.tag
-    : 'Custom thresholds — no preset matches the bot\u2019s current settings.';
-  // Threshold readout (T1/T2/T3 percentages) for the selected level. The dip
-  // tiers are stored as decimal-string fractions (e.g. '0.12' → 12%); show one
-  // decimal place for sub-2%/sub-4% values so Ultra's 1.5%/3% don't round away.
-  if (sel) {
-    const t1 = (parseFloat(sel.dip1) * 100).toFixed(parseFloat(sel.dip1) < 0.02 ? 1 : 0);
-    const t2 = (parseFloat(sel.dip2) * 100).toFixed(parseFloat(sel.dip2) < 0.04 ? 1 : 0);
-    const t3 = (parseFloat(sel.dip3) * 100).toFixed(parseFloat(sel.dip3) < 0.04 ? 1 : 0);
-    document.getElementById('knob-thresholds').textContent =
-      `T1 ${t1}% · T2 ${t2}% · T3 ${t3}%`;
-  } else {
-    document.getElementById('knob-thresholds').textContent = 'T1 — · T2 — · T3 —';
+
+  // Needle rotation — bound to CSS transform-origin 240,240 in the stylesheet.
+  const angle = AGG_DIAL_ANGLES[needleIdx] ?? 0;
+  const needleLine = document.getElementById('agg-needle-line');
+  const needleTip  = document.getElementById('agg-needle-tip');
+  if (needleLine) needleLine.style.transform = `rotate(${angle}deg)`;
+  if (needleTip)  needleTip.style.transform  = `rotate(${angle}deg)`;
+
+  // Highlight the active zone dot + label.
+  for (let i = 0; i < AGGRESSION_LEVELS.length; i++) {
+    const dot = document.getElementById(`agg-dot${i + 1}`);
+    const lbl = document.getElementById(`agg-lbl${i + 1}`);
+    if (dot) dot.classList.toggle('active', i === activeIdx);
+    if (lbl) lbl.classList.toggle('active', i === activeIdx);
   }
-  // Rotate via CSS transform (not the SVG attribute). The .knob-needle-group
-  // CSS already supplies transform-box: view-box + transform-origin: 150px 150px,
-  // so a bare rotate() spins about the knob centre and the CSS transition
-  // animates it. Mixing CSS transform-origin with an SVG `rotate(N 150 150)`
-  // attribute applied the centre twice and flung the needle offscreen (the
-  // v1.11.1 bug). CSS transforms need the `deg` suffix.
-  document.getElementById('needle-group').style.transform = `rotate(${lvl.angle}deg)`;
-  document.querySelectorAll('.knob-detent').forEach((d, idx) => d.classList.toggle('active', idx === activeIdx));
-  document.querySelectorAll('#knob .knob-label').forEach((t, idx) => t.classList.toggle('active', idx === activeIdx));
+
+  // Plain-English current-level label below the dial.
+  const current = document.getElementById('agg-current');
+  if (current) current.textContent = sel ? sel.label : 'Custom';
+
+  // Legacy hidden knob nodes — still in the DOM so the bot's v1 settings
+  // payload doesn't NPE if anything else references them. Optional-chained
+  // so they're safe even after the legacy section is removed in a later pass.
+  document.getElementById('knob-label')?.replaceChildren(
+    document.createTextNode(sel ? sel.label : 'Custom')
+  );
+  document.getElementById('knob-tag')?.replaceChildren(
+    document.createTextNode(sel ? sel.tag : 'Custom thresholds.')
+  );
+  const threshEl = document.getElementById('knob-thresholds');
+  if (threshEl) {
+    if (sel) {
+      const t1 = (parseFloat(sel.dip1) * 100).toFixed(parseFloat(sel.dip1) < 0.02 ? 1 : 0);
+      const t2 = (parseFloat(sel.dip2) * 100).toFixed(parseFloat(sel.dip2) < 0.04 ? 1 : 0);
+      const t3 = (parseFloat(sel.dip3) * 100).toFixed(parseFloat(sel.dip3) < 0.04 ? 1 : 0);
+      threshEl.textContent = `T1 ${t1}% · T2 ${t2}% · T3 ${t3}%`;
+    } else {
+      threshEl.textContent = 'T1 — · T2 — · T3 —';
+    }
+  }
 }
 
 /**
@@ -2385,18 +2571,16 @@ function setAggression(i) {
  * @param {Object} settings  Live /api/settings object.
  */
 function renderModePills(settings) {
-  const raw = (settings.mode || 'auto').toLowerCase();
+  // v2.0 dashboard removed BTC/USD/Auto mode pills — mode is now an internal
+  // bot decision (the bot auto-switches based on the 200-day MA, no UI knob).
+  // Kept as a defensive no-op for the setAggression() / onModeClick() call
+  // shape. Legacy hidden .mode-pill elements are still painted so a future
+  // re-introduction stays consistent.
+  const raw = (settings?.mode || 'auto').toLowerCase();
   const ui = BOT_TO_MODE[raw] || (['btc', 'usd', 'auto'].includes(raw) ? raw : 'auto');
-  // Only paint active state here. Double-fire protection lives in the click
-  // handler's `_savingSettings` guard — tying `disabled` to that flag here
-  // left pills stuck disabled, because the success callback re-renders BEFORE
-  // saveSettings' finally clears the flag (the v1.11.0 write-once bug).
   document.querySelectorAll('.mode-pill').forEach(pill => {
     pill.classList.toggle('active', pill.dataset.mode === ui);
   });
-  document.getElementById('mode-caption').textContent = ui === 'auto'
-    ? 'Bot auto-switches based on 200-day MA.'
-    : 'Manual override active — auto-switching paused.';
 }
 
 /**
@@ -2428,10 +2612,13 @@ function onModeClick(ui) {
  * @param {Object} settings  Live /api/settings object.
  */
 function renderTwirldown(settings) {
-  // Five tiles, 1:1 with the five knob detents (AGGRESSION_LEVELS). detectLevel()
-  // returns which level the live thresholds match, or -1 when the bot has drifted
-  // to manual/custom thresholds — in which case no tile is active and we surface
-  // the true live percentages in a "Custom" note below.
+  // v2.0 dashboard removed the Advanced twirl-down (preset tiles + DCA inputs +
+  // Sideways toggle). The aggression dial is the single layman control and the
+  // expert drawer holds every raw threshold. This shim no-ops to avoid touching
+  // the hidden legacy DOM that's only kept around to host orphaned IDs.
+  return;
+  // eslint-disable-next-line no-unreachable -- legacy body retained below for
+  // reference until the hidden legacy drawer is deleted in a follow-up pass.
   const detectedLevel = detectLevel(settings);
 
   // Live dip % string from the bot's real thresholds (FIX 3.5: never the table).
@@ -2800,12 +2987,18 @@ function closingDelta(closeTrade, trades, openReason, unit, closeReason) {
 }
 
 function renderTrades(trades, settings) {
+  // v2.0 dashboard replaced the trades table with the plain-English activity
+  // card (renderActivity). The lastTrades / lastSettings globals are still
+  // needed because Grok and reason-label code read them, so those assignments
+  // are preserved at the top. The DOM writes early-return when the legacy
+  // table is absent (which it always is in v2.0).
   lastTrades = trades || [];
   lastSettings = settings || {};
   const body = document.getElementById('trades-body');
   const countEl = document.getElementById('trades-count');
   const toggleEl = document.getElementById('trades-toggle');
   const scrollEl = document.getElementById('trades-scroll');
+  if (!body || !countEl || !toggleEl || !scrollEl) return;  // v2.0: legacy DOM removed
 
   if (!trades || !trades.length) {
     body.innerHTML = '<tr><td class="reason" colspan="5">No trades yet.</td></tr>';
