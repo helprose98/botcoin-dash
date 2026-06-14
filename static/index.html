@@ -375,6 +375,73 @@
   .toggle-switch input:disabled + .toggle-track { opacity: 0.5; cursor: default; }
   .adjust-caption { font-size: 11px; color: var(--text-faint); line-height: 1.5; }
 
+  /* === ACTIVITY CARD (v2.0 "What your bot's been up to") === */
+  .activity-card { margin-bottom: var(--space-5); }
+  .bot-summary {
+    font-size: 14px; line-height: 1.5; color: var(--text);
+    margin-bottom: var(--space-3);
+  }
+  .activity-list { display: flex; flex-direction: column; gap: 2px; }
+  .activity-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 8px 0; border-top: 1px solid var(--border);
+    font-size: 13px; line-height: 1.45;
+  }
+  .activity-row:first-child { border-top: none; }
+  .activity-ico {
+    flex: 0 0 auto; width: 22px; height: 22px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; margin-top: 1px;
+  }
+  .activity-ico.buy  { background: var(--green-dim); color: var(--green); }
+  .activity-ico.sell { background: var(--red-dim);   color: var(--red); }
+  .activity-text { flex: 1; color: var(--text); }
+  .activity-text .when { color: var(--text-faint); font-size: 11px; margin-left: 6px; }
+  .activity-empty { font-size: 13px; color: var(--text-muted); }
+
+  /* === EXPERT CONTROLS (v2.0 knob drawer) === */
+  .expert {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); margin-bottom: var(--space-5);
+    overflow: hidden;
+  }
+  .expert > summary {
+    cursor: pointer; padding: var(--space-4) var(--space-5);
+    font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted); list-style: none;
+  }
+  .expert > summary::-webkit-details-marker { display: none; }
+  .expert > summary::before { content: '⚙ '; color: var(--accent); }
+  .expert-body { padding: 0 var(--space-5) var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+  .expert-caption { font-size: 12px; color: var(--text-faint); line-height: 1.5; }
+  .expert-group { border-top: 1px solid var(--border); padding-top: var(--space-3); }
+  .expert-group > summary {
+    cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text);
+    padding: 4px 0; list-style: none;
+  }
+  .expert-group > summary::-webkit-details-marker { display: none; }
+  .expert-group > summary::before { content: '▸ '; color: var(--text-muted); }
+  .expert-group[open] > summary::before { content: '▾ '; }
+  .expert-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px;
+    padding: var(--space-2) 0 var(--space-2);
+  }
+  .ekv { display: flex; flex-direction: column; gap: 3px; }
+  .ekv label { font-size: 11px; color: var(--text-muted); }
+  .ek {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 10px; color: var(--text); font-size: 13px; font-family: inherit;
+  }
+  .ek:focus { outline: none; border-color: var(--accent); }
+  .expert-reset {
+    align-self: flex-start; margin-top: var(--space-2);
+    background: none; border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 14px; color: var(--text-muted); font: inherit; font-size: 12px;
+    cursor: pointer;
+  }
+  .expert-reset:hover { border-color: var(--accent); color: var(--accent); }
+  @media (max-width: 560px) { .expert-grid { grid-template-columns: 1fr; } }
+
   /* === TWO-UP: INVESTED / GROWTH === */
   .duo {
     display: grid;
@@ -1037,7 +1104,18 @@
         <div class="label">Bot Trading Earnings</div>
         <div class="val" id="growth-bot" style="color:var(--green)">—</div>
       </div>
+      <div class="row">
+        <div class="label">BTC stacked by bot<span class="sub">from trading cycles</span></div>
+        <div class="val mono" id="growth-stacked" style="color:var(--accent)">—</div>
+      </div>
     </div>
+  </div>
+
+  <!-- WHAT YOUR BOT'S BEEN UP TO — plain-English activity card (v2.0 mockup) -->
+  <div class="card activity-card">
+    <div class="card-title">What your bot's been up to</div>
+    <div class="bot-summary" id="bot-summary">—</div>
+    <div class="activity-list" id="activity-list"></div>
   </div>
 
   <!-- TOOLBAR -->
@@ -1071,6 +1149,80 @@
     </table>
     </div>
   </div>
+
+  <!-- EXPERT CONTROLS (v2.0) — every Strategy v2 threshold as a raw knob, behind
+       a twirl-down so the main view stays clean. Each input carries data-key
+       (the exact /api/settings key) and data-default (the v2 locked default) so
+       saveExpertKey() and resetExpertDefaults() are fully data-driven. The whole
+       block hides on a v1.x bot (no v2 fields in /api/status). -->
+  <details class="expert" id="expert-drawer" style="display:none">
+    <summary>Expert controls — Strategy v2.0 knobs</summary>
+    <div class="expert-body">
+      <div class="expert-caption">
+        Advanced. These write raw thresholds straight to your bot. Defaults are tuned;
+        only change them if you know what each does.
+      </div>
+
+      <details class="expert-group" open>
+        <summary>Profit-taking (Harvest)</summary>
+        <div class="expert-grid">
+          <div class="ekv"><label>Harvest threshold (× MA)</label><input class="ek" type="number" step="0.01" data-key="harvest_threshold_pct" data-default="1.15"></div>
+          <div class="ekv"><label>Harvest exit (× MA)</label><input class="ek" type="number" step="0.01" data-key="harvest_exit_pct" data-default="1.05"></div>
+          <div class="ekv"><label>Sustain days</label><input class="ek" type="number" step="1" data-key="harvest_sustain_days" data-default="3"></div>
+          <div class="ekv"><label>Per-fire cap (frac stack)</label><input class="ek" type="number" step="0.005" data-key="harvest_fire_cap_pct" data-default="0.02"></div>
+          <div class="ekv"><label>Total cap (frac stack)</label><input class="ek" type="number" step="0.01" data-key="harvest_total_cap_pct" data-default="0.33"></div>
+          <div class="ekv"><label>Tier trigger (× rally)</label><input class="ek" type="number" step="0.01" data-key="harvest_tier_trigger_pct" data-default="0.05"></div>
+          <div class="ekv"><label>Min stack to harvest (BTC)</label><input class="ek" type="number" step="0.001" data-key="harvest_min_stack_btc" data-default="0.02"></div>
+          <div class="ekv"><label>DCA harvest scale</label><input class="ek" type="number" step="0.1" data-key="dca_harvest_scale" data-default="0.5"></div>
+        </div>
+      </details>
+
+      <details class="expert-group">
+        <summary>Trading cycles (Recycler)</summary>
+        <div class="expert-grid">
+          <div class="ekv"><label>Position cap (USD)</label><input class="ek" type="number" step="10" data-key="recycler_position_cap_usd" data-default="500"></div>
+          <div class="ekv"><label>Position size (frac)</label><input class="ek" type="number" step="0.01" data-key="recycler_position_pct" data-default="0.05"></div>
+          <div class="ekv"><label>Min positions</label><input class="ek" type="number" step="1" data-key="recycler_min_positions" data-default="5"></div>
+          <div class="ekv"><label>Position divisor (USD)</label><input class="ek" type="number" step="100" data-key="recycler_position_divisor" data-default="1000"></div>
+          <div class="ekv"><label>Time limit (days)</label><input class="ek" type="number" step="1" data-key="recycler_time_limit_days" data-default="90"></div>
+          <div class="ekv"><label>Breakdown max hold (days)</label><input class="ek" type="number" step="1" data-key="breakdown_max_hold_days" data-default="30"></div>
+          <div class="ekv"><label>Band reference</label>
+            <select class="ek" data-key="recycler_band_reference" data-default="vwap_24h">
+              <option value="vwap_24h">vwap_24h</option>
+              <option value="last_close">last_close</option>
+              <option value="ma200">ma200</option>
+            </select>
+          </div>
+        </div>
+      </details>
+
+      <details class="expert-group">
+        <summary>Market detection (Regime)</summary>
+        <div class="expert-grid">
+          <div class="ekv"><label>Breakout ATR multiplier</label><input class="ek" type="number" step="0.1" data-key="breakout_atr_multiplier" data-default="2.0"></div>
+          <div class="ekv"><label>Breakdown ATR multiplier</label><input class="ek" type="number" step="0.1" data-key="breakdown_atr_multiplier" data-default="2.0"></div>
+          <div class="ekv"><label>Break lookback (days)</label><input class="ek" type="number" step="1" data-key="regime_break_lookback_days" data-default="14"></div>
+          <div class="ekv"><label>Cooling quiet (hours)</label><input class="ek" type="number" step="1" data-key="regime_cooling_quiet_hours" data-default="8"></div>
+        </div>
+      </details>
+
+      <details class="expert-group">
+        <summary>Deposit acceleration &amp; engine</summary>
+        <div class="expert-grid">
+          <div class="ekv"><label>Rebuild DCA amount (USD)</label><input class="ek" type="number" step="10" data-key="rebuild_dca_amount_usd" data-default="100"></div>
+          <div class="ekv"><label>Rebuild DCA window (days)</label><input class="ek" type="number" step="1" data-key="rebuild_dca_days" data-default="60"></div>
+          <div class="ekv"><label>Strategy version</label>
+            <select class="ek" data-key="strategy_version" data-default="v1">
+              <option value="v1">v1 (legacy)</option>
+              <option value="v2">v2</option>
+            </select>
+          </div>
+        </div>
+      </details>
+
+      <button class="expert-reset" id="expert-reset" onclick="resetExpertDefaults()">Reset all to defaults</button>
+    </div>
+  </details>
 
   <!-- COMMUNITY STATS -->
   <div class="community" id="community-bar">
@@ -1786,6 +1938,13 @@ function render(data, trades, settings, deposits) {
   const portfolioToday = btcStack * price + usdReserve;
   renderGrowth(data, trades, totalInvested, portfolioToday, price, depTotal != null, deposits);
 
+  // "BTC stacked by bot" — net BTC won through completed trading cycles.
+  const stackedEl = document.getElementById('growth-stacked');
+  if (stackedEl) {
+    const stacked = btcStackedByBot(trades);
+    stackedEl.textContent = (stacked > 0 ? '+' : '') + fmtBtc(stacked) + ' BTC';
+  }
+
   // BTC Price — inline continuation of the BTC STACK card's "≈ $X today" sub-line
   // (v1.12.7; reverted v1.12.5's standalone card). The live-price poll still
   // targets #tool-price, so it stays the element whose price updates. Render the
@@ -1826,6 +1985,159 @@ function render(data, trades, settings, deposits) {
   document.getElementById('footer-status').textContent = footerStatus(b);
 
   renderTrades(trades, settings);
+  renderActivity(trades, settings, b);
+  renderExpert(settings, b);
+}
+
+// "BTC stacked by bot" — net BTC the bot accumulated through completed trading
+// cycles (recycler/range/harvest legs), i.e. Σ buy btc_amount − Σ sell btc_amount
+// across cycle reasons only. DCA/quick-buy are excluded (those are tracked as
+// "Bot purchases" in USD on the invested side). Returns a non-negative number.
+const CYCLE_BUY_REASONS  = ['usd_recycler_buy','recycler_rebuy','range_recycler_buy','universal_recycler_open'];
+const CYCLE_SELL_REASONS = ['usd_recycler_resell','recycler_sell','range_recycler_sell','universal_recycler_close','harvest_fire'];
+function btcStackedByBot(trades) {
+  if (!Array.isArray(trades)) return 0;
+  let net = 0;
+  for (const t of trades) {
+    const r = (t.reason || '').toLowerCase();
+    const amt = Number(t.btc_amount) || 0;
+    if (CYCLE_BUY_REASONS.includes(r))  net += amt;
+    else if (CYCLE_SELL_REASONS.includes(r)) net -= amt;
+  }
+  return net;
+}
+
+/**
+ * Render the "What your bot's been up to" card: a one-line summary plus the most
+ * recent activity rendered as plain-English sentences. Graceful on empty trades.
+ *
+ * @param {Array}  trades   /api/trades list (most-recent-first).
+ * @param {Object} settings live /api/settings.
+ * @param {Object} b        data.bot (for regime/strategy context if present).
+ */
+const ACTIVITY_MAX_ROWS = 8;
+function renderActivity(trades, settings, b) {
+  const sumEl = document.getElementById('bot-summary');
+  const listEl = document.getElementById('activity-list');
+  if (!sumEl || !listEl) return;
+
+  if (!trades || !trades.length) {
+    sumEl.textContent = 'Your bot is connected and watching the market. No trades yet — it acts only when its rules are met.';
+    listEl.innerHTML = '<div class="activity-empty">Nothing to show yet.</div>';
+    return;
+  }
+
+  // Summary line: count recent buys/sells in the last 7 days.
+  const weekAgo = Date.now() - 7 * 86400000;
+  let buys = 0, sells = 0;
+  for (const t of trades) {
+    const ms = new Date((t.timestamp || '') + 'Z').getTime();
+    if (!isFinite(ms) || ms < weekAgo) continue;
+    if ((t.side || '').toLowerCase() === 'sell') sells++; else buys++;
+  }
+  const v2on = (b && b.strategy_version === 'v2');
+  const engine = v2on ? ' (Strategy v2 active)' : '';
+  if (buys + sells === 0) {
+    sumEl.textContent = `Quiet week — your bot held steady and made no trades in the last 7 days${engine}.`;
+  } else {
+    const bw = buys === 1 ? 'buy' : 'buys';
+    const sw = sells === 1 ? 'sell' : 'sells';
+    sumEl.textContent = `In the last 7 days your bot made ${buys} ${bw} and ${sells} ${sw}${engine}.`;
+  }
+
+  listEl.innerHTML = trades.slice(0, ACTIVITY_MAX_ROWS).map(t => {
+    const sell = (t.side || '').toLowerCase() === 'sell';
+    const ico = sell ? '<div class="activity-ico sell">↓</div>' : '<div class="activity-ico buy">↑</div>';
+    return `<div class="activity-row">${ico}<div class="activity-text">`
+      + `${esc(activitySentence(t, settings, trades))}`
+      + `<span class="when">${esc(timeAgo(t.timestamp))}</span>`
+      + `</div></div>`;
+  }).join('');
+}
+
+/**
+ * Expert controls (v2.0). Populates each data-key input from the live settings,
+ * shows the drawer only when the bot exposes v2 fields (graceful degradation on
+ * a v1.x bot), and binds change-handlers exactly once. Each input writes its own
+ * key through the existing saveSettings() path — the same write contract the
+ * aggression dial and DCA fields already use.
+ *
+ * @param {Object} settings live /api/settings.
+ * @param {Object} b        data.bot — v2 presence detected via strategy_version.
+ */
+function renderExpert(settings, b) {
+  const drawer = document.getElementById('expert-drawer');
+  if (!drawer) return;
+
+  // Graceful degradation: a v1.x bot has no strategy_version field in /api/status
+  // and won't store these keys. Show the drawer only when v2 is in play (either
+  // the bot reports strategy_version, or any v2 key is present in settings).
+  const v2Field = b && typeof b.strategy_version !== 'undefined';
+  const v2Keys = ['harvest_threshold_pct','recycler_position_cap_usd','breakout_atr_multiplier','strategy_version'];
+  const haveV2 = v2Field || v2Keys.some(k => settings && typeof settings[k] !== 'undefined');
+  drawer.style.display = haveV2 ? '' : 'none';
+  if (!haveV2) return;
+
+  // Populate every knob from live settings; leave blank (placeholder=default) if
+  // the bot hasn't reported a value yet. Never clobber a field the user is editing.
+  drawer.querySelectorAll('.ek').forEach(el => {
+    if (el === document.activeElement) return;
+    const key = el.dataset.key;
+    const def = el.dataset.default;
+    const live = settings ? settings[key] : undefined;
+    if (el.tagName === 'SELECT') {
+      el.value = (live != null && live !== '') ? String(live) : def;
+    } else {
+      el.value = (live != null && live !== '') ? live : '';
+      el.placeholder = def;
+    }
+  });
+
+  // Bind once.
+  if (!drawer.dataset.bound) {
+    drawer.dataset.bound = '1';
+    drawer.querySelectorAll('.ek').forEach(el => {
+      el.addEventListener('change', () => saveExpertKey(el));
+    });
+  }
+}
+
+/**
+ * Write a single expert knob to the bot. Validates non-empty, then POSTs just
+ * that one key through saveSettings(). On failure, saveSettings() toasts and the
+ * next poll repaints the field from live state (revert).
+ *
+ * @param {HTMLElement} el  The .ek input/select that changed.
+ */
+function saveExpertKey(el) {
+  if (window._savingSettings) return;
+  const key = el.dataset.key;
+  let val = el.value;
+  if (el.tagName !== 'SELECT') {
+    if (val === '' || val == null) return;          // blank = leave bot as-is
+    if (isNaN(parseFloat(val))) { toast('Enter a number', 'err'); return; }
+    val = String(parseFloat(val));
+  }
+  saveSettings({ [key]: val });                     // default toast + cache sync
+}
+
+/**
+ * Reset every expert knob to its v2.0 locked default and write them in one POST.
+ * The defaults live on each input's data-default attribute (single source of
+ * truth shared with the placeholders), so this stays in lockstep with the markup.
+ */
+function resetExpertDefaults() {
+  if (window._savingSettings) return;
+  const drawer = document.getElementById('expert-drawer');
+  if (!drawer) return;
+  const payload = {};
+  drawer.querySelectorAll('.ek').forEach(el => {
+    const key = el.dataset.key;
+    const def = el.dataset.default;
+    payload[key] = def;
+    el.value = def;                                 // optimistic
+  });
+  saveSettings(payload);
 }
 
 // Kraken-derived 200MA fallback, cached for the session (ported from v1). Used to
@@ -2379,7 +2691,46 @@ function reasonCopy(t, settings, trades) {
   }
   if (r === 'range_recycler_buy') return 'Sideways · buy';
   if (r === 'range_recycler_sell') return 'Sideways · sell';
+  // v2.0 strategy reasons (Strategy v2 engine). Only ever appear when the bot is
+  // running STRATEGY_VERSION=v2; on a v1.x bot these never occur, so the v1
+  // labels above are untouched.
+  if (r === 'universal_recycler_open') return 'Recycler · opened a slice';
+  if (r === 'universal_recycler_close') {
+    const d = closingDelta(t, trades, 'universal_recycler_open', 'usd', 'universal_recycler_close');
+    return d != null ? `Recycler · closed a slice +${fmtUsd(d)}` : 'Recycler · closed a slice for profit';
+  }
+  if (r === 'harvest_fire') return 'Harvest · took profit on a confirmed rally';
   return t.label || t.reason || '—';   // fallback to API label
+}
+
+// Map a raw trade reason to a full plain-English sentence for the "What your
+// bot's been up to" activity card. Distinct from reasonCopy() (the terse table
+// label): this returns a friendly narrative sentence. Covers both v1 and v2
+// reasons; unknown reasons fall back to the API label or the terse copy.
+function activitySentence(t, settings, trades) {
+  const r = (t.reason || '').toLowerCase();
+  const side = (t.side || '').toLowerCase();
+  const amtUsd = t.usd_amount ? fmtUsd(t.usd_amount) : null;
+  const sentences = {
+    dca: () => `Made your scheduled recurring buy${amtUsd ? ' of ' + amtUsd : ''}.`,
+    quick_buy: () => `Bought a slice of BTC on demand${amtUsd ? ' (' + amtUsd + ')' : ''}.`,
+    quickbuy: () => `Bought a slice of BTC on demand${amtUsd ? ' (' + amtUsd + ')' : ''}.`,
+    dip_buy: () => `Caught a dip and bought BTC at a discount${amtUsd ? ' (' + amtUsd + ')' : ''}.`,
+    usd_recycler_buy: () => 'Opened a trading cycle — bought a slice to flip for profit.',
+    usd_recycler_resell: () => 'Closed a trading cycle — sold a slice back for a small profit.',
+    recycler_rebuy: () => 'Closed a trading cycle by buying its slice back lower.',
+    recycler_sell: () => 'Opened a trading cycle — sold a slice to rebuy lower.',
+    range_recycler_buy: () => 'Sideways market — bought near the bottom of the range.',
+    range_recycler_sell: () => 'Sideways market — sold near the top of the range.',
+    universal_recycler_open: () => `Opened a recycler slice to flip in choppy market${amtUsd ? ' (' + amtUsd + ')' : ''}.`,
+    universal_recycler_close: () => 'Closed a recycler slice for a small profit.',
+    harvest_fire: () => 'Harvested profit — sold a measured slice into a confirmed rally.',
+  };
+  if (sentences[r]) return sentences[r]();
+  // Fallback: build a generic sentence from side, else the terse label.
+  if (side === 'buy') return `Bought BTC${amtUsd ? ' (' + amtUsd + ')' : ''}.`;
+  if (side === 'sell') return `Sold BTC${amtUsd ? ' (' + amtUsd + ')' : ''}.`;
+  return reasonCopy(t, settings, trades) + '.';
 }
 
 // Delta for a closing leg vs the immediately-prior open leg of the same cycle.
