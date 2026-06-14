@@ -488,8 +488,8 @@
   .growth-value { font-family: var(--font-mono); font-size: 36px; font-weight: 700;
     color: var(--green); letter-spacing: -0.02em; }
   .growth-value.neg { color: var(--red); }
-  .growth-pct { font-size: 14px; color: var(--green); font-weight: 600; }
-  .growth-pct.neg { color: var(--red); }
+  .growth-hero-usd { font-size: 14px; color: var(--text-muted); font-weight: 500; margin-top: -2px; }
+  .growth-sub-usd  { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
   .growth-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
   /* APY equivalent (money-weighted annualized return). Hidden until xirr() yields a number. */
   .growth-apy { font-size: 15px; font-weight: 700; color: var(--green); margin-top: 6px; }
@@ -1261,25 +1261,44 @@
 
     <div class="card breakdown-card">
       <h2>How you're doing</h2>
+
+      <!-- BTC-first hero: signed sats delta + live USD translation -->
       <div class="growth-hero">
-        <div class="growth-value mono" id="growth-value">—</div>
-        <div class="growth-pct" id="growth-pct">—</div>
+        <div class="growth-value mono" id="growth-hero-btc">—</div>
+        <div class="growth-hero-usd" id="growth-hero-usd">—</div>
+
+        <!-- USD context as sub-line, less prominent -->
+        <div class="growth-sub-usd" id="growth-sub-usd">—</div>
+
+        <!-- APY (kept exactly as is, including the four-state renderGrowthApy logic) -->
         <div class="growth-apy" id="growth-apy" style="display:none"></div>
         <div class="growth-comparator" id="growth-comparator" style="display:none"></div>
         <div class="growth-meta" id="growth-meta"></div>
       </div>
+
+      <!-- Honest breakdown -->
       <div class="growth-attr">
         <div class="bd-line">
-          <span class="bd-label">BTC price appreciation</span>
+          <span class="bd-label">Your stack</span>
+          <span class="bd-val mono">
+            <span id="growth-stack-now">—</span>
+            <span class="bd-sub" id="growth-stack-start">started: —</span>
+          </span>
+        </div>
+        <div class="bd-line">
+          <span class="bd-label">USD reserve</span>
+          <span class="bd-val mono">
+            <span id="growth-usd-now">—</span>
+            <span class="bd-sub" id="growth-usd-start">started: —</span>
+          </span>
+        </div>
+        <div class="bd-line">
+          <span class="bd-label">Bot cycle wins <span class="bd-sub">cumulative cycle delta</span></span>
+          <span class="bd-val mono" id="growth-cycle-wins" style="color:var(--accent)">—</span>
+        </div>
+        <div class="bd-line">
+          <span class="bd-label">BTC price move <span class="bd-sub">mark-to-market on stack</span></span>
           <span class="bd-val mono" id="growth-appreciation" style="color:var(--green)">—</span>
-        </div>
-        <div class="bd-line">
-          <span class="bd-label">Bot trading earnings <span class="bd-sub">USD profit</span></span>
-          <span class="bd-val mono" id="growth-bot" style="color:var(--green)">—</span>
-        </div>
-        <div class="bd-line">
-          <span class="bd-label">BTC stacked by bot <span class="bd-sub">extra sats earned</span></span>
-          <span class="bd-val mono" id="growth-stacked" style="color:var(--accent)">—</span>
         </div>
       </div>
     </div>
@@ -1441,16 +1460,10 @@
       </details>
 
       <details class="expert-group">
-        <summary>Deposit acceleration &amp; engine</summary>
+        <summary>Deposit acceleration</summary>
         <div class="expert-grid">
           <div class="ekv"><label>Rebuild DCA amount (USD)</label><input class="ek" type="number" step="10" data-key="rebuild_dca_amount_usd" data-default="100"></div>
           <div class="ekv"><label>Rebuild DCA window (days)</label><input class="ek" type="number" step="1" data-key="rebuild_dca_days" data-default="60"></div>
-          <div class="ekv"><label>Strategy version</label>
-            <select class="ek" data-key="strategy_version" data-default="v1">
-              <option value="v1">v1 (legacy)</option>
-              <option value="v2">v2</option>
-            </select>
-          </div>
         </div>
       </details>
 
@@ -2206,13 +2219,6 @@ function render(data, trades, settings, deposits) {
   const portfolioToday = btcStack * price + usdReserve;
   renderGrowth(data, trades, totalInvested, portfolioToday, price, depTotal != null, deposits);
 
-  // "BTC stacked by bot" — net BTC won through completed trading cycles.
-  const stackedEl = document.getElementById('growth-stacked');
-  if (stackedEl) {
-    const stacked = btcStackedByBot(trades);
-    stackedEl.textContent = (stacked > 0 ? '+' : '') + fmtBtc(stacked) + ' BTC';
-  }
-
   // BTC live price — plain text inside the hero meta row.
   // The live-price poll still targets #tool-price.
   const priceEl = document.getElementById('tool-price');
@@ -2240,8 +2246,8 @@ function render(data, trades, settings, deposits) {
   document.getElementById('footer-status').textContent = footerStatus(b);
 
   renderTrades(trades, settings);
-  renderActivity(trades, settings, b);
-  renderExpert(settings, b);
+  renderActivity(trades, settings);
+  renderExpert(settings);
 }
 
 // "BTC stacked by bot" — net BTC the bot accumulated through completed trading
@@ -2268,10 +2274,9 @@ function btcStackedByBot(trades) {
  *
  * @param {Array}  trades   /api/trades list (most-recent-first).
  * @param {Object} settings live /api/settings.
- * @param {Object} b        data.bot (for regime/strategy context if present).
  */
 const ACTIVITY_MAX_ROWS = 8;
-function renderActivity(trades, settings, b) {
+function renderActivity(trades, settings) {
   const sumEl = document.getElementById('bot-summary');
   const listEl = document.getElementById('activity-list');
   if (!sumEl || !listEl) return;
@@ -2290,14 +2295,12 @@ function renderActivity(trades, settings, b) {
     if (!isFinite(ms) || ms < weekAgo) continue;
     if ((t.side || '').toLowerCase() === 'sell') sells++; else buys++;
   }
-  const v2on = (b && b.strategy_version === 'v2');
-  const engine = v2on ? ' (Strategy v2 active)' : '';
   if (buys + sells === 0) {
-    sumEl.textContent = `Quiet week — your bot held steady and made no trades in the last 7 days${engine}.`;
+    sumEl.textContent = `Quiet week — your bot held steady and made no trades in the last 7 days.`;
   } else {
     const bw = buys === 1 ? 'buy' : 'buys';
     const sw = sells === 1 ? 'sell' : 'sells';
-    sumEl.textContent = `In the last 7 days your bot made ${buys} ${bw} and ${sells} ${sw}${engine}.`;
+    sumEl.textContent = `In the last 7 days your bot made ${buys} ${bw} and ${sells} ${sw}.`;
   }
 
   listEl.innerHTML = trades.slice(0, ACTIVITY_MAX_ROWS).map(t => {
@@ -2311,27 +2314,16 @@ function renderActivity(trades, settings, b) {
 }
 
 /**
- * Expert controls (v2.0). Populates each data-key input from the live settings,
- * shows the drawer only when the bot exposes v2 fields (graceful degradation on
- * a v1.x bot), and binds change-handlers exactly once. Each input writes its own
- * key through the existing saveSettings() path — the same write contract the
- * aggression dial and DCA fields already use.
+ * Expert controls. Populates each data-key input from the live settings and binds
+ * change-handlers exactly once. Each input writes its own key through the existing
+ * saveSettings() path — the same write contract the aggression dial and DCA fields
+ * already use.
  *
  * @param {Object} settings live /api/settings.
- * @param {Object} b        data.bot — v2 presence detected via strategy_version.
  */
-function renderExpert(settings, b) {
+function renderExpert(settings) {
   const drawer = document.getElementById('expert-drawer');
   if (!drawer) return;
-
-  // Graceful degradation: a v1.x bot has no strategy_version field in /api/status
-  // and won't store these keys. Show the drawer only when v2 is in play (either
-  // the bot reports strategy_version, or any v2 key is present in settings).
-  const v2Field = b && typeof b.strategy_version !== 'undefined';
-  const v2Keys = ['harvest_threshold_pct','recycler_position_cap_usd','breakout_atr_multiplier','strategy_version'];
-  const haveV2 = v2Field || v2Keys.some(k => settings && typeof settings[k] !== 'undefined');
-  drawer.style.display = haveV2 ? '' : 'none';
-  if (!haveV2) return;
 
   // Populate every knob from live settings; leave blank (placeholder=default) if
   // the bot hasn't reported a value yet. Never clobber a field the user is editing.
@@ -2549,9 +2541,8 @@ function setAggression(i) {
   const lvl = AGGRESSION_LEVELS[i];
   paintKnob(i);                                  // optimistic
   lastLevel = i;
-  // Write all dial-controlled keys at once: v1 dip thresholds (active on every
-  // bot version) + v2 size knobs (active only when STRATEGY_VERSION=v2; on a
-  // v1.5.2 bot the settings whitelist silently drops unknown keys).
+  // Write all dial-controlled keys at once: dip thresholds plus the recycler/
+  // harvest size knobs the bot applies per aggression level.
   const payload = {
     dip_tier1: lvl.dip1, dip_tier2: lvl.dip2, dip_tier3: lvl.dip3,
     ...(lvl.v2 || {}),
@@ -2737,16 +2728,65 @@ function renderInvested(deposits, botPurchases) {
 
 function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDeposits, deposits) {
   const p = data.portfolio || {};
-  const growth = portfolioToday - totalInvested;
-  const pct = totalInvested > 0 ? (growth / totalInvested * 100) : 0;
+  const stackNow = p.btc_balance || 0;
+  const usdNow   = p.usd_balance || 0;
+  const basis    = p.avg_cost_basis || 0;
 
-  const vEl = document.getElementById('growth-value');
-  const pctEl = document.getElementById('growth-pct');
-  const neg = growth < 0;
-  vEl.textContent = (neg ? '-' : '+') + fmtUsd(Math.abs(growth));
-  vEl.classList.toggle('neg', neg);
-  pctEl.textContent = (neg ? '' : '+') + pct.toFixed(1) + '% vs total invested';
-  pctEl.classList.toggle('neg', neg);
+  // Starting deposits (from /api/deposits totals). BTC transfers are tracked in
+  // native sats here; the at-time USD valuation already feeds `totalInvested`
+  // upstream, so the hero only needs the native BTC and USD deposit totals.
+  const t = (deposits && deposits.totals) || {};
+  const btcDeposited = t.btc_deposits_amount || 0;  // native BTC
+  const usdDeposited = t.usd_deposits_amount || 0;  // USD
+
+  // Bot stack-adding buys (DCA + any quick_buy) — new capital converted into BTC.
+  // These are the sats you'd hold if no cycle activity had ever run.
+  const dcaBtcBought = trades
+    .filter(t => ['dca', 'quick_buy', 'quickbuy'].includes((t.reason || '').toLowerCase()))
+    .reduce((s, t) => s + (Number(t.btc_amount) || 0), 0);
+
+  // HERO — net stack delta vs the BTC you'd have if no cycle activity had run
+  // (BTC deposits + DCA-bought BTC). Negative = cycle activity (incl. the v1
+  // USD-mode drain) cost sats. Positive (future) = v2 cycles net you sats.
+  const expectedStack    = btcDeposited + dcaBtcBought;
+  const netStackDelta    = stackNow - expectedStack;
+  const netStackDeltaUsd = netStackDelta * price;
+
+  // USD-side view, preserved as a sub-line: total portfolio value today vs the
+  // dollars put in (BTC deposits at-time + USD deposits + bot DCA purchases).
+  const usdGrowth    = portfolioToday - totalInvested;
+  const usdGrowthPct = totalInvested > 0 ? (usdGrowth / totalInvested * 100) : 0;
+
+  // Cumulative cycle delta — net BTC moved by completed recycler/harvest cycles.
+  // Labeled truthfully as "Bot cycle wins": it is NOT the change in the stack.
+  const cycleWins = btcStackedByBot(trades);
+
+  // Mark-to-market on the current stack from cost basis to spot (unchanged math).
+  const appreciation = (price - basis) * stackNow;
+
+  // Deposit history is the anchor for the hero. Until it has synced we can't
+  // compute "expected stack", so fall back to a muted syncing state.
+  const haveDepositBasis = deposits != null && (btcDeposited > 0 || usdDeposited > 0);
+
+  const heroBtcEl = document.getElementById('growth-hero-btc');
+  const heroUsdEl = document.getElementById('growth-hero-usd');
+  const subUsdEl  = document.getElementById('growth-sub-usd');
+
+  if (!haveDepositBasis) {
+    heroBtcEl.textContent = '—';
+    heroBtcEl.classList.remove('neg');
+    heroUsdEl.textContent = '';
+    subUsdEl.textContent = 'Deposit history syncing…';
+  } else {
+    const heroNeg = netStackDelta < 0;
+    heroBtcEl.textContent = (heroNeg ? '−' : '+') + fmtBtc(Math.abs(netStackDelta)) + ' BTC';
+    heroBtcEl.classList.toggle('neg', heroNeg);
+    heroUsdEl.textContent = `≈ ${heroNeg ? '−' : '+'}${fmtUsd0(Math.abs(netStackDeltaUsd))} at current price`;
+
+    const usdNeg = usdGrowth < 0;
+    subUsdEl.textContent = `USD view: ${usdNeg ? '−' : '+'}${fmtUsd(Math.abs(usdGrowth))} `
+      + `(${usdNeg ? '−' : '+'}${Math.abs(usdGrowthPct).toFixed(1)}% vs total invested)`;
+  }
 
   // APY equivalent: money-weighted annualized return (XIRR) over the deposit
   // history. Deposits leave the wallet (negative); today's withdrawable value
@@ -2754,32 +2794,41 @@ function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDe
   // and USD transfers are valued on the same scale CoinGecko backfilled.
   renderGrowthApy(deposits, portfolioToday);
 
-  // "Portfolio today" moved to the new PORTFOLIO card (v1.13.11). Only the
-  // invested-basis caveat remains here, shown when deposits are still syncing.
+  // Invested-basis caveat, shown when deposits are still syncing.
   document.getElementById('growth-meta').textContent =
     haveDeposits ? '' : 'Invested basis incomplete (deposits syncing)';
 
-  // Growth breakdown — exactly two signed buckets that sum to the headline
-  // `growth` figure above (v1.12.7):
-  //   1. BTC Price Appreciation — pure mark-to-market on the existing stack from
-  //      cost basis to spot. Signed (NO Math.max clamp), so it reads red when the
-  //      basis sits above spot.
-  //   2. Bot Trading Earnings — everything else the bot did that moved portfolio
-  //      value, as a signed residual: growth − appreciation.
-  const stack = p.btc_balance || 0;
-  const basis = p.avg_cost_basis || 0;
-  const appreciation = (price - basis) * stack;
-  const botEarnings = growth - appreciation;
+  // Breakdown — current vs started for stack and USD reserve, then the two
+  // honest signed buckets (cumulative cycle delta, mark-to-market price move).
+  document.getElementById('growth-stack-now').textContent = fmtBtc(stackNow) + ' BTC';
+  document.getElementById('growth-stack-start').textContent =
+    'started: ' + (haveDepositBasis ? fmtBtc(btcDeposited) + ' BTC' : '—');
+  document.getElementById('growth-usd-now').textContent = fmtUsd(usdNow);
+  document.getElementById('growth-usd-start').textContent =
+    'started: ' + (haveDepositBasis ? fmtUsd(usdDeposited) : '—');
+
+  // Bot cycle wins — signed BTC delta. Orange when non-zero (positive or
+  // negative both indicate live cycle activity); muted dash when exactly zero.
+  const cycleEl = document.getElementById('growth-cycle-wins');
+  if (cycleWins === 0) {
+    cycleEl.textContent = '—';
+    cycleEl.style.color = 'var(--text-muted)';
+  } else {
+    const cycleNeg = cycleWins < 0;
+    cycleEl.textContent = (cycleNeg ? '−' : '+') + fmtBtc(Math.abs(cycleWins)) + ' BTC';
+    cycleEl.style.color = cycleNeg ? 'var(--red)' : 'var(--accent)';
+  }
+
+  // BTC price move — mark-to-market on the current stack, signed (unchanged).
   setGrowthRow('growth-appreciation', appreciation);
-  setGrowthRow('growth-bot', botEarnings);
 }
 
 // Render one Growth breakdown row: signed USD value, green when ≥ 0, red when
-// negative. Matches the two-bucket layout introduced in v1.12.7.
+// negative.
 function setGrowthRow(id, value) {
   const el = document.getElementById(id);
   const neg = value < 0;
-  el.textContent = (neg ? '-' : '+') + fmtUsd(Math.abs(value));
+  el.textContent = (neg ? '−' : '+') + fmtUsd(Math.abs(value));
   el.style.color = neg ? 'var(--red)' : 'var(--green)';
 }
 
@@ -2930,9 +2979,7 @@ function reasonCopy(t, settings, trades) {
   }
   if (r === 'range_recycler_buy') return 'Sideways · buy';
   if (r === 'range_recycler_sell') return 'Sideways · sell';
-  // v2.0 strategy reasons (Strategy v2 engine). Only ever appear when the bot is
-  // running STRATEGY_VERSION=v2; on a v1.x bot these never occur, so the v1
-  // labels above are untouched.
+  // Universal Recycler + Harvest reasons — the bot's stack-accumulation engine.
   if (r === 'universal_recycler_open') return 'Recycler · opened a slice';
   if (r === 'universal_recycler_close') {
     const d = closingDelta(t, trades, 'universal_recycler_open', 'usd', 'universal_recycler_close');
