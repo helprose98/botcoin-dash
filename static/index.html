@@ -412,6 +412,21 @@
   .activity-text { flex: 1; color: var(--text); }
   .activity-text .when { color: var(--text-faint); font-size: 11px; margin-left: 6px; }
   .activity-empty { font-size: 13px; color: var(--text-muted); }
+  /* Expand/collapse the trade list. Text-only link button — same register as
+     the "Show expert controls" twirl-down summary. No background, no border;
+     hover lifts to accent. */
+  .activity-toggle {
+    align-self: flex-start; margin-top: var(--space-3);
+    background: none; border: none; padding: 0;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    color: var(--text-muted); cursor: pointer;
+    transition: color var(--transition);
+  }
+  .activity-toggle:hover { color: var(--accent); }
+  .activity-truncated-note {
+    margin-top: var(--space-2);
+    font-size: 11px; color: var(--text-faint);
+  }
 
   /* === EXPERT CONTROLS (v2.0 knob drawer) === */
   .expert {
@@ -1420,6 +1435,11 @@
     <h2>What your bot's been up to</h2>
     <div class="bot-summary" id="bot-summary">—</div>
     <div class="activity-list" id="activity-list"></div>
+    <button class="activity-toggle" id="activity-toggle" type="button"
+            onclick="toggleActivityExpanded()" style="display:none">
+      View all trades
+    </button>
+    <div class="activity-truncated-note" id="activity-truncated-note" style="display:none"></div>
   </div>
 
   <!-- 5. EXPERT CONTROLS — every strategy threshold as a raw knob, collapsed by
@@ -2334,7 +2354,11 @@ function btcStackedByBot(trades) {
  * @param {Array}  trades   /api/trades list (most-recent-first).
  * @param {Object} settings live /api/settings.
  */
+// Activity card row caps. Collapsed = the at-a-glance summary; expanded = a
+// scrollable-but-still-bounded full history.
 const ACTIVITY_MAX_ROWS = 8;
+const ACTIVITY_EXPANDED_MAX = 200;
+let activityExpanded = false;
 function renderActivity(trades, settings) {
   const sumEl = document.getElementById('bot-summary');
   const listEl = document.getElementById('activity-list');
@@ -2362,7 +2386,12 @@ function renderActivity(trades, settings) {
     sumEl.textContent = `In the last 7 days your bot made ${buys} ${bw} and ${sells} ${sw}.`;
   }
 
-  listEl.innerHTML = trades.slice(0, ACTIVITY_MAX_ROWS).map(t => {
+  // Decide how many rows to render based on the current expand state.
+  const totalCount = trades.length;
+  const cap = activityExpanded ? ACTIVITY_EXPANDED_MAX : ACTIVITY_MAX_ROWS;
+  const shown = Math.min(totalCount, cap);
+
+  listEl.innerHTML = trades.slice(0, shown).map(t => {
     const sell = (t.side || '').toLowerCase() === 'sell';
     const ico = sell ? '<div class="activity-ico sell">↓</div>' : '<div class="activity-ico buy">↑</div>';
     return `<div class="activity-row">${ico}<div class="activity-text">`
@@ -2370,6 +2399,38 @@ function renderActivity(trades, settings) {
       + `<span class="when">${esc(timeAgo(t.timestamp))}</span>`
       + `</div></div>`;
   }).join('');
+
+  // Toggle visibility — only meaningful when there's something to expand to.
+  const toggleEl = document.getElementById('activity-toggle');
+  const noteEl   = document.getElementById('activity-truncated-note');
+  if (toggleEl) {
+    if (totalCount > ACTIVITY_MAX_ROWS) {
+      toggleEl.style.display = 'inline-block';
+      toggleEl.textContent = activityExpanded
+        ? 'Show fewer'
+        : `View all trades (${totalCount})`;
+    } else {
+      toggleEl.style.display = 'none';
+    }
+  }
+  if (noteEl) {
+    if (activityExpanded && totalCount > ACTIVITY_EXPANDED_MAX) {
+      noteEl.style.display = 'block';
+      noteEl.textContent = `Showing latest ${ACTIVITY_EXPANDED_MAX} of ${totalCount} trades.`;
+    } else {
+      noteEl.style.display = 'none';
+    }
+  }
+}
+
+/**
+ * Flip the activity-card expansion state and re-render in place. Reads
+ * lastTrades / lastSettings — the same globals renderActivity() consumes on
+ * every refresh tick — so toggling doesn't desync from live data.
+ */
+function toggleActivityExpanded() {
+  activityExpanded = !activityExpanded;
+  renderActivity(lastTrades || [], lastSettings || null);
 }
 
 /**
