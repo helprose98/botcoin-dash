@@ -1345,10 +1345,20 @@ const TREND_ESTABLISHED_DAYS = 60;
 // — these five sets are the canonical presets the dashboard has always written
 // (they match the legacy dashboard's AGGRESSION_LEVELS 1:1).
 //
+// v2 extension (2026-06-14): each level also writes five Strategy-v2 size knobs
+// (HARVEST_FIRE_CAP_PCT, HARVEST_TOTAL_CAP_PCT, RECYCLER_POSITION_PCT,
+// RECYCLER_POSITION_CAP_USD, HARVEST_TIER_TRIGGER_PCT). Level 3 (Moderate)
+// equals the spec-locked defaults; levels 1-2 are safer (smaller sizes), 4-5
+// riskier (larger sizes). Safety floors (HARVEST_MIN_STACK_BTC, sustain days,
+// regime ATR multipliers, breakdown-max-hold) are NOT touched by the dial —
+// they stay at locked defaults. On a v1.5.2 bot these keys silently no-op via
+// the bot's settings whitelist; on a v2 bot they take effect immediately.
+//
 // Fields:
 //   key     — stable identifier (used for selection/lookup; never shown raw)
 //   label   — display name shown on the dial scale and preset tiles
 //   dip1/2/3— the three tier thresholds written verbatim to /api/settings
+//   v2      — five v2 size knobs written alongside dip thresholds (object)
 //   angle   — needle rotation in degrees; five detents evenly spaced across the
 //             270° arc (−135° → +135°, step 67.5°)
 //   tag     — short caption shown beside the dial when this level is selected
@@ -1358,30 +1368,65 @@ const AGGRESSION_LEVELS = [
   {
     key: 'conservative', label: 'Conservative',
     dip1: '0.12', dip2: '0.22', dip3: '0.35', angle: -135,
+    v2: {
+      harvest_fire_cap_pct:       '0.010',
+      harvest_total_cap_pct:      '0.20',
+      harvest_tier_trigger_pct:   '0.07',
+      recycler_position_pct:      '0.03',
+      recycler_position_cap_usd:  '300',
+    },
     tag: 'Most patient. Only buys after major drops; lets most dips pass.',
     summary: 'Only buys after large price drops — it lets most dips pass and deploys your cash slowly, just on the deepest pullbacks.'
   },
   {
     key: 'balanced', label: 'Balanced',
     dip1: '0.07', dip2: '0.15', dip3: '0.22', angle: -67.5,
+    v2: {
+      harvest_fire_cap_pct:       '0.015',
+      harvest_total_cap_pct:      '0.27',
+      harvest_tier_trigger_pct:   '0.06',
+      recycler_position_pct:      '0.04',
+      recycler_position_cap_usd:  '400',
+    },
     tag: 'Waits for meaningful pullbacks before buying. Deploys gradually.',
     summary: 'Waits for a clear, meaningful pullback before buying, then deploys your cash gradually as the dip deepens.'
   },
   {
     key: 'moderate', label: 'Moderate',
     dip1: '0.05', dip2: '0.10', dip3: '0.16', angle: 0,
+    v2: {
+      harvest_fire_cap_pct:       '0.020',
+      harvest_total_cap_pct:      '0.33',
+      harvest_tier_trigger_pct:   '0.05',
+      recycler_position_pct:      '0.05',
+      recycler_position_cap_usd:  '500',
+    },
     tag: 'The middle path. Buys on moderate dips and scales in across pullbacks.',
     summary: 'The middle path — buys on moderate dips and scales into a pullback in steps, balancing patience with putting cash to work.'
   },
   {
     key: 'aggressive', label: 'Aggressive',
     dip1: '0.03', dip2: '0.07', dip3: '0.12', angle: 67.5,
+    v2: {
+      harvest_fire_cap_pct:       '0.025',
+      harvest_total_cap_pct:      '0.40',
+      harvest_tier_trigger_pct:   '0.04',
+      recycler_position_pct:      '0.06',
+      recycler_position_cap_usd:  '650',
+    },
     tag: 'Buys early on smaller dips. Deploys capital more often.',
     summary: 'Buys early on smaller dips and deploys capital more often, catching most reasonable discounts rather than holding out.'
   },
   {
     key: 'ultra', label: 'Ultra ⚡',
     dip1: '0.015', dip2: '0.030', dip3: '0.060', angle: 135,
+    v2: {
+      harvest_fire_cap_pct:       '0.030',
+      harvest_total_cap_pct:      '0.50',
+      harvest_tier_trigger_pct:   '0.03',
+      recycler_position_pct:      '0.07',
+      recycler_position_cap_usd:  '800',
+    },
     tag: 'Maximum stacking. Buys aggressively on even shallow dips.',
     summary: 'Maximum stacking — buys aggressively on even shallow dips to grab as much BTC as possible, spending your reserve fastest.'
   },
@@ -2318,9 +2363,16 @@ function setAggression(i) {
   const lvl = AGGRESSION_LEVELS[i];
   paintKnob(i);                                  // optimistic
   lastLevel = i;
-  renderTwirldown({ ...lastSettings, dip_tier1: lvl.dip1, dip_tier2: lvl.dip2, dip_tier3: lvl.dip3 });  // optimistic tile highlight
+  // Write all dial-controlled keys at once: v1 dip thresholds (active on every
+  // bot version) + v2 size knobs (active only when STRATEGY_VERSION=v2; on a
+  // v1.5.2 bot the settings whitelist silently drops unknown keys).
+  const payload = {
+    dip_tier1: lvl.dip1, dip_tier2: lvl.dip2, dip_tier3: lvl.dip3,
+    ...(lvl.v2 || {}),
+  };
+  renderTwirldown({ ...lastSettings, ...payload });  // optimistic tile highlight
   saveSettings(
-    { dip_tier1: lvl.dip1, dip_tier2: lvl.dip2, dip_tier3: lvl.dip3 },
+    payload,
     () => { renderTwirldown(lastSettings); },    // confirmed; refresh live % on tiles
     () => { paintKnob(prev); lastLevel = prev; renderTwirldown(lastSettings); }
   );
