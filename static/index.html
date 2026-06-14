@@ -381,6 +381,23 @@
   .toggle-switch input:disabled + .toggle-track { opacity: 0.5; cursor: default; }
   .adjust-caption { font-size: 11px; color: var(--text-faint); line-height: 1.5; }
 
+  /* === DCA CARD (v2.6 — "Automatic recurring buys" control card) === */
+  .card.dca-card {
+    padding: var(--space-5);
+    margin-bottom: var(--space-6);   /* matches .agg-card spacing */
+  }
+  .dca-card h2 {
+    font-size: 17px; font-weight: 700; color: var(--text);
+    letter-spacing: -0.01em; margin: 0 0 var(--space-2);
+  }
+  .dca-card .dca-sub {
+    font-size: 12px; color: var(--text-muted);
+    line-height: 1.5; margin-bottom: var(--space-4);
+  }
+  .dca-card .dca-fields {
+    display: flex; flex-direction: column; gap: var(--space-3);
+  }
+
   /* === ACTIVITY CARD (v2.0 "What your bot's been up to") === */
   .activity-card { margin-bottom: var(--space-5); }
   /* Conversational title — mirrors .agg-title so the two "newer" cards
@@ -1387,24 +1404,6 @@
         <div class="preset-summary" id="preset-summary"></div>
       </div>
 
-      <!-- DCA amount + cadence -->
-      <div class="adjust-section">
-        <div class="adjust-section-title">Recurring buy (DCA)</div>
-        <div class="field-line">
-          <label for="dca-amount">Amount per buy</label>
-          <input class="num-input" id="dca-amount" type="number" min="5" step="1" inputmode="decimal" placeholder="—">
-        </div>
-        <div class="field-line">
-          <label for="dca-cadence">Cadence</label>
-          <select class="sel-input" id="dca-cadence">
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
-        </div>
-        <div class="adjust-caption">DCA only buys when USD is available in your Kraken account.</div>
-      </div>
-
       <!-- Sideways Market -->
       <div class="adjust-section">
         <div class="field-line">
@@ -1429,6 +1428,28 @@
 
     </div>
   </details>
+
+  <!-- 3b. DCA SETTINGS — Recurring buy controls (amount + cadence). Extracted
+       from the legacy hidden "Adjust thresholds" drawer in v2.6.0 so users
+       can actually edit them. IDs match the existing JS wiring. -->
+  <div class="card dca-card">
+    <h2>Automatic recurring buys</h2>
+    <div class="dca-sub">Steady flow of dollars into the stack — runs on the cadence you set, only when there's USD in your Kraken account.</div>
+    <div class="dca-fields">
+      <div class="field-line">
+        <label for="dca-amount">Amount per buy</label>
+        <input class="num-input" id="dca-amount" type="number" min="5" step="1" inputmode="decimal" placeholder="—">
+      </div>
+      <div class="field-line">
+        <label for="dca-cadence">Cadence</label>
+        <select class="sel-input" id="dca-cadence">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+    </div>
+  </div>
 
   <!-- 4. WHAT YOUR BOT'S BEEN UP TO — single trades view, plain-English sentences. -->
   <div class="card activity-card">
