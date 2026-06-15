@@ -1816,8 +1816,9 @@ function fmtTradeDetail(t) {
     parts.push(`${fmtBtc(btc)} BTC`);
   }
 
-  // BTC price at fill. fmtUsd0 already prints "$64,237" (no decimals, comma).
-  const px = Number(t && t.price);
+  // BTC price at fill (bot serializer emits this as price_usd — NOT "price").
+  // fmtUsd0 already prints "$64,237" (no decimals, comma).
+  const px = Number(t && t.price_usd);
   if (Number.isFinite(px) && px > 0) {
     parts.push(`@ ${fmtUsd0(px)}`);
   }
