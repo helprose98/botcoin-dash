@@ -540,11 +540,11 @@
     border-bottom: 1px solid var(--divider);
     margin-bottom: var(--space-3);
   }
+  .growth-hero-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .growth-value { font-family: var(--font-mono); font-size: 36px; font-weight: 700;
     color: var(--green); letter-spacing: -0.02em; }
   .growth-value.neg { color: var(--red); }
   .growth-hero-usd { font-size: 14px; color: var(--text-muted); font-weight: 500; margin-top: -2px; }
-  .growth-sub-usd  { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
   .growth-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
   /* APY equivalent (money-weighted annualized return). Hidden until xirr() yields a number. */
   .growth-apy { font-size: 15px; font-weight: 700; color: var(--green); margin-top: 6px; }
@@ -936,7 +936,10 @@
     font-family: var(--font-mono); color: var(--text-muted);
     font-variant-numeric: tabular-nums;
   }
-  .hero-portfolio .hero-delta {
+  /* Reusable green/red status pill — shared by the top-card "vs deposits"
+     delta and the "How you're doing" BTC-growth pill so color tweaks land in
+     both spots. Default = green (positive); add .down for red (negative). */
+  .delta-pill {
     display: inline-flex; align-items: center; gap: 6px;
     font-size: 14px; font-weight: 700; letter-spacing: 0.02em;
     padding: 4px 12px; border-radius: 999px;
@@ -944,7 +947,7 @@
     border: 1px solid color-mix(in srgb, var(--green) 40%, transparent);
     font-variant-numeric: tabular-nums;
   }
-  .hero-portfolio .hero-delta.down {
+  .delta-pill.down {
     background: var(--red-dim); color: var(--red);
     border-color: color-mix(in srgb, var(--red) 40%, transparent);
   }
@@ -1217,7 +1220,7 @@
     </div>
     <div class="hero-meta">
       <span class="hero-price" id="tool-price">—</span>
-      <span class="hero-delta" id="hero-delta"></span>
+      <span class="delta-pill hero-delta" id="hero-delta"></span>
     </div>
     <!-- Retained ID — kept hidden so legacy render() write doesn't error. -->
     <span id="btc-stack-sub" style="display:none"></span>
@@ -1319,11 +1322,11 @@
 
       <!-- BTC-first hero: signed sats delta + live USD translation -->
       <div class="growth-hero">
-        <div class="growth-value mono" id="growth-hero-btc">—</div>
+        <div class="growth-hero-row">
+          <div class="growth-value mono" id="growth-hero-btc">—</div>
+          <span class="delta-pill growth-btc-pill" id="growth-btc-pill" style="display:none"></span>
+        </div>
         <div class="growth-hero-usd" id="growth-hero-usd">—</div>
-
-        <!-- USD context as sub-line, less prominent -->
-        <div class="growth-sub-usd" id="growth-sub-usd">—</div>
 
         <!-- APY (kept exactly as is, including the four-state renderGrowthApy logic) -->
         <div class="growth-apy" id="growth-apy" style="display:none"></div>
@@ -2366,7 +2369,7 @@ function render(data, trades, settings, deposits) {
     : null;
   const totalInvested = depTotal != null ? depTotal : 0;
   const portfolioToday = btcStack * price + usdReserve;
-  renderGrowth(data, trades, totalInvested, portfolioToday, price, depTotal != null, deposits);
+  const usdGrowthPct = renderGrowth(data, trades, totalInvested, portfolioToday, price, depTotal != null, deposits);
 
   // BTC live price — plain text inside the hero meta row.
   // The live-price poll still targets #tool-price.
@@ -2385,7 +2388,11 @@ function render(data, trades, settings, deposits) {
       heroDeltaEl.classList.toggle('down', !up);
       const arrow = up ? '▲' : '▼';
       const sign  = up ? '+' : '−';
-      heroDeltaEl.textContent = `${arrow} ${sign}${fmtUsd(Math.abs(diff))} vs deposits`;
+      // Append the existing usdGrowthPct (computed in renderGrowth, not here)
+      // as a (+X.X%) segment. Omitted when totalInvested === 0 (deposits
+      // endpoint failed), which the totalInvested > 0 guard above ensures.
+      const pctSeg = `(${usdGrowthPct < 0 ? '−' : '+'}${Math.abs(usdGrowthPct).toFixed(1)}%) `;
+      heroDeltaEl.textContent = `${arrow} ${sign}${fmtUsd(Math.abs(diff))} ${pctSeg}vs deposits`;
     } else {
       heroDeltaEl.textContent = '';
     }
@@ -2964,24 +2971,34 @@ function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDe
   // compute "expected stack", so fall back to a muted syncing state.
   const haveDepositBasis = deposits != null && (btcDeposited > 0 || usdDeposited > 0);
 
-  const heroBtcEl = document.getElementById('growth-hero-btc');
-  const heroUsdEl = document.getElementById('growth-hero-usd');
-  const subUsdEl  = document.getElementById('growth-sub-usd');
+  const heroBtcEl  = document.getElementById('growth-hero-btc');
+  const heroUsdEl  = document.getElementById('growth-hero-usd');
+  const btcPillEl  = document.getElementById('growth-btc-pill');
 
   if (!haveDepositBasis) {
     heroBtcEl.textContent = '—';
     heroBtcEl.classList.remove('neg');
     heroUsdEl.textContent = '';
-    subUsdEl.textContent = 'Deposit history syncing…';
+    btcPillEl.style.display = 'none';
   } else {
     const heroNeg = netStackDelta < 0;
     heroBtcEl.textContent = (heroNeg ? '−' : '+') + fmtBtc(Math.abs(netStackDelta)) + ' BTC';
     heroBtcEl.classList.toggle('neg', heroNeg);
     heroUsdEl.textContent = `≈ ${heroNeg ? '−' : '+'}${fmtUsd0(Math.abs(netStackDeltaUsd))} at current price`;
 
-    const usdNeg = usdGrowth < 0;
-    subUsdEl.textContent = `USD view: ${usdNeg ? '−' : '+'}${fmtUsd(Math.abs(usdGrowth))} `
-      + `(${usdNeg ? '−' : '+'}${Math.abs(usdGrowthPct).toFixed(1)}% vs total invested)`;
+    // BTC-growth pill — net stack delta over the "you'd-have-without-cycles"
+    // stack (btcStack − netStackDelta), which is exactly what the hero number
+    // is measured against. Hidden when that denominator is non-positive.
+    const btcStack    = stackNow;
+    const btcPctDenom = btcStack - netStackDelta;
+    if (btcPctDenom > 0) {
+      const btcGrowthPct = (netStackDelta / btcPctDenom) * 100;
+      btcPillEl.textContent = `${heroNeg ? '−' : '+'}${Math.abs(btcGrowthPct).toFixed(1)}% sats`;
+      btcPillEl.classList.toggle('down', heroNeg);
+      btcPillEl.style.display = '';
+    } else {
+      btcPillEl.style.display = 'none';
+    }
   }
 
   // APY equivalent: money-weighted annualized return (XIRR) over the deposit
@@ -3017,6 +3034,10 @@ function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDe
 
   // BTC price move — mark-to-market on the current stack, signed (unchanged).
   setGrowthRow('growth-appreciation', appreciation);
+
+  // Hand the already-computed USD growth % back to render() so the top-card
+  // "vs deposits" pill can append (+X.X%) without recomputing the math.
+  return usdGrowthPct;
 }
 
 // Render one Growth breakdown row: signed USD value, green when ≥ 0, red when
