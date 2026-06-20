@@ -3001,11 +3001,21 @@ function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDe
     heroUsdEl.textContent = `≈ ${heroNeg ? '−' : '+'}${fmtUsd0(Math.abs(netStackDeltaUsd))} at current price`;
 
     // BTC-growth pill — net stack delta over the "you'd-have-without-cycles"
-    // stack (btcStack − netStackDelta), which is exactly what the hero number
-    // is measured against. Hidden when that denominator is non-positive.
+    // stack (btcStack − netStackDelta = btcDeposited + dcaBtcBought), which is
+    // exactly what the hero number is measured against. The ratio answers:
+    // "how much did the bot's smart cycling add on top of passive DCA + deposits?"
+    //
+    // Hidden when the denominator is too small to make the ratio meaningful.
+    // Tiny denominators (e.g. brand-new USD-only depositors with only a handful
+    // of DCA buys on the books) cause explosive percentages that are noise, not
+    // signal — same statistical reason % changes off near-zero baselines aren't
+    // quoted. Floor chosen at ~$60-worth of BTC: small enough that any committed
+    // user crosses it within weeks, large enough to suppress the noise case.
+    // Once the baseline is real, the chip reappears with its full meaning intact.
+    const MIN_DENOM_BTC = 0.001;
     const btcStack    = stackNow;
     const btcPctDenom = btcStack - netStackDelta;
-    if (btcPctDenom > 0) {
+    if (btcPctDenom >= MIN_DENOM_BTC) {
       const btcGrowthPct = (netStackDelta / btcPctDenom) * 100;
       btcPillEl.textContent = `${heroNeg ? '−' : '+'}${Math.abs(btcGrowthPct).toFixed(1)}% sats`;
       btcPillEl.classList.toggle('down', heroNeg);
