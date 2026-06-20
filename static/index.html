@@ -1306,10 +1306,6 @@
         <span class="bd-label">USD deposits</span>
         <span class="bd-val mono" id="put-usd">—</span>
       </div>
-      <div class="bd-line">
-        <span class="bd-label">Bot purchases <span class="bd-sub">DCA buys</span></span>
-        <span class="bd-val mono" id="put-bot">—</span>
-      </div>
       <div class="bd-total">
         <span>Total invested</span>
         <span class="bd-val mono" id="put-total">—</span>
@@ -2359,18 +2355,16 @@ function render(data, trades, settings, deposits) {
   renderModePills(settings);
   renderTwirldown(settings);
 
-  // Bot purchases = DCA + quick_buy usd_amount only (recycler legs net to zero)
-  const botPurchases = trades
-    .filter(t => ['dca', 'quick_buy', 'quickbuy'].includes((t.reason || '').toLowerCase()))
-    .reduce((s, t) => s + (t.usd_amount || 0), 0);
+  renderInvested(deposits);
 
-  renderInvested(deposits, botPurchases);
-
-  // Growth
+  // Growth. "Total invested" = external capital transferred IN (BTC deposits at
+  // their at-time USD value + USD deposits). Bot DCA/quick_buy purchases are
+  // NOT added: they spend dollars already counted in USD deposits, so adding
+  // them would double-count the same capital.
   const depTotal = deposits && deposits.totals
     ? (deposits.totals.btc_deposits_usd_value_at_time || 0) + (deposits.totals.usd_deposits_amount || 0)
     : null;
-  const totalInvested = (depTotal != null ? depTotal : 0) + botPurchases;
+  const totalInvested = depTotal != null ? depTotal : 0;
   const portfolioToday = btcStack * price + usdReserve;
   renderGrowth(data, trades, totalInvested, portfolioToday, price, depTotal != null, deposits);
 
@@ -2407,8 +2401,8 @@ function render(data, trades, settings, deposits) {
 
 // "BTC stacked by bot" — net BTC the bot accumulated through completed trading
 // cycles (recycler/range/harvest legs), i.e. Σ buy btc_amount − Σ sell btc_amount
-// across cycle reasons only. DCA/quick-buy are excluded (those are tracked as
-// "Bot purchases" in USD on the invested side). Returns a non-negative number.
+// across cycle reasons only. DCA/quick-buy are excluded (they convert deposited
+// USD into BTC, not a cycle win). Returns a non-negative number.
 const CYCLE_BUY_REASONS  = ['usd_recycler_buy','recycler_rebuy','range_recycler_buy','universal_recycler_open'];
 const CYCLE_SELL_REASONS = ['usd_recycler_resell','recycler_sell','range_recycler_sell','universal_recycler_close','harvest_fire'];
 function btcStackedByBot(trades) {
@@ -2899,15 +2893,12 @@ function onPresetClick(idx) {
   setAggression(idx);
 }
 
-function renderInvested(deposits, botPurchases) {
+function renderInvested(deposits) {
   const badge = document.getElementById('deposits-badge');
   const btcEl = document.getElementById('put-btc');
   const btcSub = document.getElementById('put-btc-sub');
   const usdEl = document.getElementById('put-usd');
-  const botEl = document.getElementById('put-bot');
   const totalEl = document.getElementById('put-total');
-
-  botEl.textContent = fmtUsd(botPurchases);
 
   if (!deposits || !deposits.totals) {
     // Graceful degradation: deposits endpoint failed or empty
@@ -2923,7 +2914,10 @@ function renderInvested(deposits, botPurchases) {
   btcEl.textContent = fmtUsd(t.btc_deposits_usd_value_at_time);
   btcSub.textContent = (t.btc_deposits_amount || 0).toFixed(6) + ' BTC';
   usdEl.textContent = fmtUsd(t.usd_deposits_amount);
-  const total = (t.btc_deposits_usd_value_at_time || 0) + (t.usd_deposits_amount || 0) + botPurchases;
+  // Total invested = external capital in only (BTC deposits at-time + USD
+  // deposits). Bot DCA purchases are excluded — they redeploy USD that is
+  // already counted in USD deposits.
+  const total = (t.btc_deposits_usd_value_at_time || 0) + (t.usd_deposits_amount || 0);
   totalEl.textContent = fmtUsd(total);
 }
 
@@ -2954,7 +2948,8 @@ function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDe
   const netStackDeltaUsd = netStackDelta * price;
 
   // USD-side view, preserved as a sub-line: total portfolio value today vs the
-  // dollars put in (BTC deposits at-time + USD deposits + bot DCA purchases).
+  // dollars put in (BTC deposits at-time + USD deposits). Bot DCA purchases are
+  // not part of this — they redeploy USD already counted in USD deposits.
   const usdGrowth    = portfolioToday - totalInvested;
   const usdGrowthPct = totalInvested > 0 ? (usdGrowth / totalInvested * 100) : 0;
 
