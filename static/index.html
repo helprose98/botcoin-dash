@@ -1365,10 +1365,6 @@
           </span>
         </div>
         <div class="bd-line">
-          <span class="bd-label">Bot cycle wins <span class="bd-sub">cumulative cycle delta</span></span>
-          <span class="bd-val mono" id="growth-cycle-wins" style="color:var(--accent)">—</span>
-        </div>
-        <div class="bd-line">
           <span class="bd-label">BTC price move <span class="bd-sub">mark-to-market on stack</span></span>
           <span class="bd-val mono" id="growth-appreciation" style="color:var(--green)">—</span>
         </div>
@@ -2420,24 +2416,6 @@ function render(data, trades, settings, deposits) {
   renderExpert(settings);
 }
 
-// "BTC stacked by bot" — net BTC the bot accumulated through completed trading
-// cycles (recycler/range/harvest legs), i.e. Σ buy btc_amount − Σ sell btc_amount
-// across cycle reasons only. DCA/quick-buy are excluded (they convert deposited
-// USD into BTC, not a cycle win). Returns a non-negative number.
-const CYCLE_BUY_REASONS  = ['usd_recycler_buy','recycler_rebuy','range_recycler_buy','universal_recycler_open'];
-const CYCLE_SELL_REASONS = ['usd_recycler_resell','recycler_sell','range_recycler_sell','universal_recycler_close','harvest_fire'];
-function btcStackedByBot(trades) {
-  if (!Array.isArray(trades)) return 0;
-  let net = 0;
-  for (const t of trades) {
-    const r = (t.reason || '').toLowerCase();
-    const amt = Number(t.btc_amount) || 0;
-    if (CYCLE_BUY_REASONS.includes(r))  net += amt;
-    else if (CYCLE_SELL_REASONS.includes(r)) net -= amt;
-  }
-  return net;
-}
-
 /**
  * Render the "What your bot's been up to" card: a one-line summary plus the most
  * recent activity rendered as plain-English sentences. Graceful on empty trades.
@@ -2955,17 +2933,14 @@ function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDe
   const btcDeposited = t.btc_deposits_amount || 0;  // native BTC
   const usdDeposited = t.usd_deposits_amount || 0;  // USD
 
-  // Bot stack-adding buys (DCA + any quick_buy) — new capital converted into BTC.
-  // These are the sats you'd hold if no cycle activity had ever run.
-  const dcaBtcBought = trades
-    .filter(t => ['dca', 'quick_buy', 'quickbuy'].includes((t.reason || '').toLowerCase()))
-    .reduce((s, t) => s + (Number(t.btc_amount) || 0), 0);
-
-  // HERO — net stack delta vs the BTC you'd have if no cycle activity had run
-  // (BTC deposits + DCA-bought BTC). Negative = cycle activity (incl. the v1
-  // USD-mode drain) cost sats. Positive (future) = v2 cycles net you sats.
-  const expectedStack    = btcDeposited + dcaBtcBought;
-  const netStackDelta    = stackNow - expectedStack;
+  // HERO — growth measured against the BTC the user actually contributed.
+  // Simple, honest framing: "how much bigger is your stack than what you put in?"
+  // No attribution split between DCA / dip-buy / recycler — Andy doesn't care
+  // *how* sats were acquired, only that the stack is growing. This also closes
+  // the dip-buy classification gap that inflated previous hero values: any sats
+  // the bot adds (DCA, dip-buy, recycler) all land in stackNow and count toward
+  // growth identically.
+  const netStackDelta    = stackNow - btcDeposited;
   const netStackDeltaUsd = netStackDelta * price;
 
   // USD-side view, preserved as a sub-line: total portfolio value today vs the
@@ -2974,15 +2949,11 @@ function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDe
   const usdGrowth    = portfolioToday - totalInvested;
   const usdGrowthPct = totalInvested > 0 ? (usdGrowth / totalInvested * 100) : 0;
 
-  // Cumulative cycle delta — net BTC moved by completed recycler/harvest cycles.
-  // Labeled truthfully as "Bot cycle wins": it is NOT the change in the stack.
-  const cycleWins = btcStackedByBot(trades);
-
   // Mark-to-market on the current stack from cost basis to spot (unchanged math).
   const appreciation = (price - basis) * stackNow;
 
   // Deposit history is the anchor for the hero. Until it has synced we can't
-  // compute "expected stack", so fall back to a muted syncing state.
+  // compute growth vs contributions, so fall back to a muted syncing state.
   const haveDepositBasis = deposits != null && (btcDeposited > 0 || usdDeposited > 0);
 
   const heroBtcEl  = document.getElementById('growth-hero-btc');
@@ -3000,23 +2971,19 @@ function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDe
     heroBtcEl.classList.toggle('neg', heroNeg);
     heroUsdEl.textContent = `≈ ${heroNeg ? '−' : '+'}${fmtUsd0(Math.abs(netStackDeltaUsd))} at current price`;
 
-    // BTC-growth pill — net stack delta over the "you'd-have-without-cycles"
-    // stack (btcStack − netStackDelta = btcDeposited + dcaBtcBought), which is
-    // exactly what the hero number is measured against. The ratio answers:
-    // "how much did the bot's smart cycling add on top of passive DCA + deposits?"
+    // BTC-growth pill — growth ratio against the BTC the user contributed.
+    // Answers: "how much has my stack grown vs what I put in?"
     //
-    // Hidden when the denominator is too small to make the ratio meaningful.
-    // Tiny denominators (e.g. brand-new USD-only depositors with only a handful
-    // of DCA buys on the books) cause explosive percentages that are noise, not
-    // signal — same statistical reason % changes off near-zero baselines aren't
-    // quoted. Floor chosen at ~$60-worth of BTC: small enough that any committed
-    // user crosses it within weeks, large enough to suppress the noise case.
-    // Once the baseline is real, the chip reappears with its full meaning intact.
+    // Hidden when the contribution baseline is too small to make the ratio
+    // meaningful. USD-only depositors (btcDeposited = 0) and trivially small
+    // BTC contributions produce explosive percentages that are noise, not
+    // signal — the same reason % changes off near-zero baselines aren't quoted
+    // in finance. Floor chosen at ~$60-worth of BTC: small enough that any
+    // committed BTC depositor crosses it quickly, large enough to suppress the
+    // noise case. Once the baseline is real, the chip reappears with full meaning.
     const MIN_DENOM_BTC = 0.001;
-    const btcStack    = stackNow;
-    const btcPctDenom = btcStack - netStackDelta;
-    if (btcPctDenom >= MIN_DENOM_BTC) {
-      const btcGrowthPct = (netStackDelta / btcPctDenom) * 100;
+    if (btcDeposited >= MIN_DENOM_BTC) {
+      const btcGrowthPct = (netStackDelta / btcDeposited) * 100;
       btcPillEl.textContent = `${heroNeg ? '−' : '+'}${Math.abs(btcGrowthPct).toFixed(1)}% sats`;
       btcPillEl.classList.toggle('down', heroNeg);
       btcPillEl.style.display = '';
@@ -3043,18 +3010,6 @@ function renderGrowth(data, trades, totalInvested, portfolioToday, price, haveDe
   document.getElementById('growth-usd-now').textContent = fmtUsd(usdNow);
   document.getElementById('growth-usd-start').textContent =
     'started: ' + (haveDepositBasis ? fmtUsd(usdDeposited) : '—');
-
-  // Bot cycle wins — signed BTC delta. Orange when non-zero (positive or
-  // negative both indicate live cycle activity); muted dash when exactly zero.
-  const cycleEl = document.getElementById('growth-cycle-wins');
-  if (cycleWins === 0) {
-    cycleEl.textContent = '—';
-    cycleEl.style.color = 'var(--text-muted)';
-  } else {
-    const cycleNeg = cycleWins < 0;
-    cycleEl.textContent = (cycleNeg ? '−' : '+') + fmtBtc(Math.abs(cycleWins)) + ' BTC';
-    cycleEl.style.color = cycleNeg ? 'var(--red)' : 'var(--accent)';
-  }
 
   // BTC price move — mark-to-market on the current stack, signed (unchanged).
   setGrowthRow('growth-appreciation', appreciation);
