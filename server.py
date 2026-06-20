@@ -151,6 +151,7 @@ ALLOWED_PATHS = (
     "/api/trades",
     "/api/settings",
     "/api/update",
+    "/api/update-status",
     "/api/version",
     "/api/setup/",
     "/api/open_orders",

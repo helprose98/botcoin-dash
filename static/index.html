@@ -872,6 +872,20 @@
   .update-version-chip.current { background: var(--surface-3); color: var(--text-muted); }
   .update-version-chip.latest { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); }
   .update-progress { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); min-height: 1.4em; }
+  /* Manual-recovery banner shown when the bot stays unreachable after an update. */
+  .update-recovery {
+    margin-top: var(--space-2); padding: var(--space-3);
+    background: var(--red-dim); border: 1px solid color-mix(in srgb, var(--red) 40%, transparent);
+    border-radius: var(--radius-sm); color: var(--text); font-family: var(--font-body);
+    font-size: 12px; line-height: 1.5; text-align: left;
+  }
+  .update-recovery strong { color: var(--red); display: block; margin-bottom: var(--space-1); }
+  .update-recovery-note { color: var(--text-muted); margin-top: var(--space-1); }
+  .update-recovery-cmd {
+    margin: var(--space-2) 0 0; padding: var(--space-2); background: var(--bg);
+    border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 11px;
+    color: var(--text); white-space: pre-wrap; word-break: break-all; user-select: all;
+  }
   .update-modal-actions { display: flex; gap: var(--space-2); justify-content: flex-end; }
   .btn-update {
     padding: 10px 20px; background: var(--accent); color: #1A1208; border: none;
@@ -1560,7 +1574,7 @@
 <div class="update-modal-overlay" id="update-modal-overlay">
   <div class="update-modal">
     <div class="update-modal-title">Update BotCoin</div>
-    <div class="update-modal-body">The bot will pull the latest code from GitHub and rebuild automatically. This takes about 2 minutes — the dashboard reconnects when it's back up.</div>
+    <div class="update-modal-body">The bot will pull the latest code from GitHub and rebuild safely — it stays online during the build and only switches over once the new version is healthy. The dashboard watches the real update status and reconnects automatically when it's done.</div>
     <div class="update-modal-versions">
       <div class="update-version-chip current">Current: <span id="modal-current-version">—</span></div>
       <div class="update-version-chip latest">⬆️ Latest: <span id="modal-latest-version">—</span></div>
@@ -3438,50 +3452,149 @@ function hideUpdateModal() {
   document.getElementById('update-modal-overlay').classList.remove('visible');
 }
 
+// How long the dash will actively poll the bot's update status before telling
+// the user to check manually. The host watcher runs once a minute and the
+// build+swap+health-check budget is ~60s, so 90s comfortably covers a healthy
+// update while still failing loud if the bot never comes back.
+const UPDATE_POLL_TIMEOUT_MS = 90000;
+const UPDATE_POLL_INTERVAL_MS = 4000;
+// If the bot proxy is unreachable for this long *after* triggering the update,
+// surface the manual-recovery banner — the box may have been left down.
+const UPDATE_UNREACHABLE_BANNER_MS = 30000;
+
+/** Copy-paste SSH recovery block shown when the bot may need manual recovery. */
+function _recoveryBannerHtml() {
+  return (
+    '<div class="update-recovery">' +
+    '<strong>⚠️ The bot isn\'t responding after the update.</strong>' +
+    '<div class="update-recovery-note">It usually self-recovers, but if the dashboard ' +
+    'stays disconnected, SSH into the bot server and run:</div>' +
+    '<pre class="update-recovery-cmd">cd /root/kraken-btc-bot &amp;&amp; docker compose up -d --build</pre>' +
+    '<div class="update-recovery-note">To see what happened: ' +
+    '<code>tail -50 /root/kraken-btc-bot/logs/update.log</code></div>' +
+    '</div>'
+  );
+}
+
 /**
- * Trigger the bot self-update via the proxied /api/update endpoint, then run a
- * 2-minute countdown before auto-reloading (the bot is rebuilding and the proxy
- * will be briefly unreachable). Mirrors the legacy flow.
+ * Trigger the bot self-update via the proxied /api/update endpoint, then poll
+ * the bot's real update status until it reports success/failure or the budget
+ * expires.
+ *
+ * Replaces the old blind 2-minute countdown (which always claimed success even
+ * when the bot had been left dead — the 2026-06-20 incident). We now:
+ *   - POST /api/update (the bot just schedules a host-side update),
+ *   - poll /api/update-status for the host watcher's real state,
+ *   - reload on confirmed success,
+ *   - on failed / rolled_back, show the bot's own message and keep the bot's
+ *     prior version (the host script rolls back automatically),
+ *   - on "manual" or prolonged unreachability, show a copy-paste SSH recovery
+ *     banner so Andy is never left guessing.
  */
 async function executeUpdate() {
   const btn = document.getElementById('btn-update-confirm');
   const cancel = document.getElementById('btn-update-cancel');
   const progress = document.getElementById('update-progress');
-  btn.disabled = true;
-  btn.textContent = 'Updating…';
-  cancel.disabled = true;
-  progress.textContent = 'Pulling latest code from GitHub…';
-  try {
-    const res = await botFetch('/api/update', { method: 'POST', body: JSON.stringify({ password: BOT_PW }) });
-    if (res.ok) {
-      btn.textContent = '✓ Update Started';
-      cancel.style.display = 'none';
-      document.getElementById('update-pill').classList.remove('visible');
-      let secsLeft = 120;
-      const fmtSecs = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
-      progress.textContent = '⏳ Bot is rebuilding — refreshing in ' + fmtSecs(secsLeft);
-      const countdown = setInterval(() => {
-        secsLeft--;
-        if (secsLeft <= 0) {
-          clearInterval(countdown);
-          progress.textContent = '✓ Done! Reloading dashboard…';
-          setTimeout(() => window.location.reload(), 1000);
-        } else {
-          progress.textContent = '⏳ Bot is rebuilding — refreshing in ' + fmtSecs(secsLeft);
-        }
-      }, 1000);
-    } else {
-      progress.textContent = 'Error: ' + (res.error || 'Unknown error');
-      btn.disabled = false;
-      btn.textContent = '⬆️ Update Now';
-      cancel.disabled = false;
-    }
-  } catch (e) {
-    progress.textContent = 'Error: ' + e.message;
+
+  const resetButtons = () => {
     btn.disabled = false;
     btn.textContent = '⬆️ Update Now';
     cancel.disabled = false;
+    cancel.style.display = '';
+  };
+
+  btn.disabled = true;
+  btn.textContent = 'Updating…';
+  cancel.disabled = true;
+  progress.textContent = 'Scheduling update on the bot server…';
+
+  let res;
+  try {
+    res = await botFetch('/api/update', { method: 'POST', body: JSON.stringify({ password: BOT_PW }) });
+  } catch (e) {
+    progress.textContent = 'Error: ' + e.message;
+    resetButtons();
+    return;
   }
+  if (!res || !res.ok) {
+    progress.textContent = 'Error: ' + ((res && res.error) || 'Unknown error');
+    resetButtons();
+    return;
+  }
+
+  // Update accepted. The bot will briefly go unreachable during the swap; that
+  // is expected and is NOT itself a failure.
+  btn.textContent = '✓ Update Started';
+  cancel.style.display = 'none';
+  document.getElementById('update-pill').classList.remove('visible');
+  progress.textContent = '⏳ Bot is updating — building and restarting…';
+
+  const startedAt = Date.now();
+  let firstUnreachableAt = null;
+
+  const finishSuccess = (msg) => {
+    progress.innerHTML = '✓ ' + esc(msg || 'Update complete.') + ' Reloading…';
+    setTimeout(() => window.location.reload(), 1500);
+  };
+  const finishFailure = (msg) => {
+    // Bot rolled itself back / build failed — the bot is still up on its prior
+    // version. Let the user retry without leaving the modal stuck.
+    progress.innerHTML = '⚠️ ' + esc(msg || 'Update did not complete. The bot kept its previous version.');
+    resetButtons();
+  };
+  const finishManual = (msg) => {
+    progress.innerHTML = (msg ? '⚠️ ' + esc(msg) + '<br>' : '') + _recoveryBannerHtml();
+    resetButtons();
+  };
+
+  const poll = async () => {
+    const elapsed = Date.now() - startedAt;
+
+    let status = null;
+    try {
+      status = await botFetch('/api/update-status');
+      firstUnreachableAt = null;   // reachable again — clear the unreachable timer
+    } catch (e) {
+      // Bot unreachable. Expected briefly during the container swap; only a
+      // problem if it persists past the banner threshold.
+      if (firstUnreachableAt === null) firstUnreachableAt = Date.now();
+      if (Date.now() - firstUnreachableAt > UPDATE_UNREACHABLE_BANNER_MS) {
+        progress.innerHTML = _recoveryBannerHtml();
+      } else {
+        progress.textContent = '⏳ Bot is restarting — reconnecting…';
+      }
+    }
+
+    if (status) {
+      switch (status.state) {
+        case 'success':
+          finishSuccess(status.message || ('Updated to v' + (status.version || '')));
+          return;
+        case 'failed':
+        case 'rolled_back':
+          finishFailure(status.message);
+          return;
+        case 'manual':
+          finishManual(status.message);
+          return;
+        // 'running' / 'idle' → keep polling
+        default:
+          progress.textContent = '⏳ ' + (status.message || 'Bot is updating…');
+      }
+    }
+
+    if (elapsed > UPDATE_POLL_TIMEOUT_MS) {
+      // Never got a terminal state in time. Don't claim success — tell the user
+      // how to check, and how to recover if needed.
+      finishManual('Update is taking longer than expected.');
+      return;
+    }
+    setTimeout(poll, UPDATE_POLL_INTERVAL_MS);
+  };
+
+  // Give the host watcher (runs up to once a minute) a moment before the first
+  // poll, then poll on the interval.
+  setTimeout(poll, UPDATE_POLL_INTERVAL_MS);
 }
 
 /** Open the Update Dashboard confirm modal, pre-filling current/latest versions. */
