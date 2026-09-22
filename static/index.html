@@ -2752,6 +2752,7 @@ function setAggression(i) {
   const payload = {
     dip_tier1: lvl.dip1, dip_tier2: lvl.dip2, dip_tier3: lvl.dip3,
     ...(lvl.v2 || {}),
+    aggression_level: lvl.key,   // bot checks this against the knobs before storing it
   };
   renderTwirldown({ ...lastSettings, ...payload });  // optimistic tile highlight
   saveSettings(
