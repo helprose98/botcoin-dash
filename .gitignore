@@ -11,3 +11,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Local-only notes — both repos are public, so these are never committed
+docs/private/
